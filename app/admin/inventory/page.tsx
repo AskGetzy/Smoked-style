@@ -10,6 +10,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [uploading, setUploading] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => { fetchProducts() }, [])
@@ -56,7 +57,11 @@ export default function InventoryPage() {
     setUploading(null)
   }
 
-  const grouped = products.reduce((acc, p) => {
+  const filtered = search
+    ? products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+    : products
+
+  const grouped = filtered.reduce((acc, p) => {
     if (!acc[p.category]) acc[p.category] = []
     acc[p.category].push(p)
     return acc
@@ -67,7 +72,12 @@ export default function InventoryPage() {
   return (
     <AdminLayout>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--navy)' }}>Inventory</h1>
+        <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--navy)' }}>Inventory</h1>
+        <input
+          value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search products..."
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-6 focus:outline-none focus:border-orange-400"
+        />
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
