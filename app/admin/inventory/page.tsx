@@ -21,10 +21,10 @@ export default function InventoryPage() {
     setLoading(false)
   }
 
-  async function updateStock(id: string, qty: number) {
+  async function updateProduct(id: string, qty: number, price: number) {
     setSaving(id)
-    await supabase.from('products').update({ stock_quantity: qty }).eq('id', id)
-    setProducts(ps => ps.map(p => p.id === id ? { ...p, stock_quantity: qty } : p))
+    await supabase.from('products').update({ stock_quantity: qty, price }).eq('id', id)
+    setProducts(ps => ps.map(p => p.id === id ? { ...p, stock_quantity: qty, price } : p))
     setSaving(null)
   }
 
@@ -138,19 +138,34 @@ export default function InventoryPage() {
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number" min="0"
-                          value={p.stock_quantity}
-                          onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, stock_quantity: Number(e.target.value) } : x))}
-                          className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:border-orange-400"
-                        />
-                        <button onClick={() => updateStock(p.id, p.stock_quantity)}
-                          disabled={saving === p.id}
-                          className="text-xs px-3 py-1.5 rounded-lg text-white font-semibold disabled:opacity-60"
-                          style={{ background: 'var(--navy)' }}>
-                          {saving === p.id ? '...' : 'Save'}
-                        </button>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 w-10">Price</span>
+                          <div className="relative flex-1">
+                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                            <input
+                              type="number" min="0" step="1"
+                              value={p.price}
+                              onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, price: Number(e.target.value) } : x))}
+                              className="w-full border border-gray-200 rounded-lg pl-6 pr-2 py-1 text-sm focus:outline-none focus:border-orange-400"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 w-10">Stock</span>
+                          <input
+                            type="number" min="0"
+                            value={p.stock_quantity}
+                            onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, stock_quantity: Number(e.target.value) } : x))}
+                            className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:border-orange-400"
+                          />
+                          <button onClick={() => updateProduct(p.id, p.stock_quantity, p.price)}
+                            disabled={saving === p.id}
+                            className="text-xs px-3 py-1.5 rounded-lg text-white font-semibold disabled:opacity-60 flex-shrink-0"
+                            style={{ background: 'var(--navy)' }}>
+                            {saving === p.id ? '...' : 'Save'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )
