@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #1a2744;
+  --orange: #e87722;
+  --gold: #d4a84b;
+  --cream: #fdf8f0;
+}
+
+body {
+  background-color: var(--cream);
+  color: #1f2937;
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
