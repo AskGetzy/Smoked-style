@@ -272,6 +272,9 @@ function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }
       </div>
       <div className="p-4">
         <h3 className="font-bold text-gray-900 text-base leading-tight">{product.name}</h3>
+        {product.size_label && (
+          <span className="inline-block bg-gray-100 text-gray-600 text-xs font-semibold px-2 py-0.5 rounded-full mt-1">{product.size_label}</span>
+        )}
         {product.description && (
           <p className="text-gray-500 text-sm mt-1 line-clamp-2">{product.description}</p>
         )}
