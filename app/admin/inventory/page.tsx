@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { supabase } from '@/lib/supabase'
 import type { Product } from '@/types'
@@ -9,6 +9,8 @@ export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
+  const [uploading, setUploading] = useState<string | null>(null)
+  const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   useEffect(() => { fetchProducts() }, [])
 
@@ -28,6 +30,30 @@ export default function InventoryPage() {
   async function toggleStock(id: string, current: boolean) {
     await supabase.from('products').update({ is_in_stock: !current }).eq('id', id)
     setProducts(ps => ps.map(p => p.id === id ? { ...p, is_in_stock: !current } : p))
+  }
+
+  async function uploadImage(id: string, file: File) {
+    setUploading(id)
+    const ext = file.name.split('.').pop()
+    const path = `${id}.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(path, file, { upsert: true })
+
+    if (uploadError) {
+      alert('Upload failed: ' + uploadError.message)
+      setUploading(null)
+      return
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(path)
+
+    await supabase.from('products').update({ image_url: publicUrl }).eq('id', id)
+    setProducts(ps => ps.map(p => p.id === id ? { ...p, image_url: publicUrl } : p))
+    setUploading(null)
   }
 
   const grouped = products.reduce((acc, p) => {
@@ -63,6 +89,33 @@ export default function InventoryPage() {
                     <div key={p.id} className={`bg-white rounded-xl border p-4 ${
                       !p.is_in_stock ? 'border-red-200 bg-red-50' : isLow ? 'border-yellow-200 bg-yellow-50' : 'border-gray-100'
                     }`}>
+                      {/* Image */}
+                      <div
+                        className="w-full h-36 rounded-lg mb-3 overflow-hidden relative group cursor-pointer bg-gray-100 flex items-center justify-center"
+                        onClick={() => fileRefs.current[p.id]?.click()}
+                      >
+                        {p.image_url ? (
+                          <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-4xl">🥩</span>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                          <span className="text-white text-sm font-semibold">
+                            {uploading === p.id ? 'Uploading...' : p.image_url ? '📷 Change Photo' : '📷 Add Photo'}
+                          </span>
+                        </div>
+                        <input
+                          ref={el => { fileRefs.current[p.id] = el }}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files?.[0]
+                            if (file) uploadImage(p.id, file)
+                          }}
+                        />
+                      </div>
+
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <p className="font-semibold text-sm text-gray-900">{p.name}</p>
@@ -74,6 +127,7 @@ export default function InventoryPage() {
                           {p.is_in_stock ? 'In Stock' : 'Off'}
                         </button>
                       </div>
+
                       <div className="flex items-center gap-2">
                         <input
                           type="number" min="0"
