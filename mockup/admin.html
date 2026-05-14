@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smoked Style — Admin</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #2E4057; --navy-dark: #1E2D3D; --orange: #C85C2D; --orange-light: #E8733E;
+  --bg: #F0F2F5; --card-bg: #FFFFFF; --text: #1A1A1A; --muted: #6B7280; --border: #E5E7EB;
+  --sidebar-w: 220px;
+  --green: #10B981; --yellow: #F59E0B; --blue: #3B82F6; --red: #EF4444;
+}
+
+*, body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+body { background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+/* ─── SIDEBAR ───────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w); background: var(--navy-dark);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 50;
+}
+.sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.sidebar-logo-text { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 1px; }
+.sidebar-logo-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+.sidebar-nav { flex: 1; padding: 12px 0; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 20px; color: rgba(255,255,255,0.6); cursor: pointer;
+  font-size: 14px; font-weight: 500; transition: all 0.15s;
+  border-left: 3px solid transparent; user-select: none;
+}
+.nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.nav-item.active { background: rgba(255,255,255,0.1); color: #fff; border-left-color: var(--orange); }
+.nav-icon { font-size: 17px; width: 22px; text-align: center; }
+.nav-badge { margin-left: auto; background: var(--orange); color: #fff; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; }
+.nav-badge.red { background: var(--red); }
+.sidebar-bottom { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); }
+.admin-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.admin-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--orange); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+.admin-name { font-size: 13px; font-weight: 600; color: #fff; }
+.admin-role { font-size: 11px; color: rgba(255,255,255,0.4); }
+.signout-btn { width: 100%; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.1); padding: 8px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+.signout-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+/* ─── MAIN ──────────────────────────────────────────────── */
+.main-content { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+.topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 40; }
+.topbar-title { font-size: 18px; font-weight: 800; color: var(--navy); }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-date { font-size: 13px; color: var(--muted); }
+.notif-btn { position: relative; background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px; }
+.notif-dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); border: 2px solid #fff; }
+.page { padding: 24px 28px; flex: 1; }
+
+/* ─── SHARED ────────────────────────────────────────────── */
+.page-section { display: none; }
+.page-section.active { display: block; }
+
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+.stat-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 8px; }
+.stat-val { font-size: 30px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
+.stat-sub { font-size: 12px; color: var(--muted); }
+.stat-card.orange .stat-val { color: var(--orange); }
+.stat-card.green .stat-val { color: var(--green); }
+.stat-card.red .stat-val { color: var(--red); }
+
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-title { font-size: 16px; font-weight: 800; color: var(--navy); }
+.btn-primary { background: var(--orange); color: #fff; border: none; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+.btn-primary:hover { background: var(--orange-light); }
+.btn-ghost { background: #fff; color: var(--navy); border: 1.5px solid var(--border); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+/* filter row */
+.filter-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.search-input { flex: 1; min-width: 200px; padding: 9px 14px 9px 36px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 10px center; outline: none; }
+.search-input:focus { border-color: var(--navy); }
+.filter-select { padding: 9px 32px 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; outline: none; cursor: pointer; }
+
+/* status tabs */
+.status-tabs { display: flex; gap: 2px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 20px; overflow-x: auto; }
+.status-tab { padding: 7px 14px; border-radius: 7px; border: none; background: transparent; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.status-tab.active { background: var(--navy); color: #fff; }
+.status-tab:hover:not(.active) { background: var(--bg); color: var(--text); }
+.tab-count { font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: rgba(0,0,0,0.1); }
+.status-tab.active .tab-count { background: rgba(255,255,255,0.2); }
+
+/* ─── ORDERS ────────────────────────────────────────────── */
+.orders-list { display: flex; flex-direction: column; gap: 12px; }
+.order-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: start; transition: box-shadow 0.2s; }
+.order-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.order-card.new-order { border-left: 4px solid var(--orange); }
+.order-num { font-size: 15px; font-weight: 800; color: var(--navy); margin-bottom: 2px; }
+.order-time { font-size: 12px; color: var(--muted); }
+.order-customer { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.order-phone { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.order-phone a { color: var(--navy); text-decoration: none; font-weight: 600; }
+.order-phone a:hover { color: var(--orange); }
+.order-items { font-size: 13px; color: var(--muted); margin-bottom: 6px; line-height: 1.5; }
+.order-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.meta-tag { font-size: 12px; color: var(--muted); background: var(--bg); padding: 3px 8px; border-radius: 4px; }
+.order-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.order-total { font-size: 18px; font-weight: 800; color: var(--navy); }
+.status-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 10px; border-radius: 999px; }
+.badge-pending   { background: #FEF3C7; color: #92400E; }
+.badge-approved  { background: #D1FAE5; color: #065F46; }
+.badge-otd       { background: #DBEAFE; color: #1E40AF; }
+.badge-delivered { background: #F3F4F6; color: #374151; }
+.badge-cancelled { background: #FEE2E2; color: #991B1B; }
+.order-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.btn-sm { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; }
+.btn-view    { background: var(--bg); color: var(--navy); border: 1px solid var(--border); }
+.btn-approve { background: #D1FAE5; color: #065F46; }
+.btn-reject  { background: #FEE2E2; color: #991B1B; }
+.btn-sm:hover { filter: brightness(0.93); }
+.driver-select { padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 12px; background: #fff; outline: none; cursor: pointer; max-width: 140px; }
+@keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(200,92,45,0.4);}50%{box-shadow:0 0 0 6px rgba(200,92,45,0);} }
+.order-card.new-order { animation: pulse 2s ease-in-out 3; }
+
+/* ─── PRODUCTION ────────────────────────────────────────── */
+.prod-date-nav { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.prod-date-nav button { background: #fff; border: 1.5px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 16px; cursor: pointer; }
+.prod-date-nav button:hover { background: var(--bg); }
+.prod-date-display { font-size: 18px; font-weight: 800; color: var(--navy); }
+.prod-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 760px) { .prod-panels { grid-template-columns: 1fr; } }
+.prod-panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.prod-panel-header { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; }
+.prod-panel-header.confirmed { background: #ECFDF5; border-bottom: 1px solid #A7F3D0; }
+.prod-panel-header.pending   { background: #FFFBEB; border-bottom: 1px solid #FDE68A; }
+.prod-panel-title { font-size: 14px; font-weight: 800; }
+.prod-panel-header.confirmed .prod-panel-title { color: #065F46; }
+.prod-panel-header.pending   .prod-panel-title { color: #92400E; }
+.prod-print-btn { font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 6px; border: none; cursor: pointer; }
+.prod-panel-header.confirmed .prod-print-btn { background: #A7F3D0; color: #065F46; }
+.prod-panel-header.pending   .prod-print-btn { background: #FDE68A; color: #92400E; }
+.prod-body { padding: 16px 18px; }
+.prod-category { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--orange); margin: 14px 0 6px; }
+.prod-category:first-child { margin-top: 0; }
+.prod-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.prod-row:last-child { border-bottom: none; }
+.prod-item { color: var(--text); }
+.prod-qty { font-weight: 800; color: var(--navy); }
+.prod-qty.pending-qty { color: var(--yellow); }
+
+/* ─── INVENTORY ─────────────────────────────────────────── */
+.inv-summary-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.inv-alert-chip { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; }
+.inv-alert-chip.low  { background: #FEF3C7; color: #92400E; }
+.inv-alert-chip.oos  { background: #FEE2E2; color: #991B1B; }
+.inv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 900px) { .inv-grid { grid-template-columns: repeat(2,1fr); } }
+.inv-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+.inv-card.low-stock  { border-color: #F59E0B; }
+.inv-card.out-stock  { border-color: #EF4444; opacity: 0.75; }
+.inv-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.inv-name { font-size: 14px; font-weight: 700; color: var(--navy); }
+.inv-cat  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.inv-badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.inv-badge.low { background: #FEF3C7; color: #92400E; }
+.inv-badge.oos { background: #FEE2E2; color: #991B1B; }
+.inv-badge.ok  { background: #D1FAE5; color: #065F46; }
+.inv-stock-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.inv-stock-input { width: 70px; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 15px; font-weight: 700; text-align: center; outline: none; }
+.inv-stock-input:focus { border-color: var(--navy); }
+.inv-unit { font-size: 13px; color: var(--muted); }
+.inv-toggle { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: #ccc; border-radius: 20px; cursor: pointer; transition: 0.3s; }
+.toggle-slider:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.3s; }
+.toggle input:checked + .toggle-slider { background: var(--green); }
+.toggle input:checked + .toggle-slider:before { transform: translateX(16px); }
+.inv-history-link { font-size: 12px; color: var(--navy); cursor: pointer; text-decoration: underline; }
+
+/* ─── CUSTOMERS ─────────────────────────────────────────── */
+.customer-table { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.ct-header { display: grid; grid-template-columns: 2fr 1.2fr 0.8fr 0.8fr 1fr 1fr; gap: 0; background: #F8F9FA; border-bottom: 1px solid var(--border); padding: 10px 18px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+.ct-row { display: grid; grid-template-columns: 2fr 1.2fr 0.8fr 0.8fr 1fr 1fr; gap: 0; padding: 14px 18px; border-bottom: 1px solid var(--border); align-items: center; transition: background 0.15s; cursor: pointer; }
+.ct-row:last-child { border-bottom: none; }
+.ct-row:hover { background: #FAFAFA; }
+.ct-name { font-weight: 700; color: var(--navy); font-size: 14px; }
+.ct-email { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ct-phone { font-size: 13px; color: var(--text); }
+.ct-num { font-size: 14px; font-weight: 700; color: var(--text); }
+.ct-spent { font-size: 14px; font-weight: 700; color: var(--navy); }
+.ct-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-right: 4px; }
+.ct-tag.vip       { background: #FEF3C7; color: #92400E; }
+.ct-tag.wholesale { background: #DBEAFE; color: #1E40AF; }
+.ct-tag.event     { background: #EDE9FE; color: #5B21B6; }
+.ct-actions { display: flex; gap: 6px; }
+
+/* ─── SETTINGS ──────────────────────────────────────────── */
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 760px) { .settings-grid { grid-template-columns: 1fr; } }
+.settings-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 22px; }
+.settings-card-title { font-size: 15px; font-weight: 800; color: var(--navy); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.settings-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.settings-row:last-child { border-bottom: none; }
+.settings-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.settings-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.settings-input { padding: 6px 10px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; width: 120px; outline: none; }
+.settings-input:focus { border-color: var(--navy); }
+.area-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.area-row:last-child { border-bottom: none; }
+.area-fee { padding: 4px 8px; border: 1px solid var(--border); border-radius: 5px; font-size: 13px; width: 72px; text-align: center; outline: none; }
+.user-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.user-row:last-child { border-bottom: none; }
+.user-av { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #fff; flex-shrink: 0; }
+.user-info { flex: 1; }
+.user-name { font-size: 13px; font-weight: 700; }
+.user-role-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.role-owner  { background: #FEF3C7; color: #92400E; }
+.role-staff  { background: #DBEAFE; color: #1E40AF; }
+.role-driver { background: #D1FAE5; color: #065F46; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-text">Smoked Style</div>
+    <div class="sidebar-logo-sub">Admin Panel</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="switchPage('orders', this)">
+      <span class="nav-icon">📋</span> Orders
+      <span class="nav-badge">4</span>
+    </div>
+    <div class="nav-item" onclick="switchPage('production', this)">
+      <span class="nav-icon">🏭</span> Production
+    </div>
+    <div class="nav-item" onclick="switchPage('inventory', this)">
+      <span class="nav-icon">📦</span> Inventory
+      <span class="nav-badge red">2</span>
+    </div>
+    <div class="nav-item" onclick="switchPage('customers', this)">
+      <span class="nav-icon">👥</span> Customers
+    </div>
+    <div class="nav-item" onclick="switchPage('settings', this)">
+      <span class="nav-icon">⚙️</span> Settings
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="admin-info">
+      <div class="admin-avatar">MR</div>
+      <div>
+        <div class="admin-name">Moshe R.</div>
+        <div class="admin-role">Owner</div>
+      </div>
+    </div>
+    <button class="signout-btn">Sign Out</button>
+  </div>
+</aside>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div class="main-content">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Orders</div>
+    <div class="topbar-right">
+      <span class="topbar-date">Wednesday, May 14, 2026</span>
+      <button class="notif-btn">🔔<span class="notif-dot"></span></button>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <!-- ══ ORDERS ══════════════════════════════════════════════ -->
+    <div class="page-section active" id="page-orders">
+      <div class="stat-row">
+        <div class="stat-card"><div class="stat-label">Orders Today</div><div class="stat-val">11</div><div class="stat-sub">3 more than yesterday</div></div>
+        <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-val" style="color:var(--yellow)">4</div><div class="stat-sub">Awaiting approval</div></div>
+        <div class="stat-card green"><div class="stat-label">Approved</div><div class="stat-val">6</div><div class="stat-sub">2 out for delivery</div></div>
+        <div class="stat-card orange"><div class="stat-label">Revenue Today</div><div class="stat-val">$3,840</div><div class="stat-sub">Approved &amp; delivered</div></div>
+      </div>
+
+      <div class="filter-row">
+        <input class="search-input" type="text" placeholder="Search by name, order #, or phone…">
+        <select class="filter-select"><option>All Dates</option><option>Today</option><option>Tomorrow</option><option>This Week</option></select>
+        <select class="filter-select"><option>All Areas</option><option>Williamsburg</option><option>Boro Park</option><option>Monsey</option><option>Lakewood</option></select>
+        <select class="filter-select"><option>Delivery &amp; Pickup</option><option>Delivery Only</option><option>Pickup Only</option></select>
+      </div>
+
+      <div class="status-tabs">
+        <button class="status-tab active" onclick="setTab(this)">Pending <span class="tab-count">4</span></button>
+        <button class="status-tab" onclick="setTab(this)">Approved <span class="tab-count">4</span></button>
+        <button class="status-tab" onclick="setTab(this)">Out for Delivery <span class="tab-count">2</span></button>
+        <button class="status-tab" onclick="setTab(this)">Delivered <span class="tab-count">1</span></button>
+        <button class="status-tab" onclick="setTab(this)">Cancelled <span class="tab-count">0</span></button>
+        <button class="status-tab" onclick="setTab(this)">All Orders <span class="tab-count">11</span></button>
+      </div>
+
+      <div class="orders-list">
+
+        <div class="order-card new-order">
+          <div><div class="order-num">SS-2026-0142</div><div class="order-time">Just now</div></div>
+          <div>
+            <div class="order-customer">Yakov Goldstein</div>
+            <div class="order-phone">📞 <a href="#">(347) 555-0192</a> &nbsp; <a href="#" style="color:#25D366;">💬 WhatsApp</a></div>
+            <div class="order-items">Smoked Pastrami ×1 · BBQ Jerky 2lb ×1 · Meat Board 12x18 ×1</div>
+            <div class="order-meta">
+              <span class="meta-tag">📅 May 16 (Fri)</span>
+              <span class="meta-tag">📍 Williamsburg · Delivery</span>
+              <span class="meta-tag">💳 Visa ····4242</span>
+            </div>
+          </div>
+          <div class="order-right">
+            <div class="order-total">$780</div>
+            <span class="status-badge badge-pending">⏳ Pending</span>
+            <select class="driver-select"><option>Assign Driver</option><option>Shimon K.</option><option>Levi M.</option></select>
+            <div class="order-actions">
+              <button class="btn-sm btn-view" onclick="window.location='admin-order.html'">View</button>
+              <button class="btn-sm btn-approve" onclick="openApprove(this,'SS-2026-0142','$780')">✓ Approve</button>
+              <button class="btn-sm btn-reject" onclick="toast('Reject modal opens')">✕ Reject</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="order-card">
+          <div><div class="order-num">SS-2026-0141</div><div class="order-time">42 min ago</div></div>
+          <div>
+            <div class="order-customer">Rivka Friedman</div>
+            <div class="order-phone">📞 <a href="#">(718) 555-0084</a> &nbsp; <a href="#" style="color:#25D366;">💬 WhatsApp</a></div>
+            <div class="order-items">Hanger Steak ×2 · Smoked Brisket Large ×1</div>
+            <div class="order-meta">
+              <span class="meta-tag">📅 May 15 (Thu)</span>
+              <span class="meta-tag">📍 Boro Park · Delivery</span>
+              <span class="meta-tag">💳 MC ····8833</span>
+              <span class="meta-tag" style="background:#FEF3C7;color:#92400E;">⭐ VIP</span>
+            </div>
+          </div>
+          <div class="order-right">
+            <div class="order-total">$750</div>
+            <span class="status-badge badge-pending">⏳ Pending</span>
+            <select class="driver-select"><option>Assign Driver</option><option>Shimon K.</option><option>Levi M.</option></select>
+            <div class="order-actions">
+              <button class="btn-sm btn-view" onclick="window.location='admin-order.html'">View</button>
+              <button class="btn-sm btn-approve" onclick="openApprove(this,'SS-2026-0141','$750')">✓ Approve</button>
+              <button class="btn-sm btn-reject" onclick="toast('Reject modal opens')">✕ Reject</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="order-card">
+          <div><div class="order-num">SS-2026-0140</div><div class="order-time">1h 15m ago</div></div>
+          <div>
+            <div class="order-customer">Shlomo Klein</div>
+            <div class="order-phone">📞 <a href="#">(845) 555-0317</a> &nbsp; <a href="#" style="color:#25D366;">💬 WhatsApp</a></div>
+            <div class="order-items">Smoked Rack of Lamb ×1 · Beef Wellington ×2 · Pepper Crust Jerky 3lb ×1</div>
+            <div class="order-meta">
+              <span class="meta-tag">📅 May 18 (Sun)</span>
+              <span class="meta-tag">📍 Monsey · Delivery</span>
+              <span class="meta-tag">💳 Visa ····1177</span>
+            </div>
+          </div>
+          <div class="order-right">
+            <div class="order-total">$1,000</div>
+            <span class="status-badge badge-pending">⏳ Pending</span>
+            <select class="driver-select"><option>Assign Driver</option><option>Shimon K.</option><option>Levi M.</option></select>
+            <div class="order-actions">
+              <button class="btn-sm btn-view" onclick="window.location='admin-order.html'">View</button>
+              <button class="btn-sm btn-approve" onclick="openApprove(this,'SS-2026-0140','$1,000')">✓ Approve</button>
+              <button class="btn-sm btn-reject" onclick="toast('Reject modal opens')">✕ Reject</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="order-card">
+          <div><div class="order-num">SS-2026-0139</div><div class="order-time">2h ago</div></div>
+          <div>
+            <div class="order-customer">Chana Weiss</div>
+            <div class="order-phone">📞 <a href="#">(718) 555-0056</a> &nbsp; <a href="#" style="color:#25D366;">💬 WhatsApp</a></div>
+            <div class="order-items">Meat Board 18x52 ×1 · 🎁 Gift: "Happy Birthday Tatty!"</div>
+            <div class="order-meta">
+              <span class="meta-tag">📅 May 17</span>
+              <span class="meta-tag">📍 Pickup</span>
+              <span class="meta-tag">💳 Amex ····3355</span>
+            </div>
+          </div>
+          <div class="order-right">
+            <div class="order-total">$1,000</div>
+            <span class="status-badge badge-pending">⏳ Pending</span>
+            <select class="driver-select"><option>N/A — Pickup</option></select>
+            <div class="order-actions">
+              <button class="btn-sm btn-view" onclick="window.location='admin-order.html'">View</button>
+              <button class="btn-sm btn-approve" onclick="openApprove(this,'SS-2026-0139','$1,000')">✓ Approve</button>
+              <button class="btn-sm btn-reject" onclick="toast('Reject modal opens')">✕ Reject</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /orders -->
+
+    <!-- ══ PRODUCTION ═══════════════════════════════════════════ -->
+    <div class="page-section" id="page-production">
+      <div class="prod-date-nav">
+        <button onclick="toast('Previous date')">‹</button>
+        <div class="prod-date-display">Wednesday, May 14, 2026</div>
+        <button onclick="toast('Next date')">›</button>
+        <button class="btn-ghost" style="margin-left:auto;" onclick="toast('Printing both panels…')">🖨 Print Both</button>
+      </div>
+
+      <div class="prod-panels">
+
+        <!-- CONFIRMED -->
+        <div class="prod-panel">
+          <div class="prod-panel-header confirmed">
+            <div class="prod-panel-title">✅ Confirmed Production (6 orders)</div>
+            <button class="prod-print-btn" onclick="toast('Printing confirmed list…')">🖨 Print</button>
+          </div>
+          <div class="prod-body">
+            <div class="prod-category">Jerky</div>
+            <div class="prod-row"><span class="prod-item">General Tso</span><span class="prod-qty">5.5 lbs</span></div>
+            <div class="prod-row"><span class="prod-item">BBQ</span><span class="prod-qty">3 lbs</span></div>
+            <div class="prod-row"><span class="prod-item">Pepper Crust</span><span class="prod-qty">2 lbs</span></div>
+            <div class="prod-row"><span class="prod-item">Sweet &amp; Spicy</span><span class="prod-qty">1.5 lbs</span></div>
+
+            <div class="prod-category">Steaks</div>
+            <div class="prod-row"><span class="prod-item">Hanger Steak</span><span class="prod-qty">4 pcs</span></div>
+            <div class="prod-row"><span class="prod-item">Oyster Steak</span><span class="prod-qty">6 pcs</span></div>
+            <div class="prod-row"><span class="prod-item">Skirt Steak</span><span class="prod-qty">2 packs (8 pcs)</span></div>
+
+            <div class="prod-category">Smoked</div>
+            <div class="prod-row"><span class="prod-item">Smoked Pastrami</span><span class="prod-qty">3 units</span></div>
+            <div class="prod-row"><span class="prod-item">Smoked Brisket Large</span><span class="prod-qty">2 units</span></div>
+            <div class="prod-row"><span class="prod-item">Smoked Rack of Lamb</span><span class="prod-qty">1 unit</span></div>
+            <div class="prod-row"><span class="prod-item">Smoked Chicken Wings</span><span class="prod-qty">2 pans</span></div>
+
+            <div class="prod-category">Non-Smoked</div>
+            <div class="prod-row"><span class="prod-item">Beef Wellington</span><span class="prod-qty">4 units</span></div>
+            <div class="prod-row"><span class="prod-item">Beef Tongue</span><span class="prod-qty">1 unit</span></div>
+
+            <div class="prod-category">Boards</div>
+            <div class="prod-row"><span class="prod-item">Meat Board 12x18</span><span class="prod-qty">3 units</span></div>
+            <div class="prod-row"><span class="prod-item">Meat Board 18x52</span><span class="prod-qty">1 unit</span></div>
+            <div class="prod-row"><span class="prod-item">Jerky Board 10x15</span><span class="prod-qty">2 units</span></div>
+            <div class="prod-row"><span class="prod-item">Steak Board 10x15</span><span class="prod-qty">1 unit</span></div>
+          </div>
+        </div>
+
+        <!-- PENDING -->
+        <div class="prod-panel">
+          <div class="prod-panel-header pending">
+            <div class="prod-panel-title">⏳ Pending Approval (4 orders)</div>
+            <button class="prod-print-btn" onclick="toast('Printing pending list…')">🖨 Print</button>
+          </div>
+          <div class="prod-body">
+            <div class="prod-category">Jerky</div>
+            <div class="prod-row"><span class="prod-item">BBQ</span><span class="prod-qty pending-qty">2 lbs</span></div>
+            <div class="prod-row"><span class="prod-item">Pepper Crust</span><span class="prod-qty pending-qty">3 lbs</span></div>
+
+            <div class="prod-category">Steaks</div>
+            <div class="prod-row"><span class="prod-item">Hanger Steak</span><span class="prod-qty pending-qty">2 pcs</span></div>
+
+            <div class="prod-category">Smoked</div>
+            <div class="prod-row"><span class="prod-item">Smoked Pastrami</span><span class="prod-qty pending-qty">1 unit</span></div>
+            <div class="prod-row"><span class="prod-item">Smoked Rack of Lamb</span><span class="prod-qty pending-qty">1 unit</span></div>
+
+            <div class="prod-category">Non-Smoked</div>
+            <div class="prod-row"><span class="prod-item">Beef Wellington</span><span class="prod-qty pending-qty">2 units</span></div>
+
+            <div class="prod-category">Boards</div>
+            <div class="prod-row"><span class="prod-item">Meat Board 18x52</span><span class="prod-qty pending-qty">1 unit</span></div>
+            <div class="prod-row"><span class="prod-item">Meat Board 12x18</span><span class="prod-qty pending-qty">1 unit</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /production -->
+
+    <!-- ══ INVENTORY ════════════════════════════════════════════ -->
+    <div class="page-section" id="page-inventory">
+      <div class="section-header">
+        <div>
+          <div class="inv-summary-bar">
+            <div class="inv-alert-chip low">⚠️ 3 items low on stock</div>
+            <div class="inv-alert-chip oos">🔴 2 items out of stock</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <select class="filter-select" style="padding:8px 28px 8px 10px;">
+            <option>All Categories</option><option>Jerky</option><option>Steaks</option><option>Smoked</option><option>Non-Smoked</option><option>Boards</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="inv-grid">
+
+        <div class="inv-card low-stock">
+          <div class="inv-card-top">
+            <div><div class="inv-name">Smoked Pastrami</div><div class="inv-cat">Smoked</div></div>
+            <span class="inv-badge low">⚠️ Low Stock</span>
+          </div>
+          <div class="inv-stock-row">
+            <input class="inv-stock-input" value="2" type="number">
+            <span class="inv-unit">units</span>
+          </div>
+          <div class="inv-toggle">
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            In Stock
+            <span style="margin-left:auto;"><span class="inv-history-link" onclick="toast('Stock history for Smoked Pastrami')">History</span></span>
+          </div>
+        </div>
+
+        <div class="inv-card out-stock">
+          <div class="inv-card-top">
+            <div><div class="inv-name">Teriyaki Jerky</div><div class="inv-cat">Jerky</div></div>
+            <span class="inv-badge oos">🔴 Out of Stock</span>
+          </div>
+          <div class="inv-stock-row">
+            <input class="inv-stock-input" value="0" type="number">
+            <span class="inv-unit">lbs</span>
+          </div>
+          <div class="inv-toggle">
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+            Out of Stock
+            <span style="margin-left:auto;"><span class="inv-history-link" onclick="toast('Stock history for Teriyaki Jerky')">History</span></span>
+          </div>
+        </div>
+
+        <div class="inv-card">
+          <div class="inv-card-top">
+            <div><div class="inv-name">General Tso Jerky</div><div class="inv-cat">Jerky</div></div>
+            <span class="inv-badge ok">✓ In Stock</span>
+          </div>
+          <div class="inv-stock-row">
+            <input class="inv-stock-input" value="18.5" type="number">
+            <span class="inv-unit">lbs</span>
+          </div>
+          <div class="inv-toggle">
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            In Stock
+            <span style="margin-left:auto;"><span class="inv-history-link" onclick="toast('Stock history for General Tso')">History</span></span>
+          </div>
+        </div>
+
+        <div class="inv-card">
+          <div class="inv-card-top">
+            <div><div class="inv-name">Hanger Steak</div><div class="inv-cat">Steaks</div></div>
+            <span class="inv-badge ok">✓ In Stock</span>
+          </div>
+          <div class="inv-stock-row">
+            <input class="inv-stock-input" value="12" type="number">
+            <span class="inv-unit">pcs</span>
+          </div>
+          <div class="inv-toggle">
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            In Stock
+            <span style="margin-left:auto;"><span class="inv-history-link" onclick="toast('Stock history for Hanger Steak')">History</span></span>
+          </div>
+        </div>
+
+        <div class="inv-card low-stock">
+          <div class="inv-card-top">
+            <div><div class="inv-name">Smoked Rack of Lamb</div><div class="inv-cat">Smoked</div></div>
+            <span class="inv-badge low">⚠️ Low Stock</span>
+          </div>
+          <div class="inv-stock-row">
+            <input class="inv-stock-input" value="1" type="number">
+            <span class="inv-unit">units</span>
+          </div>
+          <div class="inv-toggle">
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            In Stock
+            <span style="margin-left:auto;"><span class="inv-history-link" onclick="toast('Stock history')">History</span></span>
+          </div>
+        </div>
+
+        <div class="inv-card out-stock">
+          <div class="inv-card-top">
+            <div><div class="inv-name">Smoked Lamb Side</div><div class="inv-cat">Smoked</div></div>
+            <span class="inv-badge oos">🔴 Out of Stock</span>
+          </div>
+          <div class="inv-stock-row">
+            <input class="inv-stock-input" value="0" type="number">
+            <span class="inv-unit">units</span>
+          </div>
+          <div class="inv-toggle">
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+            Out of Stock
+            <span style="margin-left:auto;"><span class="inv-history-link" onclick="toast('Stock history')">History</span></span>
+          </div>
+        </div>
+
+        <div class="inv-card">
+          <div class="inv-card-top">
+            <div><div class="inv-name">Meat Board 12x18</div><div class="inv-cat">Boards</div></div>
+            <span class="inv-badge ok">✓ In Stock</span>
+          </div>
+          <div class="inv-stock-row">
+            <input class="inv-stock-input" value="8" type="number">
+            <span class="inv-unit">units</span>
+          </div>
+          <div class="inv-toggle">
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            In Stock
+            <span style="margin-left:auto;"><span class="inv-history-link" onclick="toast('Stock history')">History</span></span>
+          </div>
+        </div>
+
+        <div class="inv-card low-stock">
+          <div class="inv-card-top">
+            <div><div class="inv-name">Beef Tongue</div><div class="inv-cat">Non-Smoked</div></div>
+            <span class="inv-badge low">⚠️ Low Stock</span>
+          </div>
+          <div class="inv-stock-row">
+            <input class="inv-stock-input" value="2" type="number">
+            <span class="inv-unit">units</span>
+          </div>
+          <div class="inv-toggle">
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+            In Stock
+            <span style="margin-left:auto;"><span class="inv-history-link" onclick="toast('Stock history')">History</span></span>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /inventory -->
+
+    <!-- ══ CUSTOMERS ════════════════════════════════════════════ -->
+    <div class="page-section" id="page-customers">
+      <div class="section-header">
+        <div class="section-title">All Customers</div>
+        <button class="btn-primary" onclick="toast('Opening new backend order…')">+ New Backend Order</button>
+      </div>
+
+      <div class="filter-row" style="margin-bottom:16px;">
+        <input class="search-input" type="text" placeholder="Search by name, phone, or email…">
+        <select class="filter-select"><option>All Tags</option><option>VIP</option><option>Wholesale</option><option>Event Customer</option></select>
+        <select class="filter-select"><option>Sort: Total Spent</option><option>Sort: Orders</option><option>Sort: Last Order</option><option>Sort: Name</option></select>
+      </div>
+
+      <div class="customer-table">
+        <div class="ct-header">
+          <div>Customer</div><div>Phone</div><div>Orders</div><div>Spent</div><div>Tags</div><div>Actions</div>
+        </div>
+
+        <div class="ct-row" onclick="toast('Opening Shlomo Klein profile…')">
+          <div><div class="ct-name">Shlomo Klein</div><div class="ct-email">shlomo.klein@gmail.com</div></div>
+          <div class="ct-phone">(845) 555-0317</div>
+          <div class="ct-num">24</div>
+          <div class="ct-spent">$18,400</div>
+          <div><span class="ct-tag vip">VIP</span></div>
+          <div class="ct-actions">
+            <button class="btn-sm btn-view" onclick="event.stopPropagation();toast('Profile: Shlomo Klein')">View</button>
+            <button class="btn-sm btn-approve" onclick="event.stopPropagation();toast('New order for Shlomo Klein')">+ Order</button>
+          </div>
+        </div>
+
+        <div class="ct-row" onclick="toast('Opening Rivka Friedman profile…')">
+          <div><div class="ct-name">Rivka Friedman</div><div class="ct-email">rivkaf@yahoo.com</div></div>
+          <div class="ct-phone">(718) 555-0084</div>
+          <div class="ct-num">17</div>
+          <div class="ct-spent">$9,750</div>
+          <div><span class="ct-tag vip">VIP</span><span class="ct-tag wholesale">Wholesale</span></div>
+          <div class="ct-actions">
+            <button class="btn-sm btn-view" onclick="event.stopPropagation();toast('Profile: Rivka Friedman')">View</button>
+            <button class="btn-sm btn-approve" onclick="event.stopPropagation();toast('New order for Rivka Friedman')">+ Order</button>
+          </div>
+        </div>
+
+        <div class="ct-row" onclick="toast('Opening Yakov Goldstein profile…')">
+          <div><div class="ct-name">Yakov Goldstein</div><div class="ct-email">yakovg@gmail.com</div></div>
+          <div class="ct-phone">(347) 555-0192</div>
+          <div class="ct-num">9</div>
+          <div class="ct-spent">$5,220</div>
+          <div></div>
+          <div class="ct-actions">
+            <button class="btn-sm btn-view" onclick="event.stopPropagation();toast('Profile: Yakov Goldstein')">View</button>
+            <button class="btn-sm btn-approve" onclick="event.stopPropagation();toast('New order for Yakov Goldstein')">+ Order</button>
+          </div>
+        </div>
+
+        <div class="ct-row" onclick="toast('Opening Chana Weiss profile…')">
+          <div><div class="ct-name">Chana Weiss</div><div class="ct-email">chana.weiss@gmail.com</div></div>
+          <div class="ct-phone">(718) 555-0056</div>
+          <div class="ct-num">6</div>
+          <div class="ct-spent">$4,100</div>
+          <div><span class="ct-tag event">Event</span></div>
+          <div class="ct-actions">
+            <button class="btn-sm btn-view" onclick="event.stopPropagation();toast('Profile: Chana Weiss')">View</button>
+            <button class="btn-sm btn-approve" onclick="event.stopPropagation();toast('New order for Chana Weiss')">+ Order</button>
+          </div>
+        </div>
+
+        <div class="ct-row" onclick="toast('Opening Mendy Schwartz profile…')">
+          <div><div class="ct-name">Mendy Schwartz</div><div class="ct-email">mendys@hotmail.com</div></div>
+          <div class="ct-phone">(732) 555-0229</div>
+          <div class="ct-num">4</div>
+          <div class="ct-spent">$2,850</div>
+          <div><span class="ct-tag wholesale">Wholesale</span></div>
+          <div class="ct-actions">
+            <button class="btn-sm btn-view" onclick="event.stopPropagation();toast('Profile: Mendy Schwartz')">View</button>
+            <button class="btn-sm btn-approve" onclick="event.stopPropagation();toast('New order for Mendy Schwartz')">+ Order</button>
+          </div>
+        </div>
+
+        <div class="ct-row" onclick="toast('Opening Leah Stern profile…')">
+          <div><div class="ct-name">Leah Stern</div><div class="ct-email">lstern@gmail.com</div></div>
+          <div class="ct-phone">(516) 555-0144</div>
+          <div class="ct-num">2</div>
+          <div class="ct-spent">$430</div>
+          <div></div>
+          <div class="ct-actions">
+            <button class="btn-sm btn-view" onclick="event.stopPropagation();toast('Profile: Leah Stern')">View</button>
+            <button class="btn-sm btn-approve" onclick="event.stopPropagation();toast('New order for Leah Stern')">+ Order</button>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /customers -->
+
+    <!-- ══ SETTINGS ═════════════════════════════════════════════ -->
+    <div class="page-section" id="page-settings">
+      <div class="settings-grid">
+
+        <!-- General -->
+        <div class="settings-card">
+          <div class="settings-card-title">⚙️ General</div>
+          <div class="settings-row">
+            <div><div class="settings-label">Business Name</div></div>
+            <input class="settings-input" value="Smoked Style">
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Phone</div></div>
+            <input class="settings-input" value="(718) 810-9472">
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Email</div></div>
+            <input class="settings-input" style="width:180px;" value="Smokedstyle1@gmail.com">
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Purim Special Banner</div><div class="settings-sub">Shows on storefront</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Accept New Orders</div><div class="settings-sub">Disable to pause the store</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div style="margin-top:16px;">
+            <button class="btn-primary" onclick="toast('Settings saved')">Save Changes</button>
+          </div>
+        </div>
+
+        <!-- Delivery Areas -->
+        <div class="settings-card">
+          <div class="settings-card-title">📍 Delivery Areas &amp; Fees</div>
+          <div class="area-row"><span>Williamsburg</span><input class="area-fee" value="$30"></div>
+          <div class="area-row"><span>Boro Park</span><input class="area-fee" value="$30"></div>
+          <div class="area-row"><span>Monsey</span><input class="area-fee" value="$30"></div>
+          <div class="area-row"><span>Lakewood</span><input class="area-fee" value="$30"></div>
+          <div class="area-row"><span>Monroe</span><input class="area-fee" value="$30"></div>
+          <div class="area-row"><span>5 Towns</span><input class="area-fee" value="$30"></div>
+          <div class="area-row"><span>Catskills</span><input class="area-fee" value="$30"></div>
+          <div class="area-row"><span>Other</span><input class="area-fee" value="Manual"></div>
+          <div style="margin-top:14px;">
+            <button class="btn-primary" onclick="toast('Delivery fees saved')">Save Fees</button>
+          </div>
+        </div>
+
+        <!-- Team Members -->
+        <div class="settings-card">
+          <div class="settings-card-title">👥 Team Members</div>
+          <div class="user-row">
+            <div class="user-av" style="background:var(--orange);">MR</div>
+            <div class="user-info"><div class="user-name">Moshe R.</div><div style="font-size:12px;color:var(--muted);">moshe@smokedstyle.com</div></div>
+            <span class="user-role-badge role-owner">Owner</span>
+          </div>
+          <div class="user-row">
+            <div class="user-av" style="background:#3B82F6;">SL</div>
+            <div class="user-info"><div class="user-name">Sara L.</div><div style="font-size:12px;color:var(--muted);">sara@smokedstyle.com</div></div>
+            <span class="user-role-badge role-staff">Staff</span>
+          </div>
+          <div class="user-row">
+            <div class="user-av" style="background:var(--green);">YK</div>
+            <div class="user-info"><div class="user-name">Yosef K.</div><div style="font-size:12px;color:var(--muted);">yosef@smokedstyle.com</div></div>
+            <span class="user-role-badge role-driver">Driver</span>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="btn-primary" onclick="toast('Invite form opens')">+ Invite Team Member</button>
+          </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="settings-card">
+          <div class="settings-card-title">🔔 Notifications</div>
+          <div class="settings-row">
+            <div><div class="settings-label">New Order Alert</div><div class="settings-sub">Sound + push notification</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Order Delivered Alert</div><div class="settings-sub">When driver marks delivered</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Low Stock Alert</div><div class="settings-sub">Email when item hits threshold</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="settings-row">
+            <div><div class="settings-label">Daily Summary Email</div><div class="settings-sub">Sent each evening at 8pm</div></div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /settings -->
+
+  </div><!-- /page -->
+</div><!-- /main-content -->
+
+<!-- APPROVE MODAL -->
+<div id="approve-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:420px;max-width:calc(100vw - 32px);box-shadow:0 20px 60px rgba(0,0,0,0.25);">
+    <div style="font-size:18px;font-weight:800;color:var(--navy);margin-bottom:8px;">Approve Order</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:20px;" id="approve-detail"></div>
+    <div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;">
+        <span style="color:var(--muted);">Authorized amount</span><span id="modal-orig" style="font-weight:600;"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:16px;">
+        <span style="font-weight:700;color:var(--navy);">Charge now</span>
+        <span id="modal-charge" style="font-weight:800;color:var(--orange);font-size:20px;"></span>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeApprove()" style="flex:1;padding:12px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:600;cursor:pointer;color:var(--muted);">Cancel</button>
+      <button onclick="confirmApprove()" style="flex:2;padding:12px;border-radius:8px;border:none;background:#10B981;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">✓ Confirm &amp; Charge</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-el" style="position:fixed;bottom:28px;right:28px;background:var(--navy);color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.25);opacity:0;transform:translateY(8px);transition:all 0.3s;z-index:9999;pointer-events:none;">
+  <span id="toast-text">Done</span>
+</div>
+
+<script>
+const pageTitles = { orders:'Orders', production:'Production Report', inventory:'Inventory', customers:'Customers', settings:'Settings' };
+
+function switchPage(id, el) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('page-title').textContent = pageTitles[id];
+}
+
+function setTab(el) {
+  el.closest('.status-tabs').querySelectorAll('.status-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+let _approveBtn = null, _approveOrder = '', _approveTotal = '';
+function openApprove(btn, num, total) {
+  _approveBtn = btn; _approveOrder = num; _approveTotal = total;
+  document.getElementById('approve-detail').textContent = 'Approve order ' + num + ' and charge the card.';
+  document.getElementById('modal-orig').textContent = total;
+  document.getElementById('modal-charge').textContent = total;
+  document.getElementById('approve-modal').style.display = 'flex';
+}
+function closeApprove() { document.getElementById('approve-modal').style.display = 'none'; }
+function confirmApprove() {
+  closeApprove();
+  if (_approveBtn) {
+    const card = _approveBtn.closest('.order-card');
+    card.querySelector('.status-badge').className = 'status-badge badge-approved';
+    card.querySelector('.status-badge').textContent = '✓ Approved';
+    card.querySelector('.order-actions').innerHTML =
+      '<button class="btn-sm btn-view" onclick="toast(\'Viewing…\')">View</button>' +
+      '<button class="btn-sm" style="background:#DBEAFE;color:#1E40AF;" onclick="toast(\'Marked out for delivery\')">🚚 Out for Delivery</button>';
+    card.classList.remove('new-order');
+  }
+  toast('Order ' + _approveOrder + ' approved — card charged ' + _approveTotal);
+}
+document.getElementById('approve-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeApprove(); });
+
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast-el');
+  document.getElementById('toast-text').textContent = msg;
+  el.style.opacity = '1'; el.style.transform = 'translateY(0)';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(8px)'; }, 2800);
+}
+</script>
+</body>
+</html>

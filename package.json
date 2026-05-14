@@ -1,0 +1,13 @@
+{
+  "name": "smoked-style-doc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generate Smoked Style Cursor instructions DOCX",
+  "main": "generate-instructions.js",
+  "scripts": {
+    "generate": "node generate-instructions.js"
+  },
+  "dependencies": {
+    "docx": "^9.1.0"
+  }
+}

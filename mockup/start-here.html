@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smoked Style — Start Here</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1a2744;
+    --navy-light: #243258;
+    --orange: #e87722;
+    --orange-light: #f5924a;
+    --gold: #d4a84b;
+    --cream: #fdf8f0;
+    --gray: #6b7280;
+    --gray-light: #f3f4f6;
+    --green: #16a34a;
+    --red: #dc2626;
+    --sidebar-w: 240px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--cream); color: #1f2937; display: flex; min-height: 100vh; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--navy);
+    color: #fff;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .sidebar-logo .brand { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; }
+  .sidebar-logo .brand span { color: var(--orange); }
+  .sidebar-logo .sub { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+  .nav-section { padding: 12px 0; flex: 1; }
+  .nav-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: rgba(255,255,255,0.4); padding: 8px 20px 4px; text-transform: uppercase; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 20px; cursor: pointer;
+    font-size: 13px; color: rgba(255,255,255,0.75);
+    transition: all 0.15s; border-left: 3px solid transparent;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.07); color: #fff; }
+  .nav-item.active { background: rgba(232,119,34,0.15); color: var(--orange); border-left-color: var(--orange); font-weight: 600; }
+  .nav-item .phase-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+  }
+  .nav-item.active .phase-num { background: var(--orange); color: #fff; }
+  .nav-item.done .phase-num { background: var(--green); color: #fff; }
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    font-size: 11px; color: rgba(255,255,255,0.35);
+  }
+  .progress-bar-wrap { margin: 12px 20px 0; background: rgba(255,255,255,0.1); border-radius: 4px; height: 4px; }
+  .progress-bar-fill { height: 4px; border-radius: 4px; background: var(--orange); transition: width 0.3s; }
+
+  /* ── Main ── */
+  .main { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; }
+  .topbar {
+    background: var(--navy); color: #fff;
+    padding: 16px 40px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar h1 { font-size: 20px; font-weight: 700; }
+  .topbar .phase-tag { background: var(--orange); color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .content { padding: 40px; max-width: 860px; }
+
+  /* ── Phase sections ── */
+  .phase-section { display: none; }
+  .phase-section.active { display: block; }
+
+  /* ── Cards & steps ── */
+  .phase-header { margin-bottom: 32px; }
+  .phase-header .phase-label { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; color: var(--orange); text-transform: uppercase; margin-bottom: 6px; }
+  .phase-header h2 { font-size: 28px; font-weight: 800; color: var(--navy); }
+  .phase-header p { margin-top: 10px; font-size: 15px; color: var(--gray); line-height: 1.6; }
+
+  .step-card {
+    background: #fff; border-radius: 12px; padding: 24px 28px;
+    margin-bottom: 16px; border: 1px solid #e5e7eb;
+    display: flex; gap: 20px; align-items: flex-start;
+  }
+  .step-num {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--navy); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; flex-shrink: 0; margin-top: 2px;
+  }
+  .step-body { flex: 1; }
+  .step-title { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .step-desc { font-size: 14px; color: #4b5563; line-height: 1.6; }
+  .step-desc a { color: var(--orange); text-decoration: none; font-weight: 600; }
+  .step-desc a:hover { text-decoration: underline; }
+  .step-desc code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: var(--navy); }
+  .step-desc .cmd-block {
+    background: var(--navy); color: #a8d8a8; padding: 10px 14px; border-radius: 6px;
+    font-family: monospace; font-size: 13px; margin-top: 8px; display: block; white-space: pre;
+  }
+
+  /* ── Checklist (Phase 2) ── */
+  .checklist-header {
+    background: #fff; border-radius: 12px; padding: 20px 28px; margin-bottom: 20px;
+    border: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between;
+  }
+  .checklist-header .cl-title { font-size: 16px; font-weight: 700; color: var(--navy); }
+  .checklist-header .cl-count { font-size: 13px; color: var(--gray); }
+  .checklist-header .cl-reset { font-size: 12px; color: var(--red); cursor: pointer; border: 1px solid var(--red); padding: 4px 10px; border-radius: 6px; }
+  .checklist-header .cl-reset:hover { background: var(--red); color: #fff; }
+
+  .step-rules {
+    background: #fff3e0; border: 1px solid #fed7aa; border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 20px;
+  }
+  .step-rules .rules-title { font-size: 13px; font-weight: 700; color: #9a3412; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .step-rules ul { padding-left: 18px; }
+  .step-rules ul li { font-size: 13px; color: #7c2d12; line-height: 1.7; }
+
+  .checklist-item {
+    background: #fff; border-radius: 10px; padding: 16px 20px;
+    margin-bottom: 8px; border: 1px solid #e5e7eb;
+    display: flex; gap: 14px; align-items: flex-start;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .checklist-item:hover { border-color: var(--orange); }
+  .checklist-item.checked { background: #f0fdf4; border-color: #bbf7d0; }
+  .checklist-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--green); flex-shrink: 0; margin-top: 1px; }
+  .checklist-item .ci-step { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
+  .checklist-item .ci-name { font-size: 14px; font-weight: 600; color: var(--navy); }
+  .checklist-item.checked .ci-name { color: var(--green); }
+  .checklist-item .ci-desc { font-size: 13px; color: #6b7280; margin-top: 2px; }
+  .checklist-item.checked .ci-desc { color: #86efac; }
+
+  /* ── Info box ── */
+  .info-box {
+    background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 20px;
+  }
+  .info-box .ib-title { font-size: 13px; font-weight: 700; color: #1e40af; margin-bottom: 6px; }
+  .info-box p { font-size: 13px; color: #1e40af; line-height: 1.6; }
+  .warn-box {
+    background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px;
+    padding: 16px 20px; margin-bottom: 20px;
+  }
+  .warn-box .wb-title { font-size: 13px; font-weight: 700; color: #9a3412; margin-bottom: 6px; }
+  .warn-box p { font-size: 13px; color: #7c2d12; line-height: 1.6; }
+  .warn-box code { background: rgba(0,0,0,0.08); padding: 1px 5px; border-radius: 3px; font-family: monospace; }
+
+  /* ── After launch cards ── */
+  .al-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .al-card { background: #fff; border-radius: 12px; padding: 22px 24px; border: 1px solid #e5e7eb; }
+  .al-card .al-icon { font-size: 24px; margin-bottom: 10px; }
+  .al-card .al-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+  .al-card .al-body { font-size: 13px; color: #4b5563; line-height: 1.7; }
+  .al-card .al-body code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+
+  /* ── Nav buttons ── */
+  .phase-nav { display: flex; gap: 12px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+  .btn { padding: 11px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--orange); color: #fff; }
+  .btn-primary:hover { background: var(--orange-light); }
+  .btn-secondary { background: #fff; color: var(--navy); border: 1px solid #d1d5db; }
+  .btn-secondary:hover { background: var(--gray-light); }
+
+  /* ── Deploy env table ── */
+  .env-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+  .env-table th { background: var(--navy); color: #fff; padding: 8px 12px; text-align: left; font-size: 12px; }
+  .env-table td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+  .env-table tr:nth-child(even) td { background: #f9fafb; }
+  .env-table code { font-family: monospace; font-size: 12px; }
+
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .content { padding: 20px; }
+    .al-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">SMOKED <span>STYLE</span></div>
+    <div class="sub">Build &amp; Launch Guide</div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Phases</div>
+    <a class="nav-item active" onclick="showPhase(1,this)" href="#">
+      <span class="phase-num">1</span> Install &amp; Set Up
+    </a>
+    <a class="nav-item" onclick="showPhase(2,this)" href="#">
+      <span class="phase-num">2</span> Build Step by Step
+    </a>
+    <a class="nav-item" onclick="showPhase(3,this)" href="#">
+      <span class="phase-num">3</span> Deploy to Vercel
+    </a>
+    <a class="nav-item" onclick="showPhase(4,this)" href="#">
+      <span class="phase-num">4</span> After Launch
+    </a>
+    <div class="nav-label" style="margin-top:12px;">Mockups</div>
+    <a class="nav-item" href="index.html">
+      <span class="phase-num" style="font-size:9px;">S</span> Storefront
+    </a>
+    <a class="nav-item" href="admin.html">
+      <span class="phase-num" style="font-size:9px;">A</span> Admin Panel
+    </a>
+  </div>
+  <div class="sidebar-footer">
+    <div style="margin-bottom:6px;font-weight:600;color:rgba(255,255,255,0.6);">Build Progress</div>
+    <div id="progress-label" style="font-size:11px;">0 of 19 steps</div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<main class="main">
+  <div class="topbar">
+    <h1 id="topbar-title">Phase 1 — Install &amp; Set Up</h1>
+    <span class="phase-tag" id="topbar-tag">One-Time Setup</span>
+  </div>
+
+  <div class="content">
+
+    <!-- ════════════════════════════════════
+         PHASE 1 — Install & Set Up
+    ════════════════════════════════════ -->
+    <div class="phase-section active" id="phase-1">
+      <div class="phase-header">
+        <div class="phase-label">Phase 1</div>
+        <h2>Install &amp; Set Up</h2>
+        <p>Do this once before you start building. Takes about 10 minutes. You only need to do it one time.</p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Download &amp; Install Cursor</div>
+          <div class="step-desc">
+            Go to <a href="https://cursor.com" target="_blank">cursor.com</a> → click <strong>Download</strong> → run the installer → open Cursor when done.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Sign In to Cursor</div>
+          <div class="step-desc">
+            When Cursor opens it will ask you to sign in. Create a free account or sign in with Google. The free plan is enough to start — you can upgrade later if needed.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Create Your Project Folder</div>
+          <div class="step-desc">
+            Create a new empty folder on your Desktop called <code>smoked-style</code>. This is where all your site code will live.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Open the Folder in Cursor</div>
+          <div class="step-desc">
+            In Cursor: click <strong>File → Open Folder</strong> → select the <code>smoked-style</code> folder you just created. Cursor will reload showing the empty folder.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Copy Your Environment File</div>
+          <div class="step-desc">
+            Copy the file <code>.env.local</code> from <code>C:\Users\Getzy\smoked claude\</code> into your new <code>smoked-style</code> folder. This file has your Supabase and Stripe keys — the app won't work without it.
+            <br><br>
+            <span style="color:var(--red);font-weight:600;">Important:</span> Never share this file or commit it to GitHub. It contains your live payment keys.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Open the Build Instructions</div>
+          <div class="step-desc">
+            Open <code>SmokedStyle_Cursor_Instructions.docx</code> in Word or Google Docs. Keep it open alongside Cursor — you'll copy one prompt at a time from it as you build.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <div class="step-title">Open the Cursor Agent Chat</div>
+          <div class="step-desc">
+            In Cursor, press <code>Cmd+I</code> (Mac) or <code>Ctrl+I</code> (Windows) to open the Agent panel on the right side. This is where you'll paste each prompt. Make sure the mode is set to <strong>Agent</strong> (not Chat or Edit).
+          </div>
+        </div>
+      </div>
+
+      <div class="phase-nav">
+        <button class="btn btn-primary" onclick="showPhase(2, document.querySelectorAll('.nav-item')[1])">Next: Build Step by Step →</button>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════
+         PHASE 2 — Build Step by Step
+    ════════════════════════════════════ -->
+    <div class="phase-section" id="phase-2">
+      <div class="phase-header">
+        <div class="phase-label">Phase 2</div>
+        <h2>Build Step by Step</h2>
+        <p>19 prompts. One at a time. Check each step off as you complete it — your progress is saved in the browser.</p>
+      </div>
+
+      <div class="step-rules">
+        <div class="rules-title">⚠ Three Rules to Follow</div>
+        <ul>
+          <li><strong>One prompt at a time.</strong> Don't skip ahead — each step builds on the last.</li>
+          <li><strong>Test before continuing.</strong> Open the browser after each step to make sure it works before moving on.</li>
+          <li><strong>Be specific when something breaks.</strong> Don't tell Cursor to "fix everything" — describe exactly what's wrong and where.</li>
+        </ul>
+      </div>
+
+      <div class="checklist-header">
+        <div>
+          <div class="cl-title">Build Checklist</div>
+          <div class="cl-count" id="cl-count-text">0 of 19 complete</div>
+        </div>
+        <div class="cl-reset" onclick="resetChecklist()">Reset All</div>
+      </div>
+
+      <div id="checklist-container"></div>
+
+      <div class="phase-nav">
+        <button class="btn btn-secondary" onclick="showPhase(1, document.querySelectorAll('.nav-item')[0])">← Back</button>
+        <button class="btn btn-primary" onclick="showPhase(3, document.querySelectorAll('.nav-item')[2])">Next: Deploy to Vercel →</button>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════
+         PHASE 3 — Deploy to Vercel
+    ════════════════════════════════════ -->
+    <div class="phase-section" id="phase-3">
+      <div class="phase-header">
+        <div class="phase-label">Phase 3</div>
+        <h2>Deploy to Vercel</h2>
+        <p>Push your code to GitHub, then deploy to Vercel for a live public URL. Do this after completing all 19 build steps.</p>
+      </div>
+
+      <div class="info-box">
+        <div class="ib-title">Before you start</div>
+        <p>Make sure all 19 build steps are complete and the app runs without errors locally (<code>npm run dev</code> in Cursor's terminal with no red errors).</p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Create a GitHub Account</div>
+          <div class="step-desc">
+            If you don't have one, go to <a href="https://github.com" target="_blank">github.com</a> → Sign Up → create a free account. GitHub stores your code in the cloud so Vercel can access it.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Add a .gitignore File</div>
+          <div class="step-desc">
+            In Cursor's terminal (Ctrl+`), run:
+            <span class="cmd-block">echo ".env.local" >> .gitignore
+echo "node_modules" >> .gitignore
+echo ".next" >> .gitignore</span>
+            This ensures your secret keys never get uploaded to GitHub.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Initialize Git and Make First Commit</div>
+          <div class="step-desc">
+            In Cursor's terminal, run these commands one by one:
+            <span class="cmd-block">git init
+git add .
+git commit -m "Initial commit"</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Create a Private GitHub Repository</div>
+          <div class="step-desc">
+            Go to <a href="https://github.com/new" target="_blank">github.com/new</a> → Repository name: <code>smoked-style</code> → set to <strong>Private</strong> → click <strong>Create repository</strong>. Do <em>not</em> initialize with a README.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Push Your Code to GitHub</div>
+          <div class="step-desc">
+            GitHub will show you two commands after creating the repo — copy and run them in Cursor's terminal. They look like:
+            <span class="cmd-block">git remote add origin https://github.com/YOUR-USERNAME/smoked-style.git
+git push -u origin main</span>
+            Use the exact commands GitHub shows you (your username will be different).
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Connect to Vercel</div>
+          <div class="step-desc">
+            Go to <a href="https://vercel.com" target="_blank">vercel.com</a> → click <strong>Sign In with GitHub</strong> → click <strong>Add New Project</strong> → click <strong>Import</strong> next to <code>smoked-style</code>.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <div class="step-title">Configure the Project</div>
+          <div class="step-desc">
+            Vercel should auto-detect <strong>Next.js</strong> as the framework. Before clicking Deploy, expand the <strong>Environment Variables</strong> section and add all 7 keys:
+            <table class="env-table" style="margin-top:12px;">
+              <tr><th>Variable Name</th><th>Where to find it</th></tr>
+              <tr><td><code>NEXT_PUBLIC_SUPABASE_URL</code></td><td>Your .env.local file</td></tr>
+              <tr><td><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></td><td>Your .env.local file</td></tr>
+              <tr><td><code>SUPABASE_SERVICE_ROLE_KEY</code></td><td>Your .env.local file</td></tr>
+              <tr><td><code>NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY</code></td><td>Your .env.local file</td></tr>
+              <tr><td><code>STRIPE_SECRET_KEY</code></td><td>Your .env.local file</td></tr>
+              <tr><td><code>STRIPE_WEBHOOK_SECRET</code></td><td>Added in step 10 below</td></tr>
+              <tr><td><code>NEXT_PUBLIC_GOOGLE_MAPS_KEY</code></td><td>Phase 2 feature — skip for now</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">8</div>
+        <div class="step-body">
+          <div class="step-title">Click Deploy</div>
+          <div class="step-desc">
+            Click <strong>Deploy</strong> and wait about 2 minutes. When it finishes you'll see a live URL like <code>smoked-style.vercel.app</code>. Click it to open your live site. Save this URL — you'll need it for the next steps.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">9</div>
+        <div class="step-body">
+          <div class="step-title">Update Supabase Redirect URL</div>
+          <div class="step-desc">
+            Go to your <a href="https://supabase.com/dashboard" target="_blank">Supabase dashboard</a> → your project → <strong>Authentication → URL Configuration</strong>. Add your Vercel URL to <strong>Redirect URLs</strong>:
+            <span class="cmd-block">https://your-site.vercel.app/**</span>
+            This allows Google OAuth login to work on your live site.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">10</div>
+        <div class="step-body">
+          <div class="step-title">Add Stripe Webhook</div>
+          <div class="step-desc">
+            Go to <a href="https://dashboard.stripe.com/webhooks" target="_blank">Stripe Dashboard → Webhooks</a> → <strong>Add endpoint</strong>. Set the endpoint URL to:
+            <span class="cmd-block">https://your-site.vercel.app/api/webhooks/stripe</span>
+            Select events: <code>payment_intent.succeeded</code>, <code>payment_intent.payment_failed</code>, <code>charge.captured</code>. Copy the <strong>Signing secret</strong> that appears. Add it to Vercel as <code>STRIPE_WEBHOOK_SECRET</code> and redeploy.
+          </div>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">11</div>
+        <div class="step-body">
+          <div class="step-title">Test End-to-End</div>
+          <div class="step-desc">
+            On your live site, test the full flow:
+            <ul style="margin-top:8px;padding-left:18px;line-height:1.9;font-size:14px;color:#4b5563;">
+              <li>Browse the catalog and add an item to cart</li>
+              <li>Go through checkout with a real card</li>
+              <li>Check that the order appears in <code>/admin</code></li>
+              <li>Approve the order — verify the card gets charged in Stripe dashboard</li>
+              <li>Log in to admin panel and confirm auth works</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase-nav">
+        <button class="btn btn-secondary" onclick="showPhase(2, document.querySelectorAll('.nav-item')[1])">← Back</button>
+        <button class="btn btn-primary" onclick="showPhase(4, document.querySelectorAll('.nav-item')[3])">Next: After Launch →</button>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════
+         PHASE 4 — After Launch
+    ════════════════════════════════════ -->
+    <div class="phase-section" id="phase-4">
+      <div class="phase-header">
+        <div class="phase-label">Phase 4</div>
+        <h2>After Launch</h2>
+        <p>Your site is live. Here's how to keep it running and updated.</p>
+      </div>
+
+      <div class="al-grid">
+        <div class="al-card">
+          <div class="al-icon">🔄</div>
+          <div class="al-title">How to Update the Site</div>
+          <div class="al-body">
+            Make changes in Cursor, then run in the terminal:
+            <br><br>
+            <code>git add .</code><br>
+            <code>git commit -m "describe what changed"</code><br>
+            <code>git push</code><br><br>
+            Vercel automatically detects the push and redeploys in ~1 minute. No manual action needed.
+          </div>
+        </div>
+        <div class="al-card">
+          <div class="al-icon">👤</div>
+          <div class="al-title">How to Add Admin Users</div>
+          <div class="al-body">
+            Go to your <strong>Supabase Dashboard</strong> → your project → <strong>Authentication → Users</strong> → click <strong>Invite User</strong>.<br><br>
+            Then in the database, add their email to the <code>admin_users</code> table so the admin panel grants them access.
+          </div>
+        </div>
+        <div class="al-card">
+          <div class="al-icon">📦</div>
+          <div class="al-title">Where to Monitor Orders</div>
+          <div class="al-body">
+            Go to <code>your-site.vercel.app/admin</code> — this is your live admin panel. You'll see incoming orders in real-time, can approve or reject them, and manage inventory from there.
+          </div>
+        </div>
+        <div class="al-card">
+          <div class="al-icon">💳</div>
+          <div class="al-title">Monitor Payments in Stripe</div>
+          <div class="al-body">
+            Go to <a href="https://dashboard.stripe.com/payments" target="_blank" style="color:var(--orange);">Stripe Dashboard → Payments</a>.<br><br>
+            Authorized payments show as <strong>Uncaptured</strong>. When you approve an order in the admin panel, the capture happens automatically. Failed webhooks appear under <strong>Webhooks → Logs</strong>.
+          </div>
+        </div>
+        <div class="al-card">
+          <div class="al-icon">🛑</div>
+          <div class="al-title">If Something Breaks</div>
+          <div class="al-body">
+            Check <strong>Vercel Dashboard → your project → Deployments → Functions</strong> for server errors.<br><br>
+            For database issues, check <strong>Supabase → Logs → API</strong>. Paste the error into Cursor Agent and describe what you were doing when it happened.
+          </div>
+        </div>
+        <div class="al-card">
+          <div class="al-icon">🗺️</div>
+          <div class="al-title">Google Maps (Phase 2)</div>
+          <div class="al-body">
+            The <code>NEXT_PUBLIC_GOOGLE_MAPS_KEY</code> in your .env.local is a placeholder. When you're ready to add driver routing and route tracking, get a key from <a href="https://console.cloud.google.com" target="_blank" style="color:var(--orange);">Google Cloud Console</a> and add it to Vercel's environment variables.
+          </div>
+        </div>
+      </div>
+
+      <div class="warn-box">
+        <div class="wb-title">⚠ Live Keys Reminder</div>
+        <p>Your Stripe keys are <strong>live production keys</strong> — any charges made on your site are real charges. Always test with a real card you own before going public. Never commit <code>.env.local</code> to GitHub.</p>
+      </div>
+
+      <div class="step-card" style="background:#f0fdf4;border-color:#bbf7d0;">
+        <div class="step-num" style="background:var(--green);">✓</div>
+        <div class="step-body">
+          <div class="step-title" style="color:var(--green);">You're Live!</div>
+          <div class="step-desc">
+            Smoked Style is up and running. Preview the design mockups below to double-check how everything should look:
+            <br><br>
+            <a href="index.html">→ Customer Storefront Mockup</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+            <a href="admin.html">→ Admin Panel Mockup</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="phase-nav">
+        <button class="btn btn-secondary" onclick="showPhase(3, document.querySelectorAll('.nav-item')[2])">← Back</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<script>
+// ── Phase navigation ──
+const phases = [
+  { id: 1, title: "Phase 1 — Install &amp; Set Up", tag: "One-Time Setup" },
+  { id: 2, title: "Phase 2 — Build Step by Step", tag: "19 Prompts" },
+  { id: 3, title: "Phase 3 — Deploy to Vercel", tag: "Go Live" },
+  { id: 4, title: "Phase 4 — After Launch", tag: "Maintenance" },
+];
+
+function showPhase(num, navEl) {
+  document.querySelectorAll('.phase-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('phase-' + num).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (navEl) navEl.classList.add('active');
+  const p = phases.find(x => x.id === num);
+  document.getElementById('topbar-title').innerHTML = p.title;
+  document.getElementById('topbar-tag').textContent = p.tag;
+  window.scrollTo(0, 0);
+}
+
+// ── Checklist data ──
+const steps = [
+  { num: 1,  name: "Project Setup",         desc: "Initialize Next.js 14 app, install all dependencies, configure Supabase client" },
+  { num: 2,  name: "Database Schema",        desc: "Create all Supabase tables: products, orders, order_items, customers, inventory" },
+  { num: 3,  name: "Seed Data",              desc: "Populate the database with your product catalog and initial inventory levels" },
+  { num: 4,  name: "Catalog Page",           desc: "Build the customer storefront — product grid, category tabs, Jerky modal with flavors" },
+  { num: 5,  name: "Cart Page",              desc: "Shopping cart with item editing, OOS warnings, order notes, and suggested items" },
+  { num: 6,  name: "Checkout Page",          desc: "4-step checkout: contact info → delivery → date picker → payment with Stripe" },
+  { num: 7,  name: "Order Confirmation",     desc: "Confirmation screen with order number, status bar, and authorized payment badge" },
+  { num: 8,  name: "Admin Auth",             desc: "Email/password login page for admin, protected routes, session management" },
+  { num: 9,  name: "Orders Dashboard",       desc: "Admin orders list with filters, status tabs, approve/reject modals" },
+  { num: 10, name: "Single Order Page",      desc: "Full order detail — edit items, recalc totals, ZPL label, packing slip" },
+  { num: 11, name: "Production Report",      desc: "Daily production view — confirmed vs pending quantities by item" },
+  { num: 12, name: "Inventory Management",   desc: "Stock cards with editable quantities, in/out toggles, low stock alerts" },
+  { num: 13, name: "Customer Management",    desc: "Customer table with VIP/Wholesale tags, order history, quick contact" },
+  { num: 14, name: "Bulk Order",             desc: "Wholesale/event order form with custom pricing and volume discounts" },
+  { num: 15, name: "Print Labels",           desc: "Zebra ZPL label generation and printing from the order page" },
+  { num: 16, name: "Stripe Webhooks",        desc: "Handle payment_intent events, auto-capture on approval, failed payment handling" },
+  { num: 17, name: "Email System",           desc: "Order confirmation, status update, and admin notification emails" },
+  { num: 18, name: "Push Notifications",     desc: "Firebase Cloud Messaging — browser push for new orders to admin devices" },
+  { num: 19, name: "Deploy to Vercel",       desc: "Final build check, GitHub push, Vercel deploy, webhook setup, end-to-end test" },
+];
+
+function getChecked() {
+  return JSON.parse(localStorage.getItem('smoked-checklist') || '{}');
+}
+
+function saveChecked(obj) {
+  localStorage.setItem('smoked-checklist', JSON.stringify(obj));
+}
+
+function renderChecklist() {
+  const checked = getChecked();
+  const container = document.getElementById('checklist-container');
+  container.innerHTML = '';
+  steps.forEach(step => {
+    const isChecked = !!checked[step.num];
+    const div = document.createElement('div');
+    div.className = 'checklist-item' + (isChecked ? ' checked' : '');
+    div.innerHTML = `
+      <input type="checkbox" id="step-${step.num}" ${isChecked ? 'checked' : ''}>
+      <div>
+        <div class="ci-step">Step ${step.num}</div>
+        <div class="ci-name">${step.name}</div>
+        <div class="ci-desc">${step.desc}</div>
+      </div>
+    `;
+    div.addEventListener('click', () => toggleStep(step.num));
+    container.appendChild(div);
+  });
+  updateProgress();
+}
+
+function toggleStep(num) {
+  const checked = getChecked();
+  checked[num] = !checked[num];
+  if (!checked[num]) delete checked[num];
+  saveChecked(checked);
+  renderChecklist();
+}
+
+function resetChecklist() {
+  if (confirm('Reset all 19 steps? Your progress will be lost.')) {
+    localStorage.removeItem('smoked-checklist');
+    renderChecklist();
+  }
+}
+
+function updateProgress() {
+  const checked = getChecked();
+  const count = Object.values(checked).filter(Boolean).length;
+  const pct = Math.round((count / 19) * 100);
+  document.getElementById('cl-count-text').textContent = count + ' of 19 complete';
+  document.getElementById('progress-label').textContent = count + ' of 19 steps';
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  // Mark nav items done
+  const navItems = document.querySelectorAll('.nav-item');
+  if (count === 19) {
+    navItems[1].classList.add('done');
+  } else {
+    navItems[1].classList.remove('done');
+  }
+}
+
+// Init
+renderChecklist();
+</script>
+</body>
+</html>

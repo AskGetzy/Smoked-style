@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout — Smoked Style</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --navy: #2E4057; --orange: #C85C2D; --orange-light: #E8733E; --green: #10B981; --bg: #F5F5F5; --card: #FFFFFF; --text: #1A1A1A; --muted: #6B7280; --border: #E5E7EB; --yellow: #F59E0B; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+header { background: var(--navy); }
+.header-inner { max-width: 960px; margin: 0 auto; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: 1.5px; text-decoration: none; }
+.logo span { color: var(--orange); }
+
+/* PROGRESS */
+.progress-wrap { background: var(--card); border-bottom: 1px solid var(--border); }
+.progress { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; height: 72px; }
+.prog-step { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; }
+.prog-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border: 2px solid var(--border); background: var(--card); color: var(--muted); transition: all 0.2s; flex-shrink: 0; }
+.prog-dot.active { background: var(--orange); border-color: var(--orange); color: #fff; }
+.prog-dot.done { background: var(--green); border-color: var(--green); color: #fff; }
+.prog-label { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.prog-label.active { color: var(--navy); font-weight: 800; }
+.prog-line { flex: 1; height: 2px; background: var(--border); margin: 0 8px; }
+.prog-line.done { background: var(--green); }
+
+/* MAIN */
+main { max-width: 960px; margin: 0 auto; padding: 28px 24px 60px; display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
+@media (max-width: 780px) { main { grid-template-columns: 1fr; } }
+
+/* STEP PANELS */
+.step-panel { display: none; }
+.step-panel.active { display: block; }
+.step-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+.step-title { font-size: 18px; font-weight: 800; color: var(--navy); margin-bottom: 20px; }
+
+/* FORMS */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 6px; display: block; }
+.form-input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; }
+.form-input:focus { border-color: var(--navy); }
+.form-select { width: 100%; padding: 10px 32px 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: #fff; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; cursor: pointer; }
+.form-select:focus { border-color: var(--navy); }
+
+/* DELIVERY OPTION CARDS */
+.option-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.option-card { border: 2px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; }
+.option-card.selected { border-color: var(--navy); background: #EEF2F8; }
+.option-card-icon { font-size: 28px; margin-bottom: 8px; }
+.option-card-title { font-size: 15px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
+.option-card-sub { font-size: 12px; color: var(--muted); }
+.delivery-fields { display: none; }
+.delivery-fields.show { display: block; }
+.fee-pill { display: inline-block; background: #D1FAE5; color: #065F46; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; margin-left: 8px; }
+
+/* CALENDAR */
+.calendar-wrap { }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cal-nav button { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+.cal-title { font-size: 15px; font-weight: 700; color: var(--navy); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day-label { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 4px 0; }
+.cal-day { text-align: center; padding: 8px 4px; border-radius: 8px; font-size: 13px; cursor: pointer; transition: all 0.15s; position: relative; }
+.cal-day:hover:not(.blocked):not(.empty) { background: #EEF2F8; }
+.cal-day.selected { background: var(--navy); color: #fff; font-weight: 700; }
+.cal-day.blocked { color: var(--border); cursor: not-allowed; background: #FAFAFA; }
+.cal-day.friday { color: var(--text); }
+.cal-day.friday::after { content: ''; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--yellow); }
+.cal-day.empty { cursor: default; }
+.fri-note { font-size: 12px; color: var(--yellow); font-weight: 600; margin-top: 10px; display: flex; align-items: center; gap: 6px; }
+.fri-note.hidden { display: none; }
+
+/* PAYMENT */
+.saved-card-row { display: flex; align-items: center; gap: 14px; padding: 14px; border: 2px solid var(--navy); border-radius: 12px; background: #EEF2F8; margin-bottom: 16px; }
+.card-icon { font-size: 24px; }
+.card-info { flex: 1; }
+.card-name { font-size: 14px; font-weight: 700; color: var(--navy); }
+.card-sub { font-size: 12px; color: var(--muted); }
+.card-selected { font-size: 18px; color: var(--green); }
+.add-card-link { font-size: 13px; color: var(--navy); text-decoration: underline; cursor: pointer; margin-bottom: 20px; display: block; }
+.disclaimer { font-size: 12px; color: var(--muted); text-align: center; margin-top: 12px; line-height: 1.6; }
+.disclaimer strong { color: var(--navy); }
+
+/* BUTTONS */
+.btn-next { width: 100%; background: var(--orange); color: #fff; border: none; padding: 13px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.2s; margin-top: 8px; }
+.btn-next:hover { background: var(--orange-light); }
+.btn-back { width: 100%; background: #fff; color: var(--navy); border: 1.5px solid var(--border); padding: 11px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+.btn-back:hover { background: var(--bg); }
+.btn-place { width: 100%; background: var(--orange); color: #fff; border: none; padding: 14px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+.btn-place:hover { background: var(--orange-light); }
+
+/* SUMMARY SIDEBAR */
+.summary-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; position: sticky; top: 96px; }
+.summary-title { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 14px; }
+.summary-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+.summary-row.total { font-size: 16px; font-weight: 800; color: var(--navy); margin-top: 12px; padding-top: 12px; border-top: 2px solid var(--border); }
+.summary-muted { color: var(--muted); }
+.delivery-fee-display { font-style: italic; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="index.html" class="logo">Smoked <span>Style</span></a>
+    <a href="cart.html" style="color:rgba(255,255,255,0.7);font-size:13px;text-decoration:none;">← Back to Cart</a>
+  </div>
+</header>
+
+<!-- PROGRESS BAR -->
+<div class="progress-wrap">
+  <div class="progress">
+    <div class="prog-step" onclick="goStep(1)">
+      <div class="prog-dot done" id="dot1">✓</div>
+      <div class="prog-label" id="lbl1">Contact Info</div>
+    </div>
+    <div class="prog-line done" id="line1"></div>
+    <div class="prog-step" onclick="goStep(2)">
+      <div class="prog-dot active" id="dot2">2</div>
+      <div class="prog-label active" id="lbl2">Delivery</div>
+    </div>
+    <div class="prog-line" id="line2"></div>
+    <div class="prog-step" onclick="goStep(3)">
+      <div class="prog-dot" id="dot3">3</div>
+      <div class="prog-label" id="lbl3">Date</div>
+    </div>
+    <div class="prog-line" id="line3"></div>
+    <div class="prog-step" onclick="goStep(4)">
+      <div class="prog-dot" id="dot4">4</div>
+      <div class="prog-label" id="lbl4">Payment</div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div>
+
+    <!-- STEP 1 — CONTACT INFO -->
+    <div class="step-panel" id="step1">
+      <div class="step-card">
+        <div class="step-title">Contact Information</div>
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-input" value="Yakov Goldstein">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input class="form-input" type="email" value="yakovg@gmail.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input class="form-input" type="tel" value="(347) 555-0192">
+        </div>
+        <button class="btn-next" onclick="goStep(2)">Continue to Delivery →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2 — DELIVERY -->
+    <div class="step-panel active" id="step2">
+      <div class="step-card">
+        <div class="step-title">Delivery or Pickup?</div>
+        <div class="option-cards">
+          <div class="option-card selected" id="opt-delivery" onclick="selectOption('delivery')">
+            <div class="option-card-icon">🚚</div>
+            <div class="option-card-title">Delivery</div>
+            <div class="option-card-sub">We bring it to you</div>
+          </div>
+          <div class="option-card" id="opt-pickup" onclick="selectOption('pickup')">
+            <div class="option-card-icon">🏠</div>
+            <div class="option-card-title">Pickup</div>
+            <div class="option-card-sub">Collect from us</div>
+          </div>
+        </div>
+
+        <div class="delivery-fields show" id="delivery-fields">
+          <div class="form-group">
+            <label class="form-label">Delivery Area <span class="fee-pill" id="fee-badge">$30 fee</span></label>
+            <select class="form-select" onchange="updateFee(this)">
+              <option value="30">Williamsburg — $30</option>
+              <option value="30">Boro Park — $30</option>
+              <option value="30">Monsey — $30</option>
+              <option value="30">Lakewood — $30</option>
+              <option value="30">Monroe — $30</option>
+              <option value="30">5 Towns — $30</option>
+              <option value="30">Catskills — $30</option>
+              <option value="30">Other (admin sets fee) — $30</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Recipient Name</label>
+            <input class="form-input" placeholder="Who should we deliver to?">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Delivery Address</label>
+            <input class="form-input" placeholder="Street address, apt, city, zip">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Recipient Phone</label>
+            <input class="form-input" type="tel" placeholder="(718) 555-0000">
+          </div>
+        </div>
+
+        <div id="pickup-fields" style="display:none;padding:14px;background:#F0F2F5;border-radius:10px;font-size:14px;color:var(--muted);margin-bottom:16px;">
+          📍 Pickup available — contact us for location details.<br>
+          <strong style="color:var(--navy);">(718) 810-9472</strong>
+        </div>
+
+        <button class="btn-next" onclick="goStep(3)">Continue to Date →</button>
+        <button class="btn-back" onclick="goStep(1)">← Back</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 — DATE -->
+    <div class="step-panel" id="step3">
+      <div class="step-card">
+        <div class="step-title">Select Delivery Date</div>
+        <div class="calendar-wrap">
+          <div class="cal-nav">
+            <button onclick="prevMonth()">‹</button>
+            <div class="cal-title" id="cal-title"></div>
+            <button onclick="nextMonth()">›</button>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <div class="fri-note hidden" id="fri-note">⚠ Friday delivery may have limited availability</div>
+        </div>
+        <button class="btn-next" onclick="goStep(4)" style="margin-top:16px;">Continue to Payment →</button>
+        <button class="btn-back" onclick="goStep(2)">← Back</button>
+      </div>
+    </div>
+
+    <!-- STEP 4 — PAYMENT -->
+    <div class="step-panel" id="step4">
+      <div class="step-card">
+        <div class="step-title">Payment</div>
+        <div class="saved-card-row">
+          <div class="card-icon">💳</div>
+          <div class="card-info">
+            <div class="card-name">Visa ending in 4242</div>
+            <div class="card-sub">Saved card · expires 08/28</div>
+          </div>
+          <div class="card-selected">✓</div>
+        </div>
+        <span class="add-card-link" onclick="alert('Card input form would appear here')">+ Use a different card</span>
+        <button class="btn-place" onclick="window.location='confirmation.html'">Place Order — $730</button>
+        <div class="disclaimer">
+          <strong>Your card will not be charged yet.</strong><br>
+          This is an authorization only. You will be charged $730 once we approve your order.
+        </div>
+        <button class="btn-back" onclick="goStep(3)" style="margin-top:12px;">← Back</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ORDER SUMMARY SIDEBAR -->
+  <div class="summary-card">
+    <div class="summary-title">Order Summary</div>
+    <div class="summary-row"><span class="summary-muted">Smoked Pastrami ×1</span><span>$500</span></div>
+    <div class="summary-row"><span class="summary-muted">Beef Jerky 2lb ×1</span><span>$200</span></div>
+    <div class="summary-row"><span class="summary-muted">Delivery fee</span><span class="delivery-fee-display" id="sidebar-fee">$30</span></div>
+    <div class="summary-row total"><span>Total</span><span id="sidebar-total">$730</span></div>
+  </div>
+</main>
+
+<script>
+let currentStep = 2;
+let selectedDate = null;
+let calYear, calMonth;
+
+function goStep(n) {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+  currentStep = n;
+  // update dots
+  for (let i = 1; i <= 4; i++) {
+    const dot = document.getElementById('dot' + i);
+    const lbl = document.getElementById('lbl' + i);
+    dot.className = 'prog-dot';
+    lbl.className = 'prog-label';
+    if (i < n) { dot.classList.add('done'); dot.textContent = '✓'; }
+    else if (i === n) { dot.classList.add('active'); dot.textContent = i; lbl.classList.add('active'); }
+    else { dot.textContent = i; }
+    if (i < 4) {
+      const line = document.getElementById('line' + i);
+      line.className = 'prog-line' + (i < n ? ' done' : '');
+    }
+  }
+  if (n === 3 && !calYear) initCalendar();
+}
+
+function selectOption(opt) {
+  document.getElementById('opt-delivery').classList.toggle('selected', opt === 'delivery');
+  document.getElementById('opt-pickup').classList.toggle('selected', opt === 'pickup');
+  document.getElementById('delivery-fields').classList.toggle('show', opt === 'delivery');
+  document.getElementById('pickup-fields').style.display = opt === 'pickup' ? 'block' : 'none';
+}
+
+function updateFee(sel) {
+  const fee = '$' + sel.value;
+  document.getElementById('fee-badge').textContent = fee + ' fee';
+  document.getElementById('sidebar-fee').textContent = fee;
+  const base = 700;
+  document.getElementById('sidebar-total').textContent = '$' + (base + parseInt(sel.value));
+}
+
+// ─── CALENDAR ───────────────────────────────────────────────
+function initCalendar() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  renderCalendar();
+}
+function prevMonth() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
+function nextMonth() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); }
+function renderCalendar() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-title').textContent = months[calMonth] + ' ' + calYear;
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+    const lbl = document.createElement('div');
+    lbl.className = 'cal-day-label';
+    lbl.textContent = d;
+    grid.appendChild(lbl);
+  });
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  for (let i = 0; i < firstDay; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'cal-day empty';
+    grid.appendChild(empty);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dayEl = document.createElement('div');
+    const dow = new Date(calYear, calMonth, d).getDay();
+    dayEl.className = 'cal-day';
+    dayEl.textContent = d;
+    if (dow === 6) { dayEl.classList.add('blocked'); dayEl.title = 'No deliveries on Saturday'; }
+    else if (dow === 5) { dayEl.classList.add('friday'); }
+    else { dayEl.onclick = () => selectDate(d, dayEl, dow); }
+    if (dow !== 6) dayEl.onclick = () => selectDate(d, dayEl, dow);
+    grid.appendChild(dayEl);
+  }
+}
+function selectDate(d, el, dow) {
+  document.querySelectorAll('.cal-day.selected').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedDate = d;
+  const friNote = document.getElementById('fri-note');
+  friNote.classList.toggle('hidden', dow !== 5);
+}
+</script>
+</body>
+</html>

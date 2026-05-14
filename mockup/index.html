@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smoked Style</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy: #2E4057;
+  --orange: #C85C2D;
+  --orange-light: #E8733E;
+  --bg: #F5F5F5;
+  --card-bg: #FFFFFF;
+  --text: #1A1A1A;
+  --muted: #6B7280;
+  --border: #E5E7EB;
+  --amber: #92400E;
+  --amber-bg: #FEF3C7;
+  --amber-border: #F59E0B;
+}
+
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+/* HEADER */
+header {
+  background: var(--navy);
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.header-inner {
+  max-width: 1200px; margin: 0 auto;
+  padding: 0 24px;
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+  font-size: 22px; font-weight: 800; color: #fff; letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.logo span { color: var(--orange); }
+.header-right { display: flex; align-items: center; gap: 16px; }
+.cart-btn {
+  position: relative; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; padding: 8px 16px; border-radius: 8px;
+  cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px;
+  transition: background 0.2s;
+}
+.cart-btn:hover { background: rgba(255,255,255,0.2); }
+.cart-badge {
+  background: var(--orange); color: #fff;
+  border-radius: 999px; padding: 1px 7px; font-size: 12px; font-weight: 700;
+}
+.cart-total { font-weight: 600; }
+.signin-btn {
+  background: var(--orange); color: #fff; border: none;
+  padding: 9px 18px; border-radius: 8px; font-size: 14px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+  transition: background 0.2s;
+}
+.signin-btn:hover { background: var(--orange-light); }
+.google-icon { width: 18px; height: 18px; }
+
+/* PURIM BANNER */
+.purim-banner {
+  background: linear-gradient(135deg, #92400E 0%, #B45309 50%, #78350F 100%);
+  padding: 32px 24px;
+}
+.purim-inner { max-width: 1200px; margin: 0 auto; }
+.purim-label {
+  display: inline-block; background: #FEF3C7; color: #92400E;
+  font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+  padding: 4px 12px; border-radius: 999px; margin-bottom: 8px;
+}
+.purim-title { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+.purim-sub { font-size: 14px; color: #FDE68A; margin-bottom: 20px; }
+.purim-cards { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 4px; }
+.purim-card {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 12px; padding: 16px; min-width: 200px; flex-shrink: 0;
+}
+.purim-card-img {
+  width: 100%; height: 100px; border-radius: 8px; margin-bottom: 10px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+}
+.purim-card-name { color: #fff; font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.purim-card-price { color: #FDE68A; font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+.purim-card-btn {
+  width: 100%; background: #F59E0B; color: #fff; border: none;
+  padding: 7px; border-radius: 6px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.purim-card-btn:hover { background: #D97706; }
+
+/* MAIN */
+main { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+/* BEST SELLERS */
+.section-title {
+  font-size: 20px; font-weight: 800; color: var(--navy); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.section-title::after {
+  content: ''; flex: 1; height: 2px; background: var(--border);
+}
+.best-sellers-row {
+  display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 40px;
+}
+.best-sellers-row::-webkit-scrollbar { height: 4px; }
+.best-sellers-row::-webkit-scrollbar-track { background: var(--border); border-radius: 2px; }
+.best-sellers-row::-webkit-scrollbar-thumb { background: var(--navy); border-radius: 2px; }
+
+/* CATEGORY TABS */
+.tab-bar {
+  display: flex; gap: 4px; background: #fff; border: 1px solid var(--border);
+  border-radius: 12px; padding: 4px; margin-bottom: 24px; flex-wrap: wrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.tab {
+  padding: 9px 20px; border-radius: 8px; border: none; background: transparent;
+  font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer;
+  transition: all 0.2s; flex-shrink: 0;
+}
+.tab.active {
+  background: var(--navy); color: #fff;
+  box-shadow: 0 2px 6px rgba(46,64,87,0.3);
+}
+.tab:hover:not(.active) { background: var(--bg); color: var(--text); }
+
+/* PRODUCT GRID */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+@media (max-width: 900px) { .product-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 580px) { .product-grid { grid-template-columns: 1fr; } }
+
+.product-card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.product-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+.product-card.out-of-stock { opacity: 0.55; filter: grayscale(0.4); }
+.product-card.out-of-stock:hover { transform: none; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+
+.card-img {
+  width: 100%; height: 180px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 52px; position: relative;
+}
+.card-img-jerky    { background: linear-gradient(135deg, #7C2D12, #9A3412); }
+.card-img-steak    { background: linear-gradient(135deg, #1C1917, #44403C); }
+.card-img-smoked   { background: linear-gradient(135deg, #292524, #57534E); }
+.card-img-boards   { background: linear-gradient(135deg, #78350F, #92400E); }
+.card-img-nonsm    { background: linear-gradient(135deg, #1E3A5F, #2E4057); }
+
+.oos-badge {
+  position: absolute; top: 12px; right: 12px;
+  background: rgba(0,0,0,0.7); color: #fff;
+  font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
+  letter-spacing: 0.5px;
+}
+.card-body { padding: 16px; }
+.card-category {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--orange); margin-bottom: 4px;
+}
+.card-name { font-size: 16px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+.card-desc { font-size: 13px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+.card-footer { display: flex; align-items: center; justify-content: space-between; }
+.card-price { font-size: 18px; font-weight: 800; color: var(--navy); }
+.card-price-sub { font-size: 12px; color: var(--muted); font-weight: 400; }
+.add-btn {
+  background: var(--orange); color: #fff; border: none;
+  padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: background 0.2s;
+}
+.add-btn:hover { background: var(--orange-light); }
+.oos-text { font-size: 13px; font-weight: 600; color: var(--muted); }
+
+/* MODAL */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55); z-index: 999;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #fff; border-radius: 20px; padding: 32px;
+  width: 480px; max-width: calc(100vw - 32px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: slideUp 0.2s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.modal-title { font-size: 20px; font-weight: 800; color: var(--navy); }
+.modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--muted); padding: 4px; }
+.modal-close:hover { color: var(--text); }
+.modal-img {
+  width: 100%; height: 140px; border-radius: 12px;
+  background: linear-gradient(135deg, #7C2D12, #9A3412);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 52px; margin-bottom: 20px;
+}
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 6px; display: block; }
+.form-select {
+  width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 14px; color: var(--text);
+  background: #fff; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  cursor: pointer;
+}
+.form-select:focus { outline: none; border-color: var(--navy); }
+.modal-price-row {
+  background: var(--bg); border-radius: 10px; padding: 16px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 20px; margin-bottom: 20px;
+}
+.modal-price-label { font-size: 14px; font-weight: 600; color: var(--muted); }
+.modal-price-val { font-size: 26px; font-weight: 800; color: var(--navy); }
+.modal-add-btn {
+  width: 100%; background: var(--orange); color: #fff; border: none;
+  padding: 14px; border-radius: 10px; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: background 0.2s;
+}
+.modal-add-btn:hover { background: var(--orange-light); }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 32px; right: 32px;
+  background: var(--navy); color: #fff;
+  padding: 14px 20px; border-radius: 10px;
+  font-size: 14px; font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  opacity: 0; transform: translateY(10px);
+  transition: all 0.3s; z-index: 9999;
+  display: flex; align-items: center; gap: 10px;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast-icon { font-size: 18px; }
+
+/* FOOTER */
+footer {
+  background: var(--navy); color: rgba(255,255,255,0.7);
+  text-align: center; padding: 32px 24px; margin-top: 60px;
+  font-size: 14px; line-height: 2;
+}
+footer strong { color: #fff; font-size: 16px; }
+footer a { color: rgba(255,255,255,0.7); text-decoration: none; }
+footer a:hover { color: #fff; }
+
+/* Hidden product sections */
+.product-section { display: none; }
+.product-section.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">Smoked <span>Style</span></div>
+    <div class="header-right">
+      <button class="cart-btn" onclick="window.location='cart.html'">
+        🛒 Cart
+        <span class="cart-badge" id="cart-count">2</span>
+        <span class="cart-total" id="cart-total">$225</span>
+      </button>
+      <button class="signin-btn">
+        <svg class="google-icon" viewBox="0 0 24 24" fill="none">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Sign in with Google
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- PURIM BANNER -->
+<div class="purim-banner">
+  <div class="purim-inner">
+    <div class="purim-label">🎉 Purim Special</div>
+    <div class="purim-title">Mishloach Manos Packages</div>
+    <div class="purim-sub">Order now for Purim delivery — limited quantities available</div>
+    <div class="purim-cards">
+      <div class="purim-card">
+        <div class="purim-card-img">🥩</div>
+        <div class="purim-card-name">Meat Board 12x18</div>
+        <div class="purim-card-price">$250</div>
+        <button class="purim-card-btn">Add to Cart</button>
+      </div>
+      <div class="purim-card">
+        <div class="purim-card-img">🍖</div>
+        <div class="purim-card-name">Jerky Board 10x15</div>
+        <div class="purim-card-price">$125</div>
+        <button class="purim-card-btn">Add to Cart</button>
+      </div>
+      <div class="purim-card">
+        <div class="purim-card-img">🥓</div>
+        <div class="purim-card-name">Smoked Pastrami</div>
+        <div class="purim-card-price">$500</div>
+        <button class="purim-card-btn">Add to Cart</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main>
+
+  <!-- BEST SELLERS -->
+  <div class="section-title">🔥 Best Sellers</div>
+  <div class="best-sellers-row">
+    <!-- reuse small cards -->
+    <div class="product-card" style="min-width:200px;flex-shrink:0;">
+      <div class="card-img card-img-jerky" style="height:110px;font-size:32px;">🥩</div>
+      <div class="card-body" style="padding:12px;">
+        <div class="card-name" style="font-size:14px;">Beef Jerky</div>
+        <div class="card-price" style="font-size:15px;">$100<span class="card-price-sub">/lb</span></div>
+      </div>
+    </div>
+    <div class="product-card" style="min-width:200px;flex-shrink:0;">
+      <div class="card-img card-img-smoked" style="height:110px;font-size:32px;">💨</div>
+      <div class="card-body" style="padding:12px;">
+        <div class="card-name" style="font-size:14px;">Smoked Pastrami</div>
+        <div class="card-price" style="font-size:15px;">$500</div>
+      </div>
+    </div>
+    <div class="product-card" style="min-width:200px;flex-shrink:0;">
+      <div class="card-img card-img-boards" style="height:110px;font-size:32px;">🍱</div>
+      <div class="card-body" style="padding:12px;">
+        <div class="card-name" style="font-size:14px;">Meat Board 12x18</div>
+        <div class="card-price" style="font-size:15px;">$250</div>
+      </div>
+    </div>
+    <div class="product-card" style="min-width:200px;flex-shrink:0;">
+      <div class="card-img card-img-steak" style="height:110px;font-size:32px;">🥩</div>
+      <div class="card-body" style="padding:12px;">
+        <div class="card-name" style="font-size:14px;">Hanger Steak</div>
+        <div class="card-price" style="font-size:15px;">$200</div>
+      </div>
+    </div>
+    <div class="product-card" style="min-width:200px;flex-shrink:0;">
+      <div class="card-img card-img-smoked" style="height:110px;font-size:32px;">🍗</div>
+      <div class="card-body" style="padding:12px;">
+        <div class="card-name" style="font-size:14px;">Smoked Brisket Large</div>
+        <div class="card-price" style="font-size:15px;">$350</div>
+      </div>
+    </div>
+    <div class="product-card" style="min-width:200px;flex-shrink:0;">
+      <div class="card-img card-img-boards" style="height:110px;font-size:32px;">🍢</div>
+      <div class="card-body" style="padding:12px;">
+        <div class="card-name" style="font-size:14px;">Steak Board 10x15</div>
+        <div class="card-price" style="font-size:15px;">$275</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORY TABS -->
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('jerky', this)">Jerky</button>
+    <button class="tab" onclick="switchTab('steaks', this)">Steaks</button>
+    <button class="tab" onclick="switchTab('smoked', this)">Smoked</button>
+    <button class="tab" onclick="switchTab('nonsm', this)">Non-Smoked</button>
+    <button class="tab" onclick="switchTab('boards', this)">Boards</button>
+  </div>
+
+  <!-- JERKY -->
+  <div class="product-section active" id="sec-jerky">
+    <div class="product-grid">
+
+      <div class="product-card">
+        <div class="card-img card-img-jerky">🥩</div>
+        <div class="card-body">
+          <div class="card-category">Jerky</div>
+          <div class="card-name">General Tso Jerky</div>
+          <div class="card-desc">Sweet, savory, and slightly spicy. Our #1 seller.</div>
+          <div class="card-footer">
+            <div class="card-price">$100<span class="card-price-sub">/lb</span></div>
+            <button class="add-btn" onclick="openJerkyModal('General Tso')">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-jerky">🌶️</div>
+        <div class="card-body">
+          <div class="card-category">Jerky</div>
+          <div class="card-name">Sweet &amp; Spicy Jerky</div>
+          <div class="card-desc">Perfect balance of sweet heat. Addictive by design.</div>
+          <div class="card-footer">
+            <div class="card-price">$100<span class="card-price-sub">/lb</span></div>
+            <button class="add-btn" onclick="openJerkyModal('Sweet & Spicy')">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-jerky">🔥</div>
+        <div class="card-body">
+          <div class="card-category">Jerky</div>
+          <div class="card-name">Jalapeño Jerky</div>
+          <div class="card-desc">Real jalapeño heat with a smoky finish.</div>
+          <div class="card-footer">
+            <div class="card-price">$100<span class="card-price-sub">/lb</span></div>
+            <button class="add-btn" onclick="openJerkyModal('Jalapeño')">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-jerky">🧂</div>
+        <div class="card-body">
+          <div class="card-category">Jerky</div>
+          <div class="card-name">Pepper Crust Jerky</div>
+          <div class="card-desc">Thick peppercorn crust, bold and classic.</div>
+          <div class="card-footer">
+            <div class="card-price">$100<span class="card-price-sub">/lb</span></div>
+            <button class="add-btn" onclick="openJerkyModal('Pepper Crust')">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-jerky">🍖</div>
+        <div class="card-body">
+          <div class="card-category">Jerky</div>
+          <div class="card-name">BBQ Jerky</div>
+          <div class="card-desc">Slow-smoked BBQ flavor in every bite.</div>
+          <div class="card-footer">
+            <div class="card-price">$100<span class="card-price-sub">/lb</span></div>
+            <button class="add-btn" onclick="openJerkyModal('BBQ')">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card out-of-stock">
+        <div class="card-img card-img-jerky">
+          🥢
+          <span class="oos-badge">Out of Stock</span>
+        </div>
+        <div class="card-body">
+          <div class="card-category">Jerky</div>
+          <div class="card-name">Teriyaki Jerky</div>
+          <div class="card-desc">Japanese-style teriyaki glaze. Back soon.</div>
+          <div class="card-footer">
+            <div class="card-price">$100<span class="card-price-sub">/lb</span></div>
+            <span class="oos-text">Currently unavailable</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- STEAKS -->
+  <div class="product-section" id="sec-steaks">
+    <div class="product-grid">
+
+      <div class="product-card">
+        <div class="card-img card-img-steak">🥩</div>
+        <div class="card-body">
+          <div class="card-category">Steaks</div>
+          <div class="card-name">Hanger Steak</div>
+          <div class="card-desc">Rich, beefy flavor — a chef's cut.</div>
+          <div class="card-footer">
+            <div class="card-price">$200</div>
+            <button class="add-btn" onclick="addToCart('Hanger Steak', 200)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-steak">🍽️</div>
+        <div class="card-body">
+          <div class="card-category">Steaks</div>
+          <div class="card-name">Oyster Steak</div>
+          <div class="card-desc">Small, tender, incredibly flavorful cut.</div>
+          <div class="card-footer">
+            <div class="card-price">$30</div>
+            <button class="add-btn" onclick="addToCart('Oyster Steak', 30)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-steak">👑</div>
+        <div class="card-body">
+          <div class="card-category">Steaks</div>
+          <div class="card-name">Rib Roast</div>
+          <div class="card-desc">The king of steaks. Perfect for special occasions.</div>
+          <div class="card-footer">
+            <div class="card-price">$500</div>
+            <button class="add-btn" onclick="addToCart('Rib Roast', 500)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-steak">📦</div>
+        <div class="card-body">
+          <div class="card-category">Steaks</div>
+          <div class="card-name">Skirt Steak</div>
+          <div class="card-desc">Comes in packs of 4. Thin, flavorful, great for slicing.</div>
+          <div class="card-footer">
+            <div class="card-price">$200<span class="card-price-sub">/pack of 4</span></div>
+            <button class="add-btn" onclick="addToCart('Skirt Steak (×4)', 200)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-steak">🎁</div>
+        <div class="card-body">
+          <div class="card-category">Steaks</div>
+          <div class="card-name">Surprise Steak</div>
+          <div class="card-desc">Our chef's daily pick — always a premium cut.</div>
+          <div class="card-footer">
+            <div class="card-price">$200</div>
+            <button class="add-btn" onclick="addToCart('Surprise Steak', 200)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SMOKED -->
+  <div class="product-section" id="sec-smoked">
+    <div class="product-grid">
+
+      <div class="product-card">
+        <div class="card-img card-img-smoked">💨</div>
+        <div class="card-body">
+          <div class="card-category">Smoked</div>
+          <div class="card-name">Smoked Brisket 2nd Cut</div>
+          <div class="card-desc">Smaller piece, approx 2 lbs. Moist and tender.</div>
+          <div class="card-footer">
+            <div class="card-price">$75</div>
+            <button class="add-btn" onclick="addToCart('Smoked Brisket 2nd Cut', 75)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-smoked">🏆</div>
+        <div class="card-body">
+          <div class="card-category">Smoked</div>
+          <div class="card-name">Smoked Pastrami Brisket</div>
+          <div class="card-desc">Our best seller. One big piece, approx 15 lbs.</div>
+          <div class="card-footer">
+            <div class="card-price">$500</div>
+            <button class="add-btn" onclick="addToCart('Smoked Pastrami', 500)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-smoked">🍗</div>
+        <div class="card-body">
+          <div class="card-category">Smoked</div>
+          <div class="card-name">Smoked Chicken Wings</div>
+          <div class="card-desc">9×13 pan with sweet &amp; spicy sauce. Great for events.</div>
+          <div class="card-footer">
+            <div class="card-price">$90<span class="card-price-sub">/pan</span></div>
+            <button class="add-btn" onclick="addToCart('Smoked Chicken Wings', 90)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-smoked">🦁</div>
+        <div class="card-body">
+          <div class="card-category">Smoked</div>
+          <div class="card-name">Smoked Rack of Lamb</div>
+          <div class="card-desc">Lamb ribs smoked to medium. Stunning presentation.</div>
+          <div class="card-footer">
+            <div class="card-price">$300</div>
+            <button class="add-btn" onclick="addToCart('Smoked Rack of Lamb', 300)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-smoked">🍖</div>
+        <div class="card-body">
+          <div class="card-category">Smoked</div>
+          <div class="card-name">Smoked Pulled Meat</div>
+          <div class="card-desc">Pulled flanken with sauce. Perfect for events.</div>
+          <div class="card-footer">
+            <div class="card-price">$110<span class="card-price-sub">/pan</span></div>
+            <button class="add-btn" onclick="addToCart('Smoked Pulled Meat', 110)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-smoked">🌿</div>
+        <div class="card-body">
+          <div class="card-category">Smoked</div>
+          <div class="card-name">Smoked Lamb Side</div>
+          <div class="card-desc">Full lamb side, herbs &amp; spices, 15–20 lbs.</div>
+          <div class="card-footer">
+            <div class="card-price">$450</div>
+            <button class="add-btn" onclick="addToCart('Smoked Lamb Side', 450)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- NON-SMOKED -->
+  <div class="product-section" id="sec-nonsm">
+    <div class="product-grid">
+
+      <div class="product-card">
+        <div class="card-img card-img-nonsm">👅</div>
+        <div class="card-body">
+          <div class="card-category">Non-Smoked</div>
+          <div class="card-name">Beef Tongue</div>
+          <div class="card-desc">1 big non-smoked tongue, soft &amp; fatty.</div>
+          <div class="card-footer">
+            <div class="card-price">$250</div>
+            <button class="add-btn" onclick="addToCart('Beef Tongue', 250)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-nonsm">🥐</div>
+        <div class="card-body">
+          <div class="card-category">Non-Smoked</div>
+          <div class="card-name">Beef Wellington</div>
+          <div class="card-desc">Lean steak wrapped with mushrooms, charcuterie, and flaky dough.</div>
+          <div class="card-footer">
+            <div class="card-price">$150</div>
+            <button class="add-btn" onclick="addToCart('Beef Wellington', 150)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-nonsm">🎂</div>
+        <div class="card-body">
+          <div class="card-category">Non-Smoked</div>
+          <div class="card-name">Beef Wellington Large</div>
+          <div class="card-desc">For bigger families or carving stations.</div>
+          <div class="card-footer">
+            <div class="card-price">$400</div>
+            <button class="add-btn" onclick="addToCart('Beef Wellington Large', 400)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-nonsm">🍲</div>
+        <div class="card-body">
+          <div class="card-category">Non-Smoked</div>
+          <div class="card-name">Finger Meat</div>
+          <div class="card-desc">Non-smoked, soft &amp; tasty with sauce. 9×13 pan.</div>
+          <div class="card-footer">
+            <div class="card-price">$100<span class="card-price-sub">/pan</span></div>
+            <button class="add-btn" onclick="addToCart('Finger Meat', 100)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOARDS -->
+  <div class="product-section" id="sec-boards">
+    <div class="product-grid">
+
+      <div class="product-card">
+        <div class="card-img card-img-boards">🍱</div>
+        <div class="card-body">
+          <div class="card-category">Jerky Board</div>
+          <div class="card-name">Jerky Board 10x15</div>
+          <div class="card-desc">3 flavors of jerky plus charcuterie.</div>
+          <div class="card-footer">
+            <div class="card-price">$125</div>
+            <button class="add-btn" onclick="addToCart('Jerky Board 10x15', 125)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-boards">🏰</div>
+        <div class="card-body">
+          <div class="card-category">Meat Board</div>
+          <div class="card-name">Meat Board 12x18</div>
+          <div class="card-desc">Tongue, charcuterie, jerky, smoked meat, steak and more.</div>
+          <div class="card-footer">
+            <div class="card-price">$250</div>
+            <button class="add-btn" onclick="addToCart('Meat Board 12x18', 250)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-boards">👑</div>
+        <div class="card-body">
+          <div class="card-category">Meat Board</div>
+          <div class="card-name">Meat Board 18x52</div>
+          <div class="card-desc">Showstopper board for events and large gatherings.</div>
+          <div class="card-footer">
+            <div class="card-price">$1,000</div>
+            <button class="add-btn" onclick="addToCart('Meat Board 18x52', 1000)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-boards">🥩</div>
+        <div class="card-body">
+          <div class="card-category">Steak Board</div>
+          <div class="card-name">Steak Board 10x15</div>
+          <div class="card-desc">Skirt steak, surprise steak, oyster steak, beef wellington and jerky.</div>
+          <div class="card-footer">
+            <div class="card-price">$275</div>
+            <button class="add-btn" onclick="addToCart('Steak Board 10x15', 275)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-card">
+        <div class="card-img card-img-boards">🍢</div>
+        <div class="card-body">
+          <div class="card-category">Carpaccio</div>
+          <div class="card-name">Carpaccio 14x14</div>
+          <div class="card-desc">14×14 tray with a few sauces on the side.</div>
+          <div class="card-footer">
+            <div class="card-price">$75</div>
+            <button class="add-btn" onclick="addToCart('Carpaccio 14x14', 75)">Add to Cart</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <strong>Smoked Style</strong><br>
+  📞 <a href="tel:7188109472">(718) 810-9472</a> &nbsp;|&nbsp;
+  ✉️ <a href="mailto:Smokedstyle1@gmail.com">Smokedstyle1@gmail.com</a><br>
+  <span style="font-size:12px;opacity:0.6;">Kosher Premium Smoked Meats · Available for Delivery &amp; Pickup</span><br>
+  <span style="font-size:12px;opacity:0.5;margin-top:6px;display:inline-block;"><a href="start-here.html" style="color:rgba(255,255,255,0.5);">Build Guide</a> &nbsp;|&nbsp; <a href="admin.html" style="color:rgba(255,255,255,0.5);">Admin Panel</a></span>
+</footer>
+
+<!-- JERKY MODAL -->
+<div class="modal-overlay" id="jerky-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Add Jerky to Cart</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-img">🥩</div>
+    <div class="form-group">
+      <label class="form-label">Flavor</label>
+      <select class="form-select" id="flavor-select">
+        <option>General Tso</option>
+        <option>Sweet &amp; Spicy</option>
+        <option>Jalapeño</option>
+        <option>Pepper Crust</option>
+        <option>BBQ</option>
+        <option>Teriyaki</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Weight</label>
+      <select class="form-select" id="weight-select" onchange="updatePrice()">
+        <option value="0.5">0.5 lb</option>
+        <option value="1" selected>1 lb</option>
+        <option value="1.5">1.5 lbs</option>
+        <option value="2">2 lbs</option>
+        <option value="2.5">2.5 lbs</option>
+        <option value="3">3 lbs</option>
+        <option value="4">4 lbs</option>
+        <option value="5">5 lbs</option>
+        <option value="6">6 lbs</option>
+        <option value="7">7 lbs</option>
+        <option value="8">8 lbs</option>
+        <option value="9">9 lbs</option>
+        <option value="10">10 lbs</option>
+      </select>
+    </div>
+    <div class="modal-price-row">
+      <span class="modal-price-label">Total Price</span>
+      <span class="modal-price-val" id="modal-price">$100</span>
+    </div>
+    <button class="modal-add-btn" onclick="confirmJerky()">Add to Cart</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✓</span>
+  <span id="toast-msg">Added to cart</span>
+</div>
+
+<script>
+let cartCount = 2;
+let cartTotal = 225;
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.product-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function openJerkyModal(flavor) {
+  const sel = document.getElementById('flavor-select');
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].text.includes(flavor.split('&')[0].trim())) { sel.selectedIndex = i; break; }
+  }
+  document.getElementById('weight-select').value = '1';
+  updatePrice();
+  document.getElementById('modal-title').textContent = flavor + ' Jerky';
+  document.getElementById('jerky-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('jerky-modal').classList.remove('open');
+}
+
+function updatePrice() {
+  const w = parseFloat(document.getElementById('weight-select').value);
+  document.getElementById('modal-price').textContent = '$' + (w * 100).toFixed(0);
+}
+
+function confirmJerky() {
+  const flavor = document.getElementById('flavor-select').value;
+  const weight = document.getElementById('weight-select').value;
+  const price = parseFloat(weight) * 100;
+  closeModal();
+  addToCart(flavor + ' Jerky ' + weight + ' lb', price);
+}
+
+function addToCart(name, price) {
+  cartCount++;
+  cartTotal += price;
+  document.getElementById('cart-count').textContent = cartCount;
+  document.getElementById('cart-total').textContent = '$' + cartTotal.toLocaleString();
+  showToast('Added: ' + name);
+}
+
+function openCart() { window.location='cart.html'; }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+document.getElementById('jerky-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
