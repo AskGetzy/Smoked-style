@@ -128,7 +128,7 @@ export default function InventoryPage() {
 
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <p className="font-semibold text-sm text-gray-900">{p.name}</p>
+                          <p className="font-semibold text-sm text-gray-900">{p.name}{p.size_label ? ` — ${p.size_label}` : ''}</p>
                           {!p.is_in_stock && <span className="text-xs text-red-600 font-bold">OUT OF STOCK</span>}
                           {isLow && <span className="text-xs text-yellow-700 font-bold">LOW STOCK</span>}
                         </div>
