@@ -301,3 +301,37 @@ export async function sendOrderRejection(order: EmailOrder, reason: string) {
     `,
   }))
 }
+
+export async function sendOrderDelivered(order: EmailOrder) {
+  const subject = `Your Smoked Style Order #${order.order_number} has been Delivered!`
+  return sendEmail(order, subject, layout({
+    preview: `Your Smoked Style order #${order.order_number} has been delivered`,
+    heading: 'Your order has been delivered',
+    intro: 'Your order has been delivered! We hope you enjoy every bite.',
+    order,
+    extra: `
+      <div style="background:#ecfdf5;border:1px solid #bbf7d0;border-radius:14px;padding:16px;margin:18px 0;color:#166534;line-height:1.5;">
+        <p style="margin:0 0 10px;">If you did not receive your order, or if something is wrong, please contact us immediately:</p>
+        <p style="margin:0 0 6px;"><strong>Call or WhatsApp:</strong> ${CONTACT_PHONE}</p>
+        <p style="margin:0 0 10px;"><strong>Email:</strong> ${CONTACT_EMAIL}</p>
+        <p style="margin:0;">We are here to make it right.</p>
+      </div>
+    `,
+  }))
+}
+
+export async function sendOrderReadyForPickup(order: EmailOrder) {
+  const subject = `Your Smoked Style Order #${order.order_number} is Ready for Pickup!`
+  return sendEmail(order, subject, layout({
+    preview: `Your Smoked Style order #${order.order_number} is ready for pickup`,
+    heading: 'Your order is ready for pickup',
+    intro: 'Your order is ready! Please come pick it up at your earliest convenience.',
+    order,
+    extra: `
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:16px;margin:18px 0;color:#9a3412;line-height:1.5;">
+        <p style="margin:0 0 8px;">If you have any questions call or WhatsApp: ${CONTACT_PHONE}</p>
+        <p style="margin:0;"><strong>Email:</strong> ${CONTACT_EMAIL}</p>
+      </div>
+    `,
+  }))
+}

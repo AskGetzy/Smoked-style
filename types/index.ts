@@ -48,7 +48,7 @@ export interface Order {
   id: string
   order_number: string
   customer_id: string
-  status: 'pending' | 'approved' | 'out_for_delivery' | 'delivered' | 'cancelled'
+  status: 'pending' | 'approved' | 'ready_for_pickup' | 'out_for_delivery' | 'delivered' | 'cancelled'
   order_type: 'delivery' | 'pickup'
   delivery_area_id: string | null
   delivery_address: string | null

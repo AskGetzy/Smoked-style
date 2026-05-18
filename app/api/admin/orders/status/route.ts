@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@/lib/supabase-server'
+import { sendOrderDelivered, sendOrderReadyForPickup } from '@/lib/email'
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  approved: ['out_for_delivery'],
+  approved: ['out_for_delivery', 'ready_for_pickup'],
   out_for_delivery: ['delivered'],
+  ready_for_pickup: ['delivered'],
 }
 
 async function requireAdmin() {
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
     const { supabase } = admin
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, status')
+      .select('*, customers(full_name, email, phone), order_items(*)')
       .eq('id', orderId)
       .single()
 
@@ -59,6 +61,13 @@ export async function POST(req: NextRequest) {
     if (!ALLOWED_TRANSITIONS[order.status]?.includes(status)) {
       return NextResponse.json(
         { error: `Cannot change order from ${order.status} to ${status}` },
+        { status: 400 },
+      )
+    }
+
+    if (status === 'ready_for_pickup' && order.order_type !== 'pickup') {
+      return NextResponse.json(
+        { error: 'Only pickup orders can be marked ready for pickup' },
         { status: 400 },
       )
     }
@@ -75,6 +84,39 @@ export async function POST(req: NextRequest) {
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    const emailOrder = { ...order, status, delivered_at: update.delivered_at ?? order.delivered_at }
+    if (status === 'delivered') {
+      try {
+        console.log('[email] About to send order delivered', {
+          orderId,
+          orderNumber: order.order_number,
+        })
+        await sendOrderDelivered(emailOrder)
+        console.log('[email] Finished sending order delivered', {
+          orderId,
+          orderNumber: order.order_number,
+        })
+      } catch (emailError) {
+        console.error('Order delivered email failed', emailError)
+      }
+    }
+
+    if (status === 'ready_for_pickup') {
+      try {
+        console.log('[email] About to send order ready for pickup', {
+          orderId,
+          orderNumber: order.order_number,
+        })
+        await sendOrderReadyForPickup(emailOrder)
+        console.log('[email] Finished sending order ready for pickup', {
+          orderId,
+          orderNumber: order.order_number,
+        })
+      } catch (emailError) {
+        console.error('Order ready for pickup email failed', emailError)
+      }
     }
 
     return NextResponse.json({ success: true })

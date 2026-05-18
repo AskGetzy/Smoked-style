@@ -9,6 +9,7 @@ import type { Order, OrderItem } from '@/types'
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   approved: 'bg-blue-100 text-blue-800',
+  ready_for_pickup: 'bg-orange-100 text-orange-800',
   out_for_delivery: 'bg-purple-100 text-purple-800',
   delivered: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
@@ -139,7 +140,7 @@ export default function OrderDetailPage() {
     }
   }
 
-  async function updateOrderStatus(status: 'out_for_delivery' | 'delivered') {
+  async function updateOrderStatus(status: 'ready_for_pickup' | 'out_for_delivery' | 'delivered') {
     setError('')
     const res = await fetch('/api/admin/orders/status', {
       method: 'POST',
@@ -224,11 +225,19 @@ export default function OrderDetailPage() {
               </>
             )}
             {order.status === 'approved' && (
-              <button onClick={() => updateOrderStatus('out_for_delivery')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700">
-                🚗 Mark Out for Delivery
-              </button>
+              <>
+                {order.order_type === 'pickup' ? (
+                  <button onClick={() => updateOrderStatus('ready_for_pickup')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600">
+                    Ready for Pickup
+                  </button>
+                ) : (
+                  <button onClick={() => updateOrderStatus('out_for_delivery')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700">
+                    🚗 Mark Out for Delivery
+                  </button>
+                )}
+              </>
             )}
-            {order.status === 'out_for_delivery' && (
+            {(order.status === 'out_for_delivery' || order.status === 'ready_for_pickup') && (
               <button onClick={() => updateOrderStatus('delivered')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700">
                 ✓ Mark Delivered
               </button>
