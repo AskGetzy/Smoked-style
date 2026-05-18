@@ -16,40 +16,18 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800',
 }
 
-function playNotificationSound() {
-  const AudioContext = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext
-  if (!AudioContext) return
-
-  const audioContext = new AudioContext()
-  const oscillator = audioContext.createOscillator()
-  const gain = audioContext.createGain()
-
+function playSound() {
+  const ctx = new AudioContext()
+  const oscillator = ctx.createOscillator()
+  const gainNode = ctx.createGain()
+  oscillator.connect(gainNode)
+  gainNode.connect(ctx.destination)
+  oscillator.frequency.value = 800
   oscillator.type = 'sine'
-  oscillator.frequency.setValueAtTime(880, audioContext.currentTime)
-  oscillator.frequency.setValueAtTime(1174.66, audioContext.currentTime + 0.12)
-  gain.gain.setValueAtTime(0.001, audioContext.currentTime)
-  gain.gain.exponentialRampToValueAtTime(0.25, audioContext.currentTime + 0.02)
-  gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.35)
-
-  oscillator.connect(gain)
-  gain.connect(audioContext.destination)
-  oscillator.start()
-  oscillator.stop(audioContext.currentTime + 0.35)
-}
-
-async function showBrowserNotification(message: string) {
-  if (!('Notification' in window)) return
-
-  if (Notification.permission === 'default') {
-    await Notification.requestPermission()
-  }
-
-  if (Notification.permission === 'granted') {
-    new Notification('Smoked Style Admin', {
-      body: message,
-      tag: 'smoked-style-orders',
-    })
-  }
+  gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+  gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5)
+  oscillator.start(ctx.currentTime)
+  oscillator.stop(ctx.currentTime + 0.5)
 }
 
 export default function OrdersPage() {
@@ -59,9 +37,46 @@ export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
-  const [newOrderAlert, setNewOrderAlert] = useState('')
+  const [toast, setToast] = useState('')
   const knownOrderIdsRef = useRef<Set<string>>(new Set())
   const hasLoadedOrdersRef = useRef(false)
+
+  function showToast(message: string) {
+    setToast(message)
+    window.setTimeout(() => setToast(''), 5000)
+  }
+
+  async function setupNotifications() {
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission()
+      console.log('Notification permission:', permission)
+      setNotificationPermission(permission)
+    }
+
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.register('/sw.js')
+      console.log('Service worker registered:', reg)
+    }
+  }
+
+  function showNotification(title: string, body: string) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/icon-192.png' })
+    } else {
+      showToast(`${title}: ${body}`)
+    }
+  }
+
+  function notifyNewOrders(newOrders: Order[]) {
+    if (newOrders.length === 0) return
+
+    const body = newOrders.length === 1
+      ? `New order received: ${newOrders[0].order_number}`
+      : `${newOrders.length} new orders received!`
+    playSound()
+    showNotification('New order received', body)
+    showToast(body)
+  }
 
   const fetchOrders = useCallback(async () => {
     if (!hasLoadedOrdersRef.current) {
@@ -84,15 +99,7 @@ export default function OrdersPage() {
 
       if (hasLoadedOrdersRef.current) {
         const newOrders = nextOrders.filter(order => !knownOrderIdsRef.current.has(order.id))
-        if (newOrders.length > 0) {
-          const message = newOrders.length === 1
-            ? `New order received: ${newOrders[0].order_number}`
-            : `${newOrders.length} new orders received!`
-          setNewOrderAlert(message)
-          playNotificationSound()
-          void showBrowserNotification(message)
-          window.setTimeout(() => setNewOrderAlert(''), 10000)
-        }
+        notifyNewOrders(newOrders)
       }
 
       knownOrderIdsRef.current = nextOrderIds
@@ -103,21 +110,13 @@ export default function OrdersPage() {
     setLoading(false)
   }, [])
 
-  async function enableNotifications() {
-    if (!('Notification' in window)) return
-
-    const permission = await Notification.requestPermission()
-    setNotificationPermission(permission)
-
-    if (permission === 'granted') {
-      playNotificationSound()
-      void showBrowserNotification('Smoked Style order notifications are enabled.')
-    }
-  }
-
   useEffect(() => {
     fetchOrders()
   }, [fetchOrders])
+
+  useEffect(() => {
+    void setupNotifications()
+  }, [])
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -132,14 +131,17 @@ export default function OrdersPage() {
     // Enable Supabase Realtime for public.orders in Database > Replication for these callbacks to fire.
     const channel = supabase
       .channel('orders-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+        const newOrder = payload.new as Order
+        knownOrderIdsRef.current.add(newOrder.id)
+        notifyNewOrders([newOrder])
         void fetchOrders()
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
         void fetchOrders()
         if (payload.new.status === 'delivered') {
-          playNotificationSound()
-          void showBrowserNotification('Order delivered!')
+          playSound()
+          showNotification('Order delivered', 'Order delivered!')
         }
       })
       .subscribe((status) => {
@@ -175,7 +177,7 @@ export default function OrdersPage() {
           <div className="flex flex-wrap justify-end gap-3">
             {notificationPermission !== 'granted' && (
               <button
-                onClick={enableNotifications}
+                onClick={() => void setupNotifications()}
                 className="rounded-full border border-orange-200 bg-white px-3 py-1 text-sm font-semibold text-orange-700 hover:bg-orange-50"
               >
                 Enable notifications
@@ -190,9 +192,9 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        {newOrderAlert && (
-          <div className="mb-4 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-800 shadow-sm">
-            {newOrderAlert}
+        {toast && (
+          <div className="fixed left-1/2 top-4 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-800 shadow-lg">
+            {toast}
           </div>
         )}
 
