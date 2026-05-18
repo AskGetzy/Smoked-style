@@ -80,3 +80,7 @@ export function sumSubtotal(priced: PricedCartLine[]): number {
 export function toCents(dollars: number): number {
   return Math.round(dollars * 100)
 }
+
+export function amountsMatch(dollars: number, cents: number): boolean {
+  return toCents(dollars) === cents
+}

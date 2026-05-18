@@ -9,11 +9,11 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { getStripe } from '@/lib/stripe-client'
 import type { CartItem, DeliveryArea } from '@/types'
 
-const STEPS = ['Contact', 'Delivery', 'Date', 'Payment']
+const STEPS = ['Contact', 'Delivery', 'Date', 'Payment', 'Review']
 
 type PaymentInit = {
   clientSecret: string
-  orderNumber: string
+  paymentIntentId: string
   subtotal: number
   deliveryFee: number
   total: number
@@ -37,10 +37,14 @@ export default function CheckoutPage() {
   const [recipientName, setRecipientName] = useState('')
   const [recipientPhone, setRecipientPhone] = useState('')
   const [deliveryDate, setDeliveryDate] = useState('')
+  const [notes, setNotes] = useState('')
+  const [giftMessage, setGiftMessage] = useState('')
 
   useEffect(() => {
     const stored = localStorage.getItem('smoked-cart')
     if (stored) setCart(JSON.parse(stored))
+    setNotes(localStorage.getItem('smoked-notes') ?? '')
+    setGiftMessage(localStorage.getItem('smoked-gift') ?? '')
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user
       setUser(u)
@@ -122,8 +126,8 @@ export default function CheckoutPage() {
           recipientName,
           recipientPhone,
           deliveryDate,
-          notes: localStorage.getItem('smoked-notes') ?? '',
-          giftMessage: localStorage.getItem('smoked-gift') ?? '',
+          notes,
+          giftMessage,
           userId: user?.id,
         }),
       })
@@ -133,7 +137,7 @@ export default function CheckoutPage() {
 
       setPaymentInit({
         clientSecret: data.clientSecret,
-        orderNumber: data.orderNumber,
+        paymentIntentId: data.paymentIntentId,
         subtotal: data.subtotal,
         deliveryFee: data.deliveryFee,
         total: data.total,
@@ -154,6 +158,8 @@ export default function CheckoutPage() {
     recipientName,
     recipientPhone,
     deliveryDate,
+    notes,
+    giftMessage,
     user?.id,
   ])
 
@@ -167,18 +173,38 @@ export default function CheckoutPage() {
     await initializePayment()
   }
 
-  function handlePaymentSuccess() {
-    const orderNumber = paymentInit?.orderNumber
+  function handlePaymentSuccess(orderNumber: string) {
     localStorage.removeItem('smoked-cart')
     localStorage.removeItem('smoked-notes')
     localStorage.removeItem('smoked-gift')
-    router.push(`/confirmation?order=${encodeURIComponent(orderNumber ?? '')}`)
+    router.push(`/confirmation?order=${encodeURIComponent(orderNumber)}`)
   }
 
   function handleBackFromPayment() {
     setStep(2)
     setPaymentInit(null)
     setError('')
+  }
+
+  const checkoutPayload = {
+    cart: cart.map((item) => ({
+      product_id: item.product_id,
+      product_name: item.product_name,
+      quantity: item.quantity,
+      selected_flavor: item.selected_flavor,
+      selected_weight: item.selected_weight,
+      selected_size: item.selected_size,
+    })),
+    contact,
+    orderType,
+    areaId: orderType === 'delivery' ? areaId : undefined,
+    address: orderType === 'delivery' ? address : undefined,
+    recipientName,
+    recipientPhone,
+    deliveryDate,
+    notes,
+    giftMessage,
+    userId: user?.id,
   }
 
   const today = new Date()
@@ -363,13 +389,17 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {step === 3 && (
+          {(step === 3 || step === 4) && (
             <div>
-              <h2 className="text-lg font-bold mb-1">Payment</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Your card will be <strong>authorized</strong> but not charged until we approve
-                your order.
-              </p>
+              {step === 3 && (
+                <>
+                  <h2 className="text-lg font-bold mb-1">Payment</h2>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Your card will be <strong>authorized</strong> but not charged until we
+                    approve your order.
+                  </p>
+                </>
+              )}
 
               {preparingPayment && (
                 <p className="text-sm text-gray-500 py-8 text-center">Preparing secure payment...</p>
@@ -390,10 +420,19 @@ export default function CheckoutPage() {
                   }}
                 >
                   <CheckoutPaymentForm
-                    orderNumber={paymentInit.orderNumber}
+                    step={step}
                     subtotal={subtotal}
                     deliveryFee={deliveryFee}
                     total={total}
+                    checkoutPayload={checkoutPayload}
+                    onReviewReady={() => {
+                      setError('')
+                      setStep(4)
+                    }}
+                    onBackToPayment={() => {
+                      setError('')
+                      setStep(3)
+                    }}
                     onSuccess={handlePaymentSuccess}
                     onError={setError}
                   />
@@ -417,7 +456,9 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {error && step !== 3 && <p className="text-red-500 text-sm mt-3">{error}</p>}
+          {error && step !== 3 && step !== 4 && (
+            <p className="text-red-500 text-sm mt-3">{error}</p>
+          )}
 
           {step < 3 && (
             <div className="flex gap-3 mt-6">

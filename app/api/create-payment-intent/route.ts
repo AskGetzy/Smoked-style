@@ -23,81 +23,6 @@ type CheckoutBody = {
   userId?: string
 }
 
-/** Service-role only: ensures customers row exists for auth uid before orders FK insert. */
-async function resolveCustomerId(
-  supabase: ReturnType<typeof createServerClient>,
-  userId: string | undefined,
-  contact: CheckoutBody['contact'],
-): Promise<string> {
-  const full_name = contact.name.trim()
-  const email = contact.email.trim().toLowerCase()
-  const phone = contact.phone?.trim() || null
-
-  if (userId) {
-    const { data: existing, error: lookupError } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('id', userId)
-      .maybeSingle()
-
-    if (lookupError) {
-      throw new Error(`Customer lookup failed: ${lookupError.message}`)
-    }
-
-    const { error: upsertError } = await supabase
-      .from('customers')
-      .upsert({ id: userId, full_name, email, phone }, { onConflict: 'id' })
-
-    if (upsertError) {
-      throw new Error(`Customer upsert failed: ${upsertError.message}`)
-    }
-
-    const { data: verified, error: verifyError } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('id', userId)
-      .single()
-
-    if (verifyError || !verified) {
-      throw new Error(
-        existing
-          ? 'Customer record missing after update'
-          : 'Customer record missing after insert',
-      )
-    }
-
-    return verified.id
-  }
-
-  const { data: existingByEmail } = await supabase
-    .from('customers')
-    .select('id')
-    .eq('email', email)
-    .maybeSingle()
-
-  if (existingByEmail) {
-    const { error: updateError } = await supabase
-      .from('customers')
-      .update({ full_name, phone })
-      .eq('id', existingByEmail.id)
-
-    if (updateError) throw new Error(`Customer update failed: ${updateError.message}`)
-    return existingByEmail.id
-  }
-
-  const { data: newCustomer, error: insertError } = await supabase
-    .from('customers')
-    .insert({ full_name, email, phone })
-    .select('id')
-    .single()
-
-  if (insertError || !newCustomer) {
-    throw new Error(insertError?.message ?? 'Could not create customer')
-  }
-
-  return newCustomer.id
-}
-
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as CheckoutBody
@@ -107,12 +32,7 @@ export async function POST(req: NextRequest) {
       orderType,
       areaId,
       address,
-      recipientName,
-      recipientPhone,
       deliveryDate,
-      notes,
-      giftMessage,
-      userId,
     } = body
 
     if (!contact?.name?.trim() || !contact?.email?.trim() || !contact?.phone?.trim()) {
@@ -135,8 +55,6 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createServerClient()
-
-    const customerId = await resolveCustomerId(supabase, userId, contact)
 
     const productIds = Array.from(new Set(cart.map((line) => line.product_id)))
     const { data: products, error: productsError } = await supabase
@@ -180,74 +98,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Order total is too low' }, { status: 400 })
     }
 
-    const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true })
-    const orderNumber = `SS-${new Date().getFullYear()}-${String((count ?? 0) + 1).padStart(4, '0')}`
-
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountCents,
       currency: 'usd',
       capture_method: 'manual',
       automatic_payment_methods: { enabled: true },
-      description: `Smoked Style Order ${orderNumber}`,
+      description: 'Smoked Style order authorization',
       metadata: {
-        orderNumber,
         customerEmail: contact.email.trim().toLowerCase(),
       },
       receipt_email: contact.email.trim(),
     })
 
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        order_number: orderNumber,
-        customer_id: customerId,
-        status: 'pending',
-        order_type: orderType,
-        delivery_area_id: orderType === 'delivery' ? areaId : null,
-        delivery_address: orderType === 'delivery' ? address?.trim() : null,
-        delivery_date: deliveryDate,
-        recipient_name: recipientName?.trim() || null,
-        recipient_phone: recipientPhone?.trim() || null,
-        subtotal,
-        delivery_fee: deliveryFee,
-        custom_adjustment: 0,
-        total,
-        order_notes: notes?.trim() || null,
-        gift_message: giftMessage?.trim() || null,
-        stripe_payment_intent_id: paymentIntent.id,
-      })
-      .select('id')
-      .single()
-
-    if (orderError) {
-      await stripe.paymentIntents.cancel(paymentIntent.id)
-      throw new Error(orderError.message)
-    }
-
-    const { error: itemsError } = await supabase.from('order_items').insert(
-      pricedLines.map((line) => ({
-        order_id: order.id,
-        product_id: line.product_id,
-        product_name: line.product_name,
-        quantity: line.quantity,
-        selected_flavor: line.selected_flavor,
-        selected_weight: line.selected_weight,
-        selected_size: line.selected_size,
-        unit_price: line.unit_price,
-        line_total: line.line_total,
-      })),
-    )
-
-    if (itemsError) {
-      await stripe.paymentIntents.cancel(paymentIntent.id)
-      await supabase.from('orders').delete().eq('id', order.id)
-      throw new Error(itemsError.message)
-    }
-
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
-      orderNumber,
-      orderId: order.id,
+      paymentIntentId: paymentIntent.id,
       subtotal,
       deliveryFee,
       total,
