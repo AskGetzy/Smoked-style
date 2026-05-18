@@ -36,6 +36,7 @@ export default function CatalogPage() {
   const [showSignInModal, setShowSignInModal] = useState(false)
   const [pendingProduct, setPendingProduct] = useState<Product | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     const stored = localStorage.getItem('smoked-cart')
@@ -141,10 +142,17 @@ export default function CatalogPage() {
     }
   }
 
+  const searchQuery = searchTerm.trim().toLowerCase()
+  const isSearching = searchQuery.length > 0
   const purimProducts = products.filter(p => p.is_featured_purim)
-  const filtered = activeCategory === 'all'
-    ? products
-    : products.filter(p => p.category === activeCategory)
+  const filtered = isSearching
+    ? products.filter(p =>
+        p.name.toLowerCase().includes(searchQuery) ||
+        (p.description ?? '').toLowerCase().includes(searchQuery)
+      )
+    : activeCategory === 'all'
+      ? products
+      : products.filter(p => p.category === activeCategory)
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
   const cartTotal = cart.reduce((s, i) => s + i.line_total, 0)
@@ -160,8 +168,57 @@ export default function CatalogPage() {
         </div>
       )}
 
+      <div
+        className="sticky top-16 z-30 border-b border-orange-100 px-4 py-3"
+        style={{ background: 'var(--cream)' }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="relative w-full md:max-w-2xl md:mx-auto">
+            <SearchIcon />
+            <input
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search for smoked meats, jerky, boards..."
+              className="w-full h-12 rounded-2xl border border-gray-300 bg-white pl-12 pr-12 text-base text-gray-900 placeholder:text-gray-400 shadow-sm focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+              type="search"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Clear search"
+                type="button"
+              >
+                <ClearIcon />
+              </button>
+            )}
+          </div>
+
+          {!isSearching && (
+            <div className="-mx-4 mt-3 overflow-x-auto scrollbar-hide px-4">
+              <div className="flex min-w-max gap-2 pb-1">
+                {CATEGORIES.map(cat => (
+                  <button
+                    key={cat.key}
+                    onClick={() => setActiveCategory(cat.key)}
+                    className={`flex-shrink-0 min-h-12 px-5 py-2 rounded-full text-base sm:text-sm font-semibold transition-all ${
+                      activeCategory === cat.key
+                        ? 'text-white shadow-md'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300'
+                    }`}
+                    style={activeCategory === cat.key ? { background: 'var(--navy)' } : {}}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Purim Banner */}
-      {purimProducts.length > 0 && (
+      {!isSearching && purimProducts.length > 0 && (
         <div className="bg-amber-50 border-b border-amber-200 py-6 px-4">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold text-amber-800 mb-1">🎉 Purim Special</h2>
@@ -180,29 +237,6 @@ export default function CatalogPage() {
       )}
 
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Category Tabs */}
-        <div
-          className="sticky top-16 z-30 -mx-4 mb-8 overflow-x-auto scrollbar-hide px-4 py-3"
-          style={{ background: 'var(--cream)' }}
-        >
-          <div className="flex gap-2 min-w-max">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat.key}
-                onClick={() => setActiveCategory(cat.key)}
-                className={`flex-shrink-0 px-5 py-2 rounded-full text-sm font-semibold transition-all ${
-                  activeCategory === cat.key
-                    ? 'text-white shadow-md'
-                    : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300'
-                }`}
-                style={activeCategory === cat.key ? { background: 'var(--navy)' } : {}}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Product Grid */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -220,8 +254,12 @@ export default function CatalogPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
             <div className="text-5xl mb-4">🥩</div>
-            <p className="text-lg font-medium">No products yet</p>
-            <p className="text-sm mt-1">Run the database seed step to add products.</p>
+            <p className="text-lg font-medium">
+              {isSearching ? `No products found for "${searchTerm.trim()}"` : 'No products yet'}
+            </p>
+            <p className="text-sm mt-1">
+              {isSearching ? 'Try a different search or clear it to browse categories.' : 'Run the database seed step to add products.'}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -266,6 +304,42 @@ export default function CatalogPage() {
         </div>
       )}
     </div>
+  )
+}
+
+function SearchIcon() {
+  return (
+    <svg
+      className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.35-4.35" />
+    </svg>
+  )
+}
+
+function ClearIcon() {
+  return (
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </svg>
   )
 }
 
