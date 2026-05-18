@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AdminLayout from '@/components/AdminLayout'
-import { supabase } from '@/lib/supabase'
 import type { Order, OrderItem } from '@/types'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -140,6 +139,23 @@ export default function OrderDetailPage() {
     }
   }
 
+  async function updateOrderStatus(status: 'out_for_delivery' | 'delivered') {
+    setError('')
+    const res = await fetch('/api/admin/orders/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ orderId: id, status }),
+    })
+
+    if (res.ok) {
+      fetchOrder()
+    } else {
+      const payload = await res.json()
+      setError(payload.error ?? 'Could not update order status')
+    }
+  }
+
   if (loading) return (
     <AdminLayout>
       <div className="p-6 animate-pulse space-y-4">
@@ -208,18 +224,12 @@ export default function OrderDetailPage() {
               </>
             )}
             {order.status === 'approved' && (
-              <button onClick={async () => {
-                await supabase.from('orders').update({ status: 'out_for_delivery' }).eq('id', id)
-                fetchOrder()
-              }} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700">
+              <button onClick={() => updateOrderStatus('out_for_delivery')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700">
                 🚗 Mark Out for Delivery
               </button>
             )}
             {order.status === 'out_for_delivery' && (
-              <button onClick={async () => {
-                await supabase.from('orders').update({ status: 'delivered', delivered_at: new Date().toISOString() }).eq('id', id)
-                fetchOrder()
-              }} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700">
+              <button onClick={() => updateOrderStatus('delivered')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700">
                 ✓ Mark Delivered
               </button>
             )}
