@@ -47,8 +47,10 @@ export default function OrdersPage() {
   }
 
   async function setupNotifications() {
+    let permission: NotificationPermission = notificationPermission
+
     if ('Notification' in window) {
-      const permission = await Notification.requestPermission()
+      permission = await Notification.requestPermission()
       console.log('Notification permission:', permission)
       setNotificationPermission(permission)
     }
@@ -56,6 +58,12 @@ export default function OrdersPage() {
     if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.register('/sw.js')
       console.log('Service worker registered:', reg)
+    }
+
+    if (permission === 'granted') {
+      showToast('Notifications enabled!')
+    } else if (permission === 'denied') {
+      showToast('Please allow notifications in your browser settings')
     }
   }
 
@@ -115,10 +123,6 @@ export default function OrdersPage() {
   }, [fetchOrders])
 
   useEffect(() => {
-    void setupNotifications()
-  }, [])
-
-  useEffect(() => {
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission)
     }
@@ -175,12 +179,19 @@ export default function OrdersPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>Orders</h1>
           <div className="flex flex-wrap justify-end gap-3">
+            <div className={`rounded-full px-3 py-1 text-sm font-semibold ${
+              notificationPermission === 'granted'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
+            }`}>
+              Notifications: {notificationPermission === 'granted' ? 'On' : 'Off'}
+            </div>
             {notificationPermission !== 'granted' && (
               <button
                 onClick={() => void setupNotifications()}
-                className="rounded-full border border-orange-200 bg-white px-3 py-1 text-sm font-semibold text-orange-700 hover:bg-orange-50"
+                className="rounded-full border border-orange-200 bg-white px-4 py-2 text-sm font-semibold text-orange-700 shadow-sm hover:bg-orange-50"
               >
-                Enable notifications
+                Enable Notifications 🔔
               </button>
             )}
             <div className="bg-yellow-100 text-yellow-800 text-sm font-semibold px-3 py-1 rounded-full">
