@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Product, CartItem } from '@/types'
 import Header from '@/components/Header'
 import ProductModal from '@/components/ProductModal'
@@ -26,6 +26,7 @@ function formatPrice(product: Product): string {
 }
 
 export default function CatalogPage() {
+  const supabase = createClientComponentClient()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('all')
@@ -40,7 +41,14 @@ export default function CatalogPage() {
     const stored = localStorage.getItem('smoked-cart')
     if (stored) setCart(JSON.parse(stored))
     fetchProducts()
-    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null))
+
+    async function checkCurrentSession() {
+      const { data: { session } } = await supabase.auth.getSession()
+      console.log("Current session:", session)
+      setUser(session?.user ?? null)
+    }
+
+    checkCurrentSession()
     const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null)
     })
@@ -122,10 +130,15 @@ export default function CatalogPage() {
   }
 
   async function signInWithGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/auth/callback",
+      },
     })
+    if (error) {
+      showToast(error.message)
+    }
   }
 
   const purimProducts = products.filter(p => p.is_featured_purim)
