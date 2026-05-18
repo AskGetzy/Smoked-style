@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import AdminLayout from '@/components/AdminLayout'
@@ -37,11 +37,6 @@ function playNotificationSound() {
   oscillator.stop(audioContext.currentTime + 0.35)
 }
 
-async function requestNotificationPermission() {
-  if (!('Notification' in window) || Notification.permission !== 'default') return
-  await Notification.requestPermission()
-}
-
 async function showBrowserNotification(message: string) {
   if (!('Notification' in window)) return
 
@@ -63,6 +58,9 @@ export default function OrdersPage() {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
+  const knownOrderIdsRef = useRef<Set<string>>(new Set())
+  const hasLoadedOrdersRef = useRef(false)
 
   const fetchOrders = useCallback(async () => {
     setLoading(true)
@@ -78,19 +76,51 @@ export default function OrdersPage() {
       setError(payload.error ?? 'Could not load orders')
       setOrders([])
     } else {
-      setOrders(payload.orders ?? [])
+      const nextOrders = (payload.orders ?? []) as Order[]
+      const nextOrderIds = new Set(nextOrders.map(order => order.id))
+
+      if (hasLoadedOrdersRef.current) {
+        const newOrders = nextOrders.filter(order => !knownOrderIdsRef.current.has(order.id))
+        if (newOrders.length > 0) {
+          playNotificationSound()
+          void showBrowserNotification(
+            newOrders.length === 1
+              ? `New order received: ${newOrders[0].order_number}`
+              : `${newOrders.length} new orders received!`,
+          )
+        }
+      }
+
+      knownOrderIdsRef.current = nextOrderIds
+      hasLoadedOrdersRef.current = true
+      setOrders(nextOrders)
     }
 
     setLoading(false)
   }, [])
+
+  async function enableNotifications() {
+    if (!('Notification' in window)) return
+
+    const permission = await Notification.requestPermission()
+    setNotificationPermission(permission)
+
+    if (permission === 'granted') {
+      playNotificationSound()
+      void showBrowserNotification('Smoked Style order notifications are enabled.')
+    }
+  }
 
   useEffect(() => {
     fetchOrders()
   }, [fetchOrders])
 
   useEffect(() => {
+    if ('Notification' in window) {
+      setNotificationPermission(Notification.permission)
+    }
+
     const supabase = createClientComponentClient()
-    void requestNotificationPermission()
     const pollingFallback = window.setInterval(() => {
       void fetchOrders()
     }, 15000)
@@ -100,8 +130,6 @@ export default function OrdersPage() {
       .channel('orders-changes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
         void fetchOrders()
-        playNotificationSound()
-        void showBrowserNotification('New order received!')
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
         void fetchOrders()
@@ -140,7 +168,15 @@ export default function OrdersPage() {
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>Orders</h1>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap justify-end gap-3">
+            {notificationPermission !== 'granted' && (
+              <button
+                onClick={enableNotifications}
+                className="rounded-full border border-orange-200 bg-white px-3 py-1 text-sm font-semibold text-orange-700 hover:bg-orange-50"
+              >
+                Enable notifications
+              </button>
+            )}
             <div className="bg-yellow-100 text-yellow-800 text-sm font-semibold px-3 py-1 rounded-full">
               {counts.pending} Pending
             </div>
