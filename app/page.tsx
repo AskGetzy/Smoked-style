@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 import type { Product, CartItem } from '@/types'
 import Header from '@/components/Header'
 import ProductModal from '@/components/ProductModal'
@@ -26,7 +26,7 @@ function formatPrice(product: Product): string {
 }
 
 export default function CatalogPage() {
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserSupabaseClient()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('all')

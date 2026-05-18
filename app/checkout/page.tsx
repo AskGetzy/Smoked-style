@@ -6,7 +6,7 @@ import { Elements } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import Header from '@/components/Header'
 import CheckoutPaymentForm from '@/components/CheckoutPaymentForm'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 import type { CartItem, DeliveryArea } from '@/types'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -21,7 +21,7 @@ type PaymentInit = {
 }
 
 export default function CheckoutPage() {
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserSupabaseClient()
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [cart, setCart] = useState<CartItem[]>([])
@@ -420,10 +420,14 @@ export default function CheckoutPage() {
               {clientSecret && (
                 <Elements
                   stripe={stripePromise}
-                  options={{ clientSecret }}
+                  options={{
+                    clientSecret,
+                    appearance: { theme: "stripe" }
+                  }}
                 >
                   <CheckoutPaymentForm
                     step={step}
+                    paymentIntentId={paymentInit?.paymentIntentId ?? ''}
                     subtotal={subtotal}
                     deliveryFee={deliveryFee}
                     total={total}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 
 const NAV = [
   { href: '/admin/orders', label: 'Orders', icon: '📦' },
@@ -13,7 +13,7 @@ const NAV = [
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserSupabaseClient()
   const router = useRouter()
   const pathname = usePathname()
   const [checking, setChecking] = useState(true)

@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import type { CartItem } from '@/types'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 
 export default function CartPage() {
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserSupabaseClient()
   const [cart, setCart] = useState<CartItem[]>([])
   const [notes, setNotes] = useState('')
   const [giftMessage, setGiftMessage] = useState('')

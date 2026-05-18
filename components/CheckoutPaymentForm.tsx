@@ -6,6 +6,7 @@ import type { CartItem } from '@/types'
 
 type Props = {
   step: number
+  paymentIntentId: string
   total: number
   subtotal: number
   deliveryFee: number
@@ -30,6 +31,7 @@ type Props = {
 
 export default function CheckoutPaymentForm({
   step,
+  paymentIntentId,
   total,
   subtotal,
   deliveryFee,
@@ -57,33 +59,16 @@ export default function CheckoutPaymentForm({
     setLoading(true)
     onError('')
 
-    const submitResult = await elements.submit()
-    if (submitResult.error) {
-      onError(submitResult.error.message ?? 'Please check your card details.')
-      setLoading(false)
-      return
-    }
-
-    const { error, paymentIntent } = await stripe.confirmPayment({
+    const { error } = await stripe.confirmPayment({
       elements,
-      redirect: 'if_required',
       confirmParams: {
-        return_url: `${window.location.origin}/confirmation`,
+        return_url: window.location.origin + "/confirmation",
       },
+      redirect: "if_required"
     })
 
     if (error) {
       onError(error.message ?? 'Payment failed')
-      setLoading(false)
-      return
-    }
-
-    const authorized =
-      paymentIntent?.status === 'requires_capture' ||
-      paymentIntent?.status === 'succeeded'
-
-    if (!authorized) {
-      onError('Your card was not authorized. Please try again or use a different card.')
       setLoading(false)
       return
     }
@@ -94,7 +79,7 @@ export default function CheckoutPaymentForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...checkoutPayload,
-          paymentIntentId: paymentIntent.id,
+          paymentIntentId,
         }),
       })
       const data = await res.json()
