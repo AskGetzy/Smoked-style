@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { fetchWithAuth } from '@/lib/auth-fetch'
 
 type DashboardOrder = { status: string; total: number; created_at: string }
 
@@ -12,7 +13,7 @@ export default function BossDashboardPage() {
   useEffect(() => { void loadDashboard() }, [])
 
   async function loadDashboard() {
-    const res = await fetch('/api/boss/dashboard', { credentials: 'include', cache: 'no-store' })
+    const res = await fetchWithAuth('/api/boss/dashboard')
     const data = await res.json()
     setOrders(data.orders ?? [])
     setLowStockCount(data.lowStockCount ?? 0)

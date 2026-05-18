@@ -1,41 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export async function GET(req: NextRequest) {
   try {
-    const authSupabase = createRouteHandlerClient({ cookies })
-    const { data: sessionData, error: sessionError } = await authSupabase.auth.getSession()
-    const session = sessionData.session
+    const admin = await requireAdmin(req)
+    if (!admin.ok) return admin.response
 
-    if (sessionError || !session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const supabase = createServerClient()
-    console.log('[admin-orders-auth] Checking admin user with service role', {
-      email: session.user.email,
-    })
-    const { data: adminUser, error: adminError } = await supabase
-      .from('admin_users')
-      .select('id, email, role')
-      .ilike('email', session.user.email)
-      .maybeSingle()
-
-    console.log('[admin-orders-auth] admin_users query result', {
-      email: session.user.email,
-      adminUser,
-      adminError: adminError?.message ?? null,
-    })
-
-    if (adminError) {
-      return NextResponse.json({ error: adminError.message }, { status: 500 })
-    }
-
-    if (!adminUser) {
-      return NextResponse.json({ error: 'Forbidden: user is not an admin' }, { status: 403 })
-    }
+    const { supabase } = admin
 
     const orderId = req.nextUrl.searchParams.get('id')
 

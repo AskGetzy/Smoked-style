@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { fetchWithAuth } from '@/lib/auth-fetch'
 
 export default function BossLoginPage() {
   const supabase = createClientComponentClient()
@@ -24,7 +25,7 @@ export default function BossLoginPage() {
       return
     }
 
-    const res = await fetch('/api/admin/orders', { credentials: 'include', cache: 'no-store' })
+    const res = await fetchWithAuth('/api/admin/orders')
     if (!res.ok) {
       await supabase.auth.signOut()
       setError('This account is not authorized for the boss portal.')

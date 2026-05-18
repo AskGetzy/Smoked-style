@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { Order } from '@/types'
+import { fetchWithAuth } from '@/lib/auth-fetch'
 
 const GROUPS: Record<string, string> = {
   jerky: 'Jerky by flavor',
@@ -36,7 +37,7 @@ export default function BossProductionPage() {
   useEffect(() => { void loadOrders() }, [])
 
   async function loadOrders() {
-    const res = await fetch('/api/admin/orders', { credentials: 'include', cache: 'no-store' })
+    const res = await fetchWithAuth('/api/admin/orders')
     const data = await res.json()
     setOrders(data.orders ?? [])
   }

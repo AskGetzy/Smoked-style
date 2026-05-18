@@ -15,7 +15,7 @@ type BossOrderItem = {
 
 export async function POST(req: NextRequest) {
   try {
-    const admin = await requireAdmin()
+    const admin = await requireAdmin(req)
     if (!admin.ok) return admin.response
 
     const { supabase } = admin

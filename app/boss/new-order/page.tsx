@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { Customer, DeliveryArea, Product } from '@/types'
+import { fetchWithAuth } from '@/lib/auth-fetch'
 
 const CATEGORIES = ['all', 'jerky', 'steaks', 'smoked', 'non_smoked', 'boards']
 
@@ -43,7 +44,7 @@ export default function BossNewOrderPage() {
   useEffect(() => { void loadCatalog() }, [])
 
   async function loadCatalog() {
-    const res = await fetch('/api/boss/catalog', { credentials: 'include', cache: 'no-store' })
+    const res = await fetchWithAuth('/api/boss/catalog')
     const data = await res.json()
     setProducts(data.products ?? [])
     setCustomers(data.customers ?? [])
@@ -103,10 +104,9 @@ export default function BossNewOrderPage() {
   async function placeOrder() {
     setSaving(true)
     setMessage('')
-    const res = await fetch('/api/boss/create-order', {
+    const res = await fetchWithAuth('/api/boss/create-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
       body: JSON.stringify({
         customerId,
         customer: { full_name: name, phone, email },

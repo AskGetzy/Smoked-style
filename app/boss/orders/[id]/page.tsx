@@ -3,6 +3,7 @@
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { Order } from '@/types'
+import { fetchWithAuth } from '@/lib/auth-fetch'
 
 export default function BossOrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -17,7 +18,7 @@ export default function BossOrderDetailPage() {
   useEffect(() => { void loadOrder() }, [id])
 
   async function loadOrder() {
-    const res = await fetch(`/api/admin/orders?id=${encodeURIComponent(id)}`, { credentials: 'include', cache: 'no-store' })
+    const res = await fetchWithAuth(`/api/admin/orders?id=${encodeURIComponent(id)}`)
     const data = await res.json()
     setOrder(data.order ?? null)
     setLoading(false)

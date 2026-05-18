@@ -10,7 +10,7 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const admin = await requireAdmin()
+    const admin = await requireAdmin(req)
     if (!admin.ok) return admin.response
 
     const { orderId, status } = await req.json()

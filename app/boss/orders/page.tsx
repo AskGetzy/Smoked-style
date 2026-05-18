@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { Order } from '@/types'
+import { fetchWithAuth } from '@/lib/auth-fetch'
 
 const TABS = ['all', 'pending', 'approved', 'delivered']
 
@@ -14,7 +15,7 @@ export default function BossOrdersPage() {
   useEffect(() => { void loadOrders() }, [])
 
   async function loadOrders() {
-    const res = await fetch('/api/admin/orders', { credentials: 'include', cache: 'no-store' })
+    const res = await fetchWithAuth('/api/admin/orders')
     const data = await res.json()
     setOrders(data.orders ?? [])
     setLoading(false)
