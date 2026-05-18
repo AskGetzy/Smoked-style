@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import AdminLayout from '@/components/AdminLayout'
 import type { Order } from '@/types'
 
@@ -14,6 +15,47 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800',
 }
 
+function playNotificationSound() {
+  const AudioContext = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext
+  if (!AudioContext) return
+
+  const audioContext = new AudioContext()
+  const oscillator = audioContext.createOscillator()
+  const gain = audioContext.createGain()
+
+  oscillator.type = 'sine'
+  oscillator.frequency.setValueAtTime(880, audioContext.currentTime)
+  oscillator.frequency.setValueAtTime(1174.66, audioContext.currentTime + 0.12)
+  gain.gain.setValueAtTime(0.001, audioContext.currentTime)
+  gain.gain.exponentialRampToValueAtTime(0.25, audioContext.currentTime + 0.02)
+  gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.35)
+
+  oscillator.connect(gain)
+  gain.connect(audioContext.destination)
+  oscillator.start()
+  oscillator.stop(audioContext.currentTime + 0.35)
+}
+
+async function requestNotificationPermission() {
+  if (!('Notification' in window) || Notification.permission !== 'default') return
+  await Notification.requestPermission()
+}
+
+async function showBrowserNotification(message: string) {
+  if (!('Notification' in window)) return
+
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission()
+  }
+
+  if (Notification.permission === 'granted') {
+    new Notification('Smoked Style Admin', {
+      body: message,
+      tag: 'smoked-style-orders',
+    })
+  }
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -21,9 +63,7 @@ export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
 
-  useEffect(() => { fetchOrders() }, [])
-
-  async function fetchOrders() {
+  const fetchOrders = useCallback(async () => {
     setLoading(true)
     setError('')
 
@@ -41,7 +81,37 @@ export default function OrdersPage() {
     }
 
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchOrders()
+  }, [fetchOrders])
+
+  useEffect(() => {
+    const supabase = createClientComponentClient()
+    void requestNotificationPermission()
+
+    // Enable Supabase Realtime for public.orders in Database > Replication for these callbacks to fire.
+    const channel = supabase
+      .channel('orders-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
+        void fetchOrders()
+        playNotificationSound()
+        void showBrowserNotification('New order received!')
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
+        void fetchOrders()
+        if (payload.new.status === 'delivered') {
+          playNotificationSound()
+          void showBrowserNotification('Order delivered!')
+        }
+      })
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [fetchOrders])
 
   const filtered = orders.filter(o => {
     const matchTab = activeTab === 'all' || o.status === activeTab
