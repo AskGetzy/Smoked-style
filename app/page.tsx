@@ -181,21 +181,26 @@ export default function CatalogPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Category Tabs */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-8 pb-1">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat.key}
-              onClick={() => setActiveCategory(cat.key)}
-              className={`flex-shrink-0 px-5 py-2 rounded-full text-sm font-semibold transition-all ${
-                activeCategory === cat.key
-                  ? 'text-white shadow-md'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300'
-              }`}
-              style={activeCategory === cat.key ? { background: 'var(--navy)' } : {}}
-            >
-              {cat.label}
-            </button>
-          ))}
+        <div
+          className="sticky top-16 z-30 -mx-4 mb-8 overflow-x-auto scrollbar-hide px-4 py-3"
+          style={{ background: 'var(--cream)' }}
+        >
+          <div className="flex gap-2 min-w-max">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat.key}
+                onClick={() => setActiveCategory(cat.key)}
+                className={`flex-shrink-0 px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                  activeCategory === cat.key
+                    ? 'text-white shadow-md'
+                    : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300'
+                }`}
+                style={activeCategory === cat.key ? { background: 'var(--navy)' } : {}}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Product Grid */}
