@@ -6,7 +6,12 @@ import { createServerClient } from '@/lib/supabase-server'
 export async function GET() {
   const authSupabase = createRouteHandlerClient({ cookies })
   const { data: sessionData, error: sessionError } = await authSupabase.auth.getSession()
-  const email = sessionData.session?.user?.email?.trim()
+  const session = sessionData.session
+  const email = session?.user?.email?.trim()
+
+  console.log('Boss auth session:', JSON.stringify(session))
+  console.log('Boss auth user email:', session?.user?.email)
+  console.log('Has service role key:', Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY))
 
   if (sessionError || !email) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
@@ -19,6 +24,8 @@ export async function GET() {
     .ilike('email', email)
     .maybeSingle()
 
+  console.log('Admin users query result:', JSON.stringify(adminUser))
+  console.log('Admin users query error:', JSON.stringify(adminError))
   console.log('[boss-auth] admin_users query result', {
     email,
     adminUser,
@@ -34,7 +41,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    user: sessionData.session?.user,
+    user: session?.user,
     adminUser,
   })
 }
