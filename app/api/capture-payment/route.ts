@@ -29,7 +29,15 @@ export async function POST(req: NextRequest) {
     }).eq('id', orderId)
 
     try {
+      console.log('[email] About to send order approval', {
+        orderId,
+        orderNumber: order.order_number,
+      })
       await sendOrderApproval(order)
+      console.log('[email] Finished sending order approval', {
+        orderId,
+        orderNumber: order.order_number,
+      })
     } catch (emailError) {
       console.error('Order approval email failed', emailError)
     }

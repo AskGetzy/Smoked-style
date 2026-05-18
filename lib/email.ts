@@ -32,18 +32,20 @@ export type EmailOrder = {
 
 const CONTACT_PHONE = '(718) 810-9472'
 const CONTACT_EMAIL = 'Smokedstyle1@gmail.com'
-const RESEND_TEST_FROM = 'Smoked Style onboarding@resend.dev'
+const RESEND_TEST_FROM = 'Smoked Style <onboarding@resend.dev>'
 
 let resend: Resend | null = null
 
 function getResend() {
   const apiKey = process.env.RESEND_API_KEY
+  console.log('[email] Checking RESEND_API_KEY', { hasApiKey: Boolean(apiKey) })
   if (!apiKey) {
     console.warn('RESEND_API_KEY is not set. Skipping transactional email.')
     return null
   }
 
   if (!resend) {
+    console.log('[email] Initializing Resend client')
     resend = new Resend(apiKey)
   }
 
@@ -212,12 +214,36 @@ async function sendEmail(order: EmailOrder, subject: string, html: string) {
   const client = getResend()
   if (!client) return null
 
-  return client.emails.send({
+  console.log('[email] Sending email with Resend', {
+    orderNumber: order.order_number,
+    to,
+    from: RESEND_TEST_FROM,
+    subject,
+  })
+
+  const result = await client.emails.send({
     from: RESEND_TEST_FROM,
     to,
     subject,
     html,
   })
+
+  if (result.error) {
+    console.error('[email] Resend returned an error', {
+      orderNumber: order.order_number,
+      subject,
+      message: result.error.message,
+    })
+    throw new Error(`Resend email failed: ${result.error.message}`)
+  }
+
+  console.log('[email] Resend email sent', {
+    orderNumber: order.order_number,
+    subject,
+    id: result.data?.id,
+  })
+
+  return result
 }
 
 export async function sendOrderConfirmation(order: EmailOrder) {

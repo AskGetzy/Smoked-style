@@ -240,6 +240,7 @@ export async function POST(req: NextRequest) {
     })
 
     try {
+      console.log('[email] About to send order confirmation', { orderId: order.id, orderNumber })
       await sendOrderConfirmation({
         order_number: orderNumber,
         order_type: orderType,
@@ -265,6 +266,7 @@ export async function POST(req: NextRequest) {
           line_total: line.line_total,
         })),
       })
+      console.log('[email] Finished sending order confirmation', { orderId: order.id, orderNumber })
     } catch (emailError) {
       console.error('Order confirmation email failed', emailError)
     }

@@ -32,7 +32,15 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+      console.log('[email] About to send order rejection', {
+        orderId,
+        orderNumber: order.order_number,
+      })
       await sendOrderRejection({ ...order, status: 'cancelled' }, rejectionReason)
+      console.log('[email] Finished sending order rejection', {
+        orderId,
+        orderNumber: order.order_number,
+      })
     } catch (emailError) {
       console.error('Order rejection email failed', emailError)
     }

@@ -192,7 +192,16 @@ export async function POST(req: NextRequest) {
 
     if (changes.length > 0) {
       try {
+        console.log('[email] About to send order update', {
+          orderId,
+          orderNumber: updatedOrder.order_number,
+          changeCount: changes.length,
+        })
         await sendOrderUpdate(updatedOrder, changes)
+        console.log('[email] Finished sending order update', {
+          orderId,
+          orderNumber: updatedOrder.order_number,
+        })
       } catch (emailError) {
         console.error('Order update email failed', emailError)
       }
