@@ -18,17 +18,38 @@ const STATUS_COLORS: Record<string, string> = {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
 
   useEffect(() => { fetchOrders() }, [])
 
   async function fetchOrders() {
-    const { data } = await supabase
-      .from('orders')
-      .select('*, customers(full_name, email, phone)')
-      .order('created_at', { ascending: false })
-    setOrders(data ?? [])
+    setLoading(true)
+    setError('')
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
+    if (!token) {
+      setError('Please sign in to view admin orders.')
+      setOrders([])
+      setLoading(false)
+      return
+    }
+
+    const res = await fetch('/api/admin/orders', {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+    const payload = await res.json()
+
+    if (!res.ok) {
+      setError(payload.error ?? 'Could not load orders')
+      setOrders([])
+    } else {
+      setOrders(payload.orders ?? [])
+    }
+
     setLoading(false)
   }
 
@@ -81,7 +102,11 @@ export default function OrdersPage() {
         </div>
 
         {/* Orders list */}
-        {loading ? (
+        {error ? (
+          <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        ) : loading ? (
           <div className="space-y-3">
             {[1,2,3].map(i => <div key={i} className="h-24 bg-white rounded-xl animate-pulse" />)}
           </div>

@@ -24,16 +24,33 @@ export default function OrderDetailPage() {
   const [showApproveModal, setShowApproveModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [error, setError] = useState('')
 
   useEffect(() => { fetchOrder() }, [id])
 
   async function fetchOrder() {
-    const { data } = await supabase
-      .from('orders')
-      .select('*, customers(*), order_items(*)')
-      .eq('id', id)
-      .single()
-    setOrder(data)
+    setError('')
+    const { data: sessionData } = await supabase.auth.getSession()
+    const token = sessionData.session?.access_token
+    if (!token) {
+      setError('Please sign in to view this order.')
+      setOrder(null)
+      setLoading(false)
+      return
+    }
+
+    const res = await fetch(`/api/admin/orders?id=${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    })
+    const payload = await res.json()
+
+    if (!res.ok) {
+      setError(payload.error ?? 'Could not load order')
+      setOrder(null)
+    } else {
+      setOrder(payload.order)
+    }
     setLoading(false)
   }
 
@@ -68,7 +85,7 @@ export default function OrderDetailPage() {
 
   if (!order) return (
     <AdminLayout>
-      <div className="p-6 text-center text-gray-400">Order not found</div>
+      <div className="p-6 text-center text-gray-400">{error || 'Order not found'}</div>
     </AdminLayout>
   )
 
