@@ -59,11 +59,14 @@ export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
+  const [newOrderAlert, setNewOrderAlert] = useState('')
   const knownOrderIdsRef = useRef<Set<string>>(new Set())
   const hasLoadedOrdersRef = useRef(false)
 
   const fetchOrders = useCallback(async () => {
-    setLoading(true)
+    if (!hasLoadedOrdersRef.current) {
+      setLoading(true)
+    }
     setError('')
 
     const res = await fetch('/api/admin/orders', {
@@ -82,12 +85,13 @@ export default function OrdersPage() {
       if (hasLoadedOrdersRef.current) {
         const newOrders = nextOrders.filter(order => !knownOrderIdsRef.current.has(order.id))
         if (newOrders.length > 0) {
+          const message = newOrders.length === 1
+            ? `New order received: ${newOrders[0].order_number}`
+            : `${newOrders.length} new orders received!`
+          setNewOrderAlert(message)
           playNotificationSound()
-          void showBrowserNotification(
-            newOrders.length === 1
-              ? `New order received: ${newOrders[0].order_number}`
-              : `${newOrders.length} new orders received!`,
-          )
+          void showBrowserNotification(message)
+          window.setTimeout(() => setNewOrderAlert(''), 10000)
         }
       }
 
@@ -185,6 +189,12 @@ export default function OrdersPage() {
             </div>
           </div>
         </div>
+
+        {newOrderAlert && (
+          <div className="mb-4 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-800 shadow-sm">
+            {newOrderAlert}
+          </div>
+        )}
 
         {/* Search */}
         <input
