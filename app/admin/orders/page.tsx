@@ -90,6 +90,9 @@ export default function OrdersPage() {
   useEffect(() => {
     const supabase = createClientComponentClient()
     void requestNotificationPermission()
+    const pollingFallback = window.setInterval(() => {
+      void fetchOrders()
+    }, 15000)
 
     // Enable Supabase Realtime for public.orders in Database > Replication for these callbacks to fire.
     const channel = supabase
@@ -106,9 +109,14 @@ export default function OrdersPage() {
           void showBrowserNotification('Order delivered!')
         }
       })
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') {
+          console.warn('Orders realtime channel failed. Polling fallback is still active.')
+        }
+      })
 
     return () => {
+      window.clearInterval(pollingFallback)
       void supabase.removeChannel(channel)
     }
   }, [fetchOrders])

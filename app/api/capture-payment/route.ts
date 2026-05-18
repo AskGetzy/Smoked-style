@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { createServerClient } from '@/lib/supabase-server'
 import { sendOrderApproval } from '@/lib/email'
+import { toCents } from '@/lib/checkout-pricing'
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,7 +18,9 @@ export async function POST(req: NextRequest) {
     if (error || !order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
 
     if (order.stripe_payment_intent_id) {
-      await stripe.paymentIntents.capture(order.stripe_payment_intent_id)
+      await stripe.paymentIntents.capture(order.stripe_payment_intent_id, {
+        amount_to_capture: toCents(order.total),
+      })
     }
 
     await supabase.from('orders').update({

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AdminLayout from '@/components/AdminLayout'
 import { supabase } from '@/lib/supabase'
-import type { Order } from '@/types'
+import type { Order, OrderItem } from '@/types'
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -14,6 +14,8 @@ const STATUS_COLORS: Record<string, string> = {
   delivered: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
 }
+
+type EditableOrderItem = Pick<OrderItem, 'id' | 'product_name' | 'quantity' | 'unit_price'>
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -25,6 +27,12 @@ export default function OrderDetailPage() {
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [error, setError] = useState('')
+  const [isEditing, setIsEditing] = useState(false)
+  const [savingEdits, setSavingEdits] = useState(false)
+  const [editItems, setEditItems] = useState<EditableOrderItem[]>([])
+  const [editDeliveryFee, setEditDeliveryFee] = useState('')
+  const [editAdjustment, setEditAdjustment] = useState('')
+  const [editAdjustmentNote, setEditAdjustmentNote] = useState('')
 
   useEffect(() => { fetchOrder() }, [id])
 
@@ -44,6 +52,61 @@ export default function OrderDetailPage() {
       setOrder(payload.order)
     }
     setLoading(false)
+  }
+
+  function startEditing() {
+    if (!order) return
+
+    setError('')
+    setEditItems((order.order_items ?? []).map((item) => ({
+      id: item.id,
+      product_name: item.product_name,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+    })))
+    setEditDeliveryFee(String(order.delivery_fee))
+    setEditAdjustment(String(order.custom_adjustment))
+    setEditAdjustmentNote(order.custom_adjustment_note ?? '')
+    setIsEditing(true)
+  }
+
+  function updateEditItem(id: string, field: 'quantity' | 'unit_price', value: string) {
+    const parsed = Number(value)
+    setEditItems((current) => current.map((item) => (
+      item.id === id ? { ...item, [field]: Number.isFinite(parsed) ? parsed : 0 } : item
+    )))
+  }
+
+  async function saveOrderEdits() {
+    setSavingEdits(true)
+    setError('')
+
+    const res = await fetch('/api/admin/orders/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        orderId: id,
+        items: editItems.map((item) => ({
+          id: item.id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+        })),
+        deliveryFee: Number(editDeliveryFee),
+        customAdjustment: Number(editAdjustment),
+        customAdjustmentNote: editAdjustmentNote,
+      }),
+    })
+    const payload = await res.json()
+
+    if (res.ok) {
+      setOrder(payload.order)
+      setIsEditing(false)
+    } else {
+      setError(payload.error ?? 'Could not save order changes')
+    }
+
+    setSavingEdits(false)
   }
 
   async function approveOrder() {
@@ -94,6 +157,8 @@ export default function OrderDetailPage() {
 
   const customer = order.customers as any
   const items = order.order_items ?? []
+  const editedSubtotal = editItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+  const editedTotal = editedSubtotal + Number(editDeliveryFee || 0) + Number(editAdjustment || 0)
 
   return (
     <AdminLayout>
@@ -127,6 +192,11 @@ export default function OrderDetailPage() {
             <h3 className="font-semibold text-gray-900 mb-1">Actions</h3>
             {order.status === 'pending' && (
               <>
+                <button onClick={startEditing}
+                  className="w-full py-2 rounded-xl text-sm font-semibold text-white"
+                  style={{ background: 'var(--navy)' }}>
+                  Edit Order
+                </button>
                 <button onClick={() => setShowApproveModal(true)}
                   className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700">
                   ✓ Approve & Charge
@@ -155,6 +225,95 @@ export default function OrderDetailPage() {
             )}
           </div>
         </div>
+
+        {error && (
+          <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700 mb-4">
+            {error}
+          </div>
+        )}
+
+        {isEditing && (
+          <div className="bg-white rounded-xl border border-orange-100 p-4 mb-4">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="font-semibold text-gray-900">Edit Pending Order</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Saving sends the customer an email with the changes and updated total. Set quantity to 0 to remove an item.
+                </p>
+              </div>
+              <button onClick={() => setIsEditing(false)} className="text-sm text-gray-400 hover:text-gray-600">
+                Cancel
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {editItems.map((item) => (
+                <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border border-gray-100 rounded-xl p-3">
+                  <div className="md:col-span-6">
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Item</label>
+                    <p className="text-sm font-medium text-gray-900">{item.product_name}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Qty</label>
+                    <input type="number" min="0" step="1" value={item.quantity}
+                      onChange={e => updateEditItem(item.id, 'quantity', e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Unit Price</label>
+                    <input type="number" min="0" step="0.01" value={item.unit_price}
+                      onChange={e => updateEditItem(item.id, 'unit_price', e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400" />
+                  </div>
+                  <div className="md:col-span-2 text-right">
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">Line Total</label>
+                    <p className="font-semibold text-gray-900">${(item.quantity * item.unit_price).toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Delivery Fee</label>
+                <input type="number" min="0" step="0.01" value={editDeliveryFee}
+                  onChange={e => setEditDeliveryFee(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">Adjustment</label>
+                <input type="number" step="0.01" value={editAdjustment}
+                  onChange={e => setEditAdjustment(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">New Total</label>
+                <div className="rounded-lg bg-orange-50 px-3 py-2 font-bold" style={{ color: 'var(--orange)' }}>
+                  ${editedTotal.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <label className="block text-xs font-semibold text-gray-500 mb-1">Adjustment Note</label>
+              <input value={editAdjustmentNote} onChange={e => setEditAdjustmentNote(e.target.value)}
+                placeholder="Example: adjusted weight after review"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400" />
+            </div>
+
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => setIsEditing(false)}
+                className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-semibold">
+                Cancel
+              </button>
+              <button onClick={saveOrderEdits} disabled={savingEdits}
+                className="flex-1 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
+                style={{ background: 'var(--navy)' }}>
+                {savingEdits ? 'Saving...' : 'Save & Email Customer'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Items */}
         <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4">

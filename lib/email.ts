@@ -32,7 +32,7 @@ export type EmailOrder = {
 
 const CONTACT_PHONE = '(718) 810-9472'
 const CONTACT_EMAIL = 'Smokedstyle1@gmail.com'
-const DEFAULT_FROM = 'Smoked Style <onboarding@resend.dev>'
+const RESEND_TEST_FROM = 'Smoked Style onboarding@resend.dev'
 
 let resend: Resend | null = null
 
@@ -48,10 +48,6 @@ function getResend() {
   }
 
   return resend
-}
-
-function getFromAddress() {
-  return process.env.RESEND_FROM_EMAIL || DEFAULT_FROM
 }
 
 function escapeHtml(value: unknown) {
@@ -217,7 +213,7 @@ async function sendEmail(order: EmailOrder, subject: string, html: string) {
   if (!client) return null
 
   return client.emails.send({
-    from: getFromAddress(),
+    from: RESEND_TEST_FROM,
     to,
     subject,
     html,
@@ -241,6 +237,24 @@ export async function sendOrderApproval(order: EmailOrder) {
     heading: 'Your order is confirmed',
     intro: `Your order has been approved and your card has been charged ${formatCurrency(order.total)}.`,
     order,
+  }))
+}
+
+export async function sendOrderUpdate(order: EmailOrder, changes: string[]) {
+  const subject = `Updated Smoked Style Order #${order.order_number}`
+  return sendEmail(order, subject, layout({
+    preview: `Your Smoked Style order #${order.order_number} was updated`,
+    heading: 'Your order was updated',
+    intro: `We made a change to your pending order before approval. Your updated order total is ${formatCurrency(order.total)}. Your card will only be charged after the order is approved.`,
+    order,
+    extra: `
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:16px;margin:18px 0;color:#9a3412;line-height:1.5;">
+        <strong>Changes:</strong>
+        <ul style="margin:8px 0 0;padding-left:18px;">
+          ${changes.length > 0 ? changes.map((change) => `<li>${escapeHtml(change)}</li>`).join('') : '<li>Order details were updated.</li>'}
+        </ul>
+      </div>
+    `,
   }))
 }
 
