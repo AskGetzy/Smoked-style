@@ -1,17 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 import { createServerClient } from '@/lib/supabase-server'
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-    if (!token) {
+    const authSupabase = createRouteHandlerClient({ cookies })
+    const { data: sessionData, error: sessionError } = await authSupabase.auth.getSession()
+    const session = sessionData.session
+
+    if (sessionError || !session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const supabase = createServerClient()
-    const { data: userData, error: userError } = await supabase.auth.getUser(token)
-    if (userError || !userData.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { data: adminUser, error: adminError } = await supabase
+      .from('admin_users')
+      .select('id, email, role')
+      .eq('email', session.user.email)
+      .maybeSingle()
+
+    if (adminError) {
+      return NextResponse.json({ error: adminError.message }, { status: 500 })
+    }
+
+    if (!adminUser) {
+      return NextResponse.json({ error: 'Forbidden: user is not an admin' }, { status: 403 })
     }
 
     const orderId = req.nextUrl.searchParams.get('id')

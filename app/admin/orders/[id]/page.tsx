@@ -30,17 +30,9 @@ export default function OrderDetailPage() {
 
   async function fetchOrder() {
     setError('')
-    const { data: sessionData } = await supabase.auth.getSession()
-    const token = sessionData.session?.access_token
-    if (!token) {
-      setError('Please sign in to view this order.')
-      setOrder(null)
-      setLoading(false)
-      return
-    }
 
     const res = await fetch(`/api/admin/orders?id=${encodeURIComponent(id)}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
       cache: 'no-store',
     })
     const payload = await res.json()

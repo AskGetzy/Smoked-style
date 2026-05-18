@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import AdminLayout from '@/components/AdminLayout'
-import { supabase } from '@/lib/supabase'
 import type { Order } from '@/types'
 
 const STATUS_TABS = ['all', 'pending', 'approved', 'out_for_delivery', 'delivered', 'cancelled']
@@ -28,17 +27,8 @@ export default function OrdersPage() {
     setLoading(true)
     setError('')
 
-    const { data: sessionData } = await supabase.auth.getSession()
-    const token = sessionData.session?.access_token
-    if (!token) {
-      setError('Please sign in to view admin orders.')
-      setOrders([])
-      setLoading(false)
-      return
-    }
-
     const res = await fetch('/api/admin/orders', {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
       cache: 'no-store',
     })
     const payload = await res.json()
