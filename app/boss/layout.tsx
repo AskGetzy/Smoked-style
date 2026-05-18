@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { fetchWithAuth } from '@/lib/auth-fetch'
 
 const NAV = [
   { href: '/boss/new-order', label: 'New Order', icon: '＋' },
@@ -37,7 +36,7 @@ export default function BossLayout({ children }: { children: React.ReactNode }) 
         return
       }
 
-      const res = await fetchWithAuth('/api/boss/me')
+      const res = await fetch('/api/boss/auth', { credentials: 'include', cache: 'no-store' })
       if (!res.ok) {
         router.push('/boss/login')
         return

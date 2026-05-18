@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { fetchWithAuth } from '@/lib/auth-fetch'
 
 export default function BossLoginPage() {
   const supabase = createClientComponentClient()
@@ -25,7 +24,7 @@ export default function BossLoginPage() {
       return
     }
 
-    const res = await fetchWithAuth('/api/boss/me')
+    const res = await fetch('/api/boss/auth', { credentials: 'include', cache: 'no-store' })
     if (!res.ok) {
       const data = await res.json().catch(() => null)
       await supabase.auth.signOut()
