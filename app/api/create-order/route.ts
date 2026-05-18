@@ -7,6 +7,7 @@ import {
   sumSubtotal,
   type CheckoutCartLine,
 } from '@/lib/checkout-pricing'
+import { sendOrderConfirmation } from '@/lib/email'
 import type { Product } from '@/types'
 
 type CreateOrderBody = {
@@ -237,6 +238,36 @@ export async function POST(req: NextRequest) {
         orderId: order.id,
       },
     })
+
+    try {
+      await sendOrderConfirmation({
+        order_number: orderNumber,
+        order_type: orderType,
+        delivery_address: orderType === 'delivery' ? address?.trim() : null,
+        delivery_date: deliveryDate,
+        recipient_name: recipientName?.trim() || null,
+        recipient_phone: recipientPhone?.trim() || null,
+        subtotal,
+        delivery_fee: deliveryFee,
+        total,
+        customers: {
+          full_name: contact.name.trim(),
+          email: contact.email.trim().toLowerCase(),
+          phone: contact.phone?.trim() || null,
+        },
+        order_items: pricedLines.map((line) => ({
+          product_name: line.product_name,
+          quantity: line.quantity,
+          selected_flavor: line.selected_flavor,
+          selected_weight: line.selected_weight,
+          selected_size: line.selected_size,
+          unit_price: line.unit_price,
+          line_total: line.line_total,
+        })),
+      })
+    } catch (emailError) {
+      console.error('Order confirmation email failed', emailError)
+    }
 
     return NextResponse.json({ orderId: order.id, orderNumber })
   } catch (e: unknown) {

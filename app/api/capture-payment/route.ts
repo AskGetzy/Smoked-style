@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { createServerClient } from '@/lib/supabase-server'
+import { sendOrderApproval } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     const { data: order, error } = await supabase
       .from('orders')
-      .select('stripe_payment_intent_id, total')
+      .select('*, customers(full_name, email, phone), order_items(*)')
       .eq('id', orderId)
       .single()
 
@@ -23,6 +24,12 @@ export async function POST(req: NextRequest) {
       status: 'approved',
       approved_at: new Date().toISOString(),
     }).eq('id', orderId)
+
+    try {
+      await sendOrderApproval(order)
+    } catch (emailError) {
+      console.error('Order approval email failed', emailError)
+    }
 
     return NextResponse.json({ success: true })
   } catch (e: any) {

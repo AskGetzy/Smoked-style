@@ -61,9 +61,20 @@ export default function OrderDetailPage() {
   }
 
   async function rejectOrder() {
-    await supabase.from('orders').update({ status: 'cancelled' }).eq('id', id)
-    setShowRejectModal(false)
-    fetchOrder()
+    const res = await fetch('/api/reject-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: id, reason: rejectReason }),
+    })
+
+    if (res.ok) {
+      setShowRejectModal(false)
+      setRejectReason('')
+      fetchOrder()
+    } else {
+      const payload = await res.json()
+      setError(payload.error ?? 'Could not reject order')
+    }
   }
 
   if (loading) return (
