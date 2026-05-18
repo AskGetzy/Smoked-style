@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from('orders')
-      .select('*, customers(full_name, email, phone)')
+      .select('*, customers(full_name, email, phone), order_items(*)')
       .order('created_at', { ascending: false })
 
     if (error) {
