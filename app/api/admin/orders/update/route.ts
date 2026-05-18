@@ -1,42 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
 import { stripe } from '@/lib/stripe'
-import { createServerClient } from '@/lib/supabase-server'
 import { toCents } from '@/lib/checkout-pricing'
 import { sendOrderUpdate } from '@/lib/email'
+import { requireAdmin } from '@/lib/admin-auth'
 
 type EditableItem = {
   id: string
   quantity: number
   unit_price: number
-}
-
-async function requireAdmin() {
-  const authSupabase = createRouteHandlerClient({ cookies })
-  const { data: sessionData, error: sessionError } = await authSupabase.auth.getSession()
-  const email = sessionData.session?.user?.email
-
-  if (sessionError || !email) {
-    return { ok: false as const, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
-  }
-
-  const supabase = createServerClient()
-  const { data: adminUser, error: adminError } = await supabase
-    .from('admin_users')
-    .select('id')
-    .eq('email', email)
-    .maybeSingle()
-
-  if (adminError) {
-    return { ok: false as const, response: NextResponse.json({ error: adminError.message }, { status: 500 }) }
-  }
-
-  if (!adminUser) {
-    return { ok: false as const, response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
-  }
-
-  return { ok: true as const, supabase }
 }
 
 function currency(value: number) {

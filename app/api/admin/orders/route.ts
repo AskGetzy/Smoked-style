@@ -14,11 +14,20 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = createServerClient()
+    console.log('[admin-orders-auth] Checking admin user with service role', {
+      email: session.user.email,
+    })
     const { data: adminUser, error: adminError } = await supabase
       .from('admin_users')
       .select('id, email, role')
-      .eq('email', session.user.email)
+      .ilike('email', session.user.email)
       .maybeSingle()
+
+    console.log('[admin-orders-auth] admin_users query result', {
+      email: session.user.email,
+      adminUser,
+      adminError: adminError?.message ?? null,
+    })
 
     if (adminError) {
       return NextResponse.json({ error: adminError.message }, { status: 500 })
