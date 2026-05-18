@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Elements } from '@stripe/react-stripe-js'
+import { Elements } from "@stripe/react-stripe-js"
+import { loadStripe } from "@stripe/stripe-js"
 import Header from '@/components/Header'
 import CheckoutPaymentForm from '@/components/CheckoutPaymentForm'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { getStripe } from '@/lib/stripe-client'
 import type { CartItem, DeliveryArea } from '@/types'
 
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 const STEPS = ['Contact', 'Delivery', 'Date', 'Payment', 'Review']
 
 type PaymentInit = {
@@ -79,6 +80,13 @@ export default function CheckoutPage() {
   const subtotal = paymentInit?.subtotal ?? displaySubtotal
   const deliveryFee = paymentInit?.deliveryFee ?? displayDeliveryFee
   const total = paymentInit?.total ?? displayTotal
+  const clientSecret = paymentInit?.clientSecret ?? ''
+
+  useEffect(() => {
+    if (step === 3) {
+      console.log('Checkout Step 4 clientSecret:', clientSecret)
+    }
+  }, [step, clientSecret])
 
   function validateBeforePayment(): string | null {
     if (!contact.name.trim() || !contact.email.trim() || !contact.phone.trim()) {
@@ -134,6 +142,7 @@ export default function CheckoutPage() {
 
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Could not start payment')
+      console.log('Fetched Stripe clientSecret:', data.clientSecret)
 
       setPaymentInit({
         clientSecret: data.clientSecret,
@@ -402,22 +411,16 @@ export default function CheckoutPage() {
               )}
 
               {preparingPayment && (
-                <p className="text-sm text-gray-500 py-8 text-center">Preparing secure payment...</p>
+                <div className="py-8 text-center">
+                  <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-orange-500" />
+                  <p className="text-sm text-gray-500">Preparing secure payment...</p>
+                </div>
               )}
 
-              {!preparingPayment && paymentInit?.clientSecret && (
+              {clientSecret && (
                 <Elements
-                  stripe={getStripe()}
-                  options={{
-                    clientSecret: paymentInit.clientSecret,
-                    appearance: {
-                      theme: 'stripe',
-                      variables: {
-                        colorPrimary: '#2E4057',
-                        borderRadius: '12px',
-                      },
-                    },
-                  }}
+                  stripe={stripePromise}
+                  options={{ clientSecret }}
                 >
                   <CheckoutPaymentForm
                     step={step}
@@ -439,9 +442,11 @@ export default function CheckoutPage() {
                 </Elements>
               )}
 
-              {!preparingPayment && !paymentInit?.clientSecret && (
+              {!preparingPayment && !clientSecret && (
                 <div className="text-center py-6">
-                  <p className="text-sm text-gray-500 mb-3">Payment could not be initialized.</p>
+                  <p className="text-sm text-red-500 mb-3">
+                    Payment could not be initialized. Missing Stripe client secret.
+                  </p>
                   <button
                     type="button"
                     onClick={() => initializePayment()}

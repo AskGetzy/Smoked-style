@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import type { CartItem } from '@/types'
 
@@ -43,6 +43,10 @@ export default function CheckoutPaymentForm({
   const elements = useElements()
   const [loading, setLoading] = useState(false)
   const [paymentComplete, setPaymentComplete] = useState(false)
+
+  useEffect(() => {
+    console.log('Stripe instance loaded:', Boolean(stripe), stripe)
+  }, [stripe])
 
   async function placeOrder() {
     if (!stripe || !elements) {
