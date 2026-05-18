@@ -16,18 +16,22 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800',
 }
 
-function playSound() {
+function playAlertSound() {
   const ctx = new AudioContext()
-  const oscillator = ctx.createOscillator()
-  const gainNode = ctx.createGain()
-  oscillator.connect(gainNode)
-  gainNode.connect(ctx.destination)
-  oscillator.frequency.value = 800
-  oscillator.type = 'sine'
-  gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
-  gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5)
-  oscillator.start(ctx.currentTime)
-  oscillator.stop(ctx.currentTime + 0.5)
+
+  // Play 3 rapid beeps so a new order is hard to miss in a busy kitchen.
+  ;[0, 0.3, 0.6].forEach((time) => {
+    const oscillator = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+    oscillator.connect(gainNode)
+    gainNode.connect(ctx.destination)
+    oscillator.frequency.value = 1000
+    oscillator.type = 'square'
+    gainNode.gain.setValueAtTime(0.8, ctx.currentTime + time)
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + time + 0.25)
+    oscillator.start(ctx.currentTime + time)
+    oscillator.stop(ctx.currentTime + time + 0.25)
+  })
 }
 
 export default function OrdersPage() {
@@ -37,13 +41,13 @@ export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
-  const [toast, setToast] = useState('')
+  const [toast, setToast] = useState<{ message: string; urgent: boolean } | null>(null)
   const knownOrderIdsRef = useRef<Set<string>>(new Set())
   const hasLoadedOrdersRef = useRef(false)
 
-  function showToast(message: string) {
-    setToast(message)
-    window.setTimeout(() => setToast(''), 5000)
+  function showToast(message: string, urgent = false) {
+    setToast({ message, urgent })
+    window.setTimeout(() => setToast(null), urgent ? 8000 : 5000)
   }
 
   async function setupNotifications() {
@@ -78,12 +82,15 @@ export default function OrdersPage() {
   function notifyNewOrders(newOrders: Order[]) {
     if (newOrders.length === 0) return
 
+    const firstOrder = newOrders[0]
+    const customerName = (firstOrder.customers as any)?.full_name ?? 'Guest'
     const body = newOrders.length === 1
-      ? `New order received: ${newOrders[0].order_number}`
+      ? `NEW ORDER — ${customerName} — $${firstOrder.total.toFixed(2)}`
       : `${newOrders.length} new orders received!`
-    playSound()
+    playAlertSound()
+    navigator.vibrate?.([500, 200, 500])
     showNotification('New order received', body)
-    showToast(body)
+    showToast(`🚨 ${body}`, true)
   }
 
   const fetchOrders = useCallback(async () => {
@@ -144,7 +151,7 @@ export default function OrdersPage() {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
         void fetchOrders()
         if (payload.new.status === 'delivered') {
-          playSound()
+          playAlertSound()
           showNotification('Order delivered', 'Order delivered!')
         }
       })
@@ -204,8 +211,23 @@ export default function OrdersPage() {
         </div>
 
         {toast && (
-          <div className="fixed left-1/2 top-4 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-800 shadow-lg">
-            {toast}
+          <div className={`fixed left-1/2 top-4 z-50 flex w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 items-start justify-between gap-4 rounded-2xl px-5 py-4 shadow-2xl ${
+            toast.urgent
+              ? 'bg-orange-600 text-white'
+              : 'border border-orange-200 bg-orange-50 text-orange-800'
+          }`}>
+            <div className={toast.urgent ? 'text-lg font-black sm:text-xl' : 'text-sm font-semibold'}>
+              {toast.message}
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className={`flex-shrink-0 rounded-full px-3 py-1 text-sm font-bold ${
+                toast.urgent ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-orange-100 text-orange-800 hover:bg-orange-200'
+              }`}
+              type="button"
+            >
+              Dismiss
+            </button>
           </div>
         )}
 
