@@ -25,10 +25,11 @@ export default function BossLoginPage() {
       return
     }
 
-    const res = await fetchWithAuth('/api/admin/orders')
+    const res = await fetchWithAuth('/api/boss/me')
     if (!res.ok) {
+      const data = await res.json().catch(() => null)
       await supabase.auth.signOut()
-      setError('This account is not authorized for the boss portal.')
+      setError(data?.error ? `Boss portal access failed: ${data.error}` : 'This account is not authorized for the boss portal.')
       setLoading(false)
       return
     }

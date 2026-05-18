@@ -37,7 +37,7 @@ export default function BossLayout({ children }: { children: React.ReactNode }) 
         return
       }
 
-      const res = await fetchWithAuth('/api/admin/orders')
+      const res = await fetchWithAuth('/api/boss/me')
       if (!res.ok) {
         router.push('/boss/login')
         return
