@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import OrderNotificationWatcher from '@/components/OrderNotificationWatcher'
 import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 
 const NAV = [
@@ -71,6 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Main */}
       <main className="flex-1 overflow-auto">
+        <OrderNotificationWatcher mode="admin" />
         {children}
       </main>
     </div>

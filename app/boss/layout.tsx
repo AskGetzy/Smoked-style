@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import OrderNotificationWatcher from '@/components/OrderNotificationWatcher'
 
 const NAV = [
   { href: '/boss/new-order', label: 'New Order', icon: '＋' },
@@ -69,6 +70,8 @@ export default function BossLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen pb-24 text-gray-900" style={{ background: '#f8fafc' }}>
+      <OrderNotificationWatcher mode="boss" />
+
       <header className="sticky top-0 z-40 border-b border-white/10 px-4 py-3" style={{ background: 'var(--navy)' }}>
         <div className="flex items-center justify-between gap-3">
           <div>

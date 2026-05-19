@@ -17,87 +17,15 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800',
 }
 
-function playAlertSound() {
-  const ctx = new AudioContext()
-
-  // Play 3 rapid beeps so a new order is hard to miss in a busy kitchen.
-  ;[0, 0.3, 0.6].forEach((time) => {
-    const oscillator = ctx.createOscillator()
-    const gainNode = ctx.createGain()
-    oscillator.connect(gainNode)
-    gainNode.connect(ctx.destination)
-    oscillator.frequency.value = 1000
-    oscillator.type = 'square'
-    gainNode.gain.setValueAtTime(0.8, ctx.currentTime + time)
-    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + time + 0.25)
-    oscillator.start(ctx.currentTime + time)
-    oscillator.stop(ctx.currentTime + time + 0.25)
-  })
-}
-
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
-  const [toast, setToast] = useState<{ message: string; urgent: boolean } | null>(null)
-  const knownOrderIdsRef = useRef<Set<string>>(new Set())
-  const hasLoadedOrdersRef = useRef(false)
-
-  function showToast(message: string, urgent = false) {
-    setToast({ message, urgent })
-    window.setTimeout(() => setToast(null), urgent ? 8000 : 5000)
-  }
-
-  async function setupNotifications() {
-    let permission: NotificationPermission = notificationPermission
-
-    if ('Notification' in window) {
-      permission = await Notification.requestPermission()
-      console.log('Notification permission:', permission)
-      setNotificationPermission(permission)
-    }
-
-    if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.register('/sw.js')
-      console.log('Service worker registered:', reg)
-    }
-
-    if (permission === 'granted') {
-      showToast('Notifications enabled!')
-    } else if (permission === 'denied') {
-      showToast('Please allow notifications in your browser settings')
-    }
-  }
-
-  function showNotification(title: string, body: string) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body, icon: '/icon-192.png' })
-    } else {
-      showToast(`${title}: ${body}`)
-    }
-  }
-
-  function notifyNewOrders(newOrders: Order[]) {
-    if (newOrders.length === 0) return
-
-    const firstOrder = newOrders[0]
-    const customerName = (firstOrder.customers as any)?.full_name ?? 'Guest'
-    const body = newOrders.length === 1
-      ? `NEW ORDER — ${customerName} — $${firstOrder.total.toFixed(2)}`
-      : `${newOrders.length} new orders received!`
-    playAlertSound()
-    navigator.vibrate?.([500, 200, 500])
-    showNotification('New order received', body)
-    showToast(`🚨 ${body}`, true)
-  }
 
   const fetchOrders = useCallback(async () => {
-    if (!hasLoadedOrdersRef.current) {
-      setLoading(true)
-    }
+    setLoading(true)
     setError('')
 
     const res = await fetch('/api/admin/orders', {
@@ -110,57 +38,28 @@ export default function OrdersPage() {
       setError(payload.error ?? 'Could not load orders')
       setOrders([])
     } else {
-      const nextOrders = (payload.orders ?? []) as Order[]
-      const nextOrderIds = new Set(nextOrders.map(order => order.id))
-
-      if (hasLoadedOrdersRef.current) {
-        const newOrders = nextOrders.filter(order => !knownOrderIdsRef.current.has(order.id))
-        notifyNewOrders(newOrders)
-      }
-
-      knownOrderIdsRef.current = nextOrderIds
-      hasLoadedOrdersRef.current = true
-      setOrders(nextOrders)
+      setOrders((payload.orders ?? []) as Order[])
     }
 
     setLoading(false)
   }, [])
 
   useEffect(() => {
-    fetchOrders()
+    void fetchOrders()
   }, [fetchOrders])
 
   useEffect(() => {
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission)
-    }
-
     const supabase = createClientComponentClient()
     const pollingFallback = window.setInterval(() => {
       void fetchOrders()
     }, 15000)
 
-    // Enable Supabase Realtime for public.orders in Database > Replication for these callbacks to fire.
     const channel = supabase
-      .channel('orders-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
-        const newOrder = payload.new as Order
-        knownOrderIdsRef.current.add(newOrder.id)
-        notifyNewOrders([newOrder])
+      .channel('orders-list-refresh')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         void fetchOrders()
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, (payload) => {
-        void fetchOrders()
-        if (payload.new.status === 'delivered') {
-          playAlertSound()
-          showNotification('Order delivered', 'Order delivered!')
-        }
-      })
-      .subscribe((status) => {
-        if (status === 'CHANNEL_ERROR') {
-          console.warn('Orders realtime channel failed. Polling fallback is still active.')
-        }
-      })
+      .subscribe()
 
     return () => {
       window.clearInterval(pollingFallback)
@@ -172,7 +71,7 @@ export default function OrdersPage() {
     const matchTab = activeTab === 'all' || o.status === activeTab
     const matchSearch = search === '' ||
       o.order_number.toLowerCase().includes(search.toLowerCase()) ||
-      (o.customers as any)?.full_name?.toLowerCase().includes(search.toLowerCase())
+      (o.customers as { full_name?: string })?.full_name?.toLowerCase().includes(search.toLowerCase())
     return matchTab && matchSearch
   })
 
@@ -184,111 +83,76 @@ export default function OrdersPage() {
   return (
     <AdminLayout>
       <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>Orders</h1>
           <div className="flex flex-wrap justify-end gap-3">
-            <div className={`rounded-full px-3 py-1 text-sm font-semibold ${
-              notificationPermission === 'granted'
-                ? 'bg-green-100 text-green-800'
-                : 'bg-red-100 text-red-800'
-            }`}>
-              Notifications: {notificationPermission === 'granted' ? 'On' : 'Off'}
-            </div>
-            {notificationPermission !== 'granted' && (
-              <button
-                onClick={() => void setupNotifications()}
-                className="rounded-full border border-orange-200 bg-white px-4 py-2 text-sm font-semibold text-orange-700 shadow-sm hover:bg-orange-50"
-              >
-                Enable Notifications 🔔
-              </button>
-            )}
-            <div className="bg-yellow-100 text-yellow-800 text-sm font-semibold px-3 py-1 rounded-full">
+            <div className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-semibold text-yellow-800">
               {counts.pending} Pending
             </div>
-            <div className="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">
+            <div className="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">
               {counts.approved} Approved
             </div>
           </div>
         </div>
 
-        {toast && (
-          <div className={`fixed left-1/2 top-4 z-50 flex w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 items-start justify-between gap-4 rounded-2xl px-5 py-4 shadow-2xl ${
-            toast.urgent
-              ? 'bg-orange-600 text-white'
-              : 'border border-orange-200 bg-orange-50 text-orange-800'
-          }`}>
-            <div className={toast.urgent ? 'text-lg font-black sm:text-xl' : 'text-sm font-semibold'}>
-              {toast.message}
-            </div>
-            <button
-              onClick={() => setToast(null)}
-              className={`flex-shrink-0 rounded-full px-3 py-1 text-sm font-bold ${
-                toast.urgent ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-orange-100 text-orange-800 hover:bg-orange-200'
-              }`}
-              type="button"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
-        {/* Search */}
         <input
-          value={search} onChange={e => setSearch(e.target.value)}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
           placeholder="Search by order number or customer name..."
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-4 focus:outline-none focus:border-orange-400"
+          className="mb-4 w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-orange-400 focus:outline-none"
         />
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-4 overflow-x-auto">
+        <div className="mb-4 flex gap-2 overflow-x-auto">
           {STATUS_TABS.map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium capitalize transition-colors ${
-                activeTab === tab ? 'text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
+                activeTab === tab ? 'text-white' : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
               }`}
-              style={activeTab === tab ? { background: 'var(--navy)' } : {}}>
+              style={activeTab === tab ? { background: 'var(--navy)' } : {}}
+            >
               {tab === 'all' ? 'All' : tab.replace('_', ' ')}
             </button>
           ))}
         </div>
 
-        {/* Orders list */}
         {error ? (
           <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
             {error}
           </div>
         ) : loading ? (
           <div className="space-y-3">
-            {[1,2,3].map(i => <div key={i} className="h-24 bg-white rounded-xl animate-pulse" />)}
+            {[1, 2, 3].map(i => <div key={i} className="h-24 animate-pulse rounded-xl bg-white" />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <div className="text-4xl mb-2">📭</div>
+          <div className="py-16 text-center text-gray-400">
+            <div className="mb-2 text-4xl">📭</div>
             <p>No orders found</p>
           </div>
         ) : (
           <div className="space-y-3">
             {filtered.map(order => (
               <Link key={order.id} href={`/admin/orders/${order.id}`}>
-                <div className="bg-white rounded-xl border border-gray-100 p-4 hover:border-orange-200 hover:shadow-sm transition-all cursor-pointer">
+                <div className="cursor-pointer rounded-xl border border-gray-100 bg-white p-4 transition-all hover:border-orange-200 hover:shadow-sm">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="mb-1 flex items-center gap-2">
                         <span className="font-bold text-gray-900">{order.order_number}</span>
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>
                           {order.status.replace('_', ' ')}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">{(order.customers as any)?.full_name ?? 'Guest'}</p>
+                      <p className="text-sm text-gray-600">{(order.customers as { full_name?: string })?.full_name ?? 'Guest'}</p>
                       {order.delivery_date && (
-                        <p className="text-xs text-gray-400 mt-0.5">
+                        <p className="mt-0.5 text-xs text-gray-400">
                           📅 {formatDeliveryDate(order.delivery_date, { weekday: 'short', month: 'short', day: 'numeric' })}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-lg" style={{ color: 'var(--orange)' }}>${order.total.toFixed(2)}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">
+                      <div className="text-lg font-bold" style={{ color: 'var(--orange)' }}>${order.total.toFixed(2)}</div>
+                      <div className="mt-0.5 text-xs text-gray-400">
                         {new Date(order.created_at).toLocaleDateString()}
                       </div>
                     </div>
