@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import AdminLayout from '@/components/AdminLayout'
+import { formatDeliveryDate, todayLocal } from '@/lib/dates'
 import { supabase } from '@/lib/supabase'
 
 interface ProductionItem { name: string; qty: number; unit: string }
 
 export default function ProductionPage() {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(todayLocal())
   const [confirmed, setConfirmed] = useState<ProductionItem[]>([])
   const [pending, setPending] = useState<ProductionItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,7 +44,7 @@ export default function ProductionPage() {
     setLoading(false)
   }
 
-  const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const dateLabel = formatDeliveryDate(date, { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (
     <AdminLayout>

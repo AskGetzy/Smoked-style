@@ -1,4 +1,5 @@
 import { Resend } from 'resend'
+import { formatDeliveryDate } from '@/lib/dates'
 
 type EmailCustomer = {
   full_name?: string | null
@@ -70,16 +71,7 @@ function formatCurrency(value: number | null | undefined) {
 
 function formatDate(value: string | null | undefined) {
   if (!value) return 'To be confirmed'
-
-  const date = new Date(`${value}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return value
-
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(date)
+  return formatDeliveryDate(value) || value
 }
 
 function itemDetails(item: EmailOrderItem) {

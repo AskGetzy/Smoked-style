@@ -7,6 +7,7 @@ import { loadStripe } from "@stripe/stripe-js"
 import Header from '@/components/Header'
 import CheckoutPaymentForm from '@/components/CheckoutPaymentForm'
 import { createBrowserSupabaseClient } from '@/lib/supabase-client'
+import { toLocalDateString } from '@/lib/dates'
 import type { CartItem, DeliveryArea } from '@/types'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -363,7 +364,7 @@ export default function CheckoutPage() {
                 {getCalendarDays().map((d) => {
                   const isSat = d.getDay() === 6
                   const isFri = d.getDay() === 5
-                  const iso = d.toISOString().split('T')[0]
+                  const iso = toLocalDateString(d)
                   const label = d.toLocaleDateString('en-US', {
                     weekday: 'short',
                     month: 'short',

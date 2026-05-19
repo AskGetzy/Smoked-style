@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
+import { formatDeliveryDate } from '@/lib/dates'
 
 export default function BossOrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -75,7 +76,7 @@ export default function BossOrderDetailPage() {
       <section className="rounded-3xl bg-white p-4 shadow-sm">
         <div className="flex justify-between text-lg"><span>Delivery fee</span><strong>${order.delivery_fee.toFixed(2)}</strong></div>
         <div className="mt-2 flex justify-between text-2xl font-black"><span>Total</span><span>${order.total.toFixed(2)}</span></div>
-        {order.delivery_date && <div className="mt-3 text-base font-bold">Date: {new Date(order.delivery_date).toLocaleDateString()}</div>}
+        {order.delivery_date && <div className="mt-3 text-base font-bold">Date: {formatDeliveryDate(order.delivery_date)}</div>}
         {order.delivery_address && <div className="mt-1 text-base text-gray-600">{order.delivery_address}</div>}
         {order.order_notes && <div className="mt-3 rounded-2xl bg-gray-50 p-3 text-base">{order.order_notes}</div>}
         {order.gift_message && <div className="mt-3 rounded-2xl bg-orange-50 p-3 text-base">{order.gift_message}</div>}

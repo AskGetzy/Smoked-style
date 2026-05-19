@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
+import { addLocalDays, formatDeliveryDate, normalizeDeliveryDate, todayLocal } from '@/lib/dates'
 
 const GROUPS: Record<string, string> = {
   jerky: 'Jerky by flavor',
@@ -10,12 +11,6 @@ const GROUPS: Record<string, string> = {
   smoked: 'Smoked by item',
   non_smoked: 'Non-Smoked by item',
   boards: 'Boards by type and size',
-}
-
-function shiftDate(date: string, days: number) {
-  const next = new Date(`${date}T12:00:00`)
-  next.setDate(next.getDate() + days)
-  return next.toISOString().split('T')[0]
 }
 
 function buildGroups(orders: Order[]) {
@@ -31,7 +26,7 @@ function buildGroups(orders: Order[]) {
 }
 
 export default function BossProductionPage() {
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState(todayLocal())
   const [orders, setOrders] = useState<Order[]>([])
 
   useEffect(() => { void loadOrders() }, [])
@@ -42,10 +37,10 @@ export default function BossProductionPage() {
     setOrders(data.orders ?? [])
   }
 
-  const todaysOrders = orders.filter(order => order.delivery_date === date)
+  const todaysOrders = orders.filter(order => normalizeDeliveryDate(order.delivery_date) === date)
   const confirmed = todaysOrders.filter(order => ['approved', 'ready_for_pickup', 'out_for_delivery', 'delivered'].includes(order.status))
   const pending = todaysOrders.filter(order => order.status === 'pending')
-  const dateLabel = new Date(`${date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const dateLabel = formatDeliveryDate(date, { weekday: 'long', month: 'long', day: 'numeric' })
 
   function Section({ title, source }: { title: string; source: Order[] }) {
     const groups = buildGroups(source)
@@ -71,9 +66,9 @@ export default function BossProductionPage() {
     <div className="space-y-4 p-4 text-base">
       <div className="rounded-3xl bg-white p-4 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
-          <button onClick={() => setDate(shiftDate(date, -1))} className="min-h-12 rounded-2xl bg-gray-100 px-4 text-xl font-black">‹</button>
+          <button onClick={() => setDate(addLocalDays(date, -1))} className="min-h-12 rounded-2xl bg-gray-100 px-4 text-xl font-black">‹</button>
           <div className="text-center text-lg font-black">{dateLabel}</div>
-          <button onClick={() => setDate(shiftDate(date, 1))} className="min-h-12 rounded-2xl bg-gray-100 px-4 text-xl font-black">›</button>
+          <button onClick={() => setDate(addLocalDays(date, 1))} className="min-h-12 rounded-2xl bg-gray-100 px-4 text-xl font-black">›</button>
         </div>
         <button onClick={() => window.print()} className="min-h-12 w-full rounded-2xl text-base font-black text-white" style={{ background: 'var(--navy)' }}>Print</button>
       </div>

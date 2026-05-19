@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AdminLayout from '@/components/AdminLayout'
+import { formatDeliveryDate } from '@/lib/dates'
 import type { Order, OrderItem } from '@/types'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -199,7 +200,7 @@ export default function OrderDetailPage() {
             {order.delivery_address && <p className="text-sm text-gray-600 mt-2">📍 {order.delivery_address}</p>}
             {order.delivery_date && (
               <p className="text-sm text-gray-600 mt-1">
-                📅 {new Date(order.delivery_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                📅 {formatDeliveryDate(order.delivery_date, { weekday: 'long', month: 'long', day: 'numeric' })}
               </p>
             )}
           </div>

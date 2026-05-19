@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { fetchWithAuth } from '@/lib/auth-fetch'
+import { isCreatedOnLocalDate, todayLocal } from '@/lib/dates'
 
 type DashboardOrder = { status: string; total: number; created_at: string }
 
@@ -19,9 +20,9 @@ export default function BossDashboardPage() {
     setLowStockCount(data.lowStockCount ?? 0)
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayLocal()
   const todayRevenue = orders
-    .filter(order => order.created_at?.startsWith(today) && order.status !== 'cancelled')
+    .filter(order => order.created_at && isCreatedOnLocalDate(order.created_at, today) && order.status !== 'cancelled')
     .reduce((sum, order) => sum + Number(order.total), 0)
   const pendingCount = orders.filter(order => order.status === 'pending').length
   const approvedCount = orders.filter(order => ['approved', 'ready_for_pickup', 'out_for_delivery'].includes(order.status)).length

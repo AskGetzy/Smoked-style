@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
+import { normalizeDeliveryDate } from '@/lib/dates'
 import { sendOrderConfirmation } from '@/lib/email'
 
 type BossOrderItem = {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
     const customer = body.customer ?? {}
     const orderType = body.orderType === 'pickup' ? 'pickup' : 'delivery'
     const deliveryFee = Number(body.deliveryFee ?? 0)
-    const deliveryDate = String(body.deliveryDate || '')
+    const normalizedDeliveryDate = normalizeDeliveryDate(String(body.deliveryDate || ''))
     const notes = String(body.notes || '').trim() || null
 
     if (!customer.full_name?.trim() || !customer.phone?.trim()) {
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     if (items.length === 0) {
       return NextResponse.json({ error: 'Add at least one item' }, { status: 400 })
     }
-    if (!deliveryDate) {
+    if (!normalizedDeliveryDate) {
       return NextResponse.json({ error: 'Delivery or pickup date is required' }, { status: 400 })
     }
 
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
         order_type: orderType,
         delivery_area_id: body.deliveryAreaId || null,
         delivery_address: orderType === 'delivery' ? String(body.deliveryAddress || '').trim() || null : null,
-        delivery_date: deliveryDate,
+        delivery_date: normalizedDeliveryDate,
         subtotal,
         delivery_fee: deliveryFee,
         total,
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
         order_number: orderNumber,
         order_type: orderType,
         delivery_address: body.deliveryAddress || null,
-        delivery_date: deliveryDate,
+        delivery_date: normalizedDeliveryDate,
         subtotal,
         delivery_fee: deliveryFee,
         total,

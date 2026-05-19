@@ -7,6 +7,7 @@ import {
   sumSubtotal,
   type CheckoutCartLine,
 } from '@/lib/checkout-pricing'
+import { normalizeDeliveryDate } from '@/lib/dates'
 import { sendOrderConfirmation } from '@/lib/email'
 import type { Product } from '@/types'
 
@@ -108,7 +109,8 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       )
     }
-    if (!deliveryDate) {
+    const normalizedDeliveryDate = normalizeDeliveryDate(deliveryDate)
+    if (!normalizedDeliveryDate) {
       return NextResponse.json({ error: 'Delivery date is required' }, { status: 400 })
     }
 
@@ -191,7 +193,7 @@ export async function POST(req: NextRequest) {
         order_type: orderType,
         delivery_area_id: orderType === 'delivery' ? areaId : null,
         delivery_address: orderType === 'delivery' ? address?.trim() : null,
-        delivery_date: deliveryDate,
+        delivery_date: normalizedDeliveryDate,
         recipient_name: recipientName?.trim() || null,
         recipient_phone: recipientPhone?.trim() || null,
         subtotal,
@@ -245,7 +247,7 @@ export async function POST(req: NextRequest) {
         order_number: orderNumber,
         order_type: orderType,
         delivery_address: orderType === 'delivery' ? address?.trim() : null,
-        delivery_date: deliveryDate,
+        delivery_date: normalizedDeliveryDate,
         recipient_name: recipientName?.trim() || null,
         recipient_phone: recipientPhone?.trim() || null,
         subtotal,

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
+import { formatDeliveryDate } from '@/lib/dates'
 
 const TABS = ['all', 'pending', 'approved', 'delivered']
 
@@ -50,7 +51,7 @@ export default function BossOrdersPage() {
                       <div className="text-lg font-black">{customer?.full_name ?? 'Guest'}</div>
                       {customer?.phone && <a href={`tel:${customer.phone}`} onClick={e => e.stopPropagation()} className="block min-h-8 text-base font-bold text-blue-700">{customer.phone}</a>}
                       <div className="mt-1 text-sm text-gray-500">{items.slice(0, 3).map(item => `${item.quantity}x ${item.product_name}`).join(', ') || order.order_number}</div>
-                      {order.delivery_date && <div className="mt-1 text-sm font-semibold text-gray-500">{new Date(order.delivery_date).toLocaleDateString()}</div>}
+                      {order.delivery_date && <div className="mt-1 text-sm font-semibold text-gray-500">{formatDeliveryDate(order.delivery_date)}</div>}
                     </div>
                     <div className="text-right">
                       <div className="text-xl font-black text-orange-600">${order.total.toFixed(2)}</div>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Customer, DeliveryArea, Product } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
+import { todayLocal } from '@/lib/dates'
 
 const CATEGORIES = ['all', 'jerky', 'steaks', 'smoked', 'non_smoked', 'boards']
 
@@ -36,7 +37,7 @@ export default function BossNewOrderPage() {
   const [deliveryAreaId, setDeliveryAreaId] = useState('')
   const [deliveryFee, setDeliveryFee] = useState('0')
   const [deliveryAddress, setDeliveryAddress] = useState('')
-  const [deliveryDate, setDeliveryDate] = useState(new Date().toISOString().split('T')[0])
+  const [deliveryDate, setDeliveryDate] = useState(todayLocal())
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
