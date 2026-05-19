@@ -13,11 +13,15 @@ function matchesSearch(order: Order, query: string) {
   const q = query.trim().toLowerCase()
   if (!q) return true
   const customer = order.customers as { full_name?: string; phone?: string; email?: string } | undefined
+  const phoneDigits = customer?.phone?.replace(/\D/g, '') ?? ''
+  const queryDigits = q.replace(/\D/g, '')
   return (
     order.order_number?.toLowerCase().includes(q) ||
     customer?.full_name?.toLowerCase().includes(q) ||
-    customer?.phone?.replace(/\D/g, '').includes(q.replace(/\D/g, '')) ||
+    order.recipient_name?.toLowerCase().includes(q) ||
+    (queryDigits.length > 0 && phoneDigits.includes(queryDigits)) ||
     customer?.email?.toLowerCase().includes(q) ||
+    order.delivery_address?.toLowerCase().includes(q) ||
     (order.order_items ?? []).some(item => item.product_name.toLowerCase().includes(q))
   )
 }
@@ -46,8 +50,10 @@ export default function BossOrdersPage() {
   }
 
   const filtered = useMemo(() => {
-    const byStatus = status === 'all' ? orders : orders.filter(order => order.status === status)
-    return byStatus.filter(order => matchesSearch(order, search))
+    if (search.trim()) {
+      return orders.filter(order => matchesSearch(order, search))
+    }
+    return status === 'all' ? orders : orders.filter(order => order.status === status)
   }, [orders, status, search])
 
   return (
@@ -82,7 +88,7 @@ export default function BossOrdersPage() {
         <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-32 animate-pulse rounded-3xl bg-gray-200" />)}</div>
       ) : filtered.length === 0 ? (
         <p className="rounded-3xl bg-white p-6 text-center text-base font-semibold text-gray-500">
-          {search.trim() ? 'No orders match your search.' : 'No orders in this tab.'}
+          {search.trim() ? `No orders match "${search.trim()}".` : 'No orders in this tab.'}
         </p>
       ) : (
         <div className="space-y-3">
