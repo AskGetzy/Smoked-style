@@ -69,6 +69,7 @@ export interface Order {
   delivered_at: string | null
   customers?: Customer
   order_items?: OrderItem[]
+  delivery_areas?: { name: string } | null
 }
 
 export interface OrderItem {

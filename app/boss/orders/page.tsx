@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
@@ -9,9 +10,17 @@ import { formatDeliveryDate } from '@/lib/dates'
 const TABS = ['all', 'pending', 'approved', 'delivered']
 
 export default function BossOrdersPage() {
+  const searchParams = useSearchParams()
   const [orders, setOrders] = useState<Order[]>([])
   const [status, setStatus] = useState('all')
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const requested = searchParams.get('status')
+    if (requested && TABS.includes(requested)) {
+      setStatus(requested)
+    }
+  }, [searchParams])
 
   useEffect(() => { void loadOrders() }, [])
 

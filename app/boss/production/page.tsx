@@ -1,9 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Order } from '@/types'
+import ProductionOrdersPanel from '@/components/ProductionOrdersPanel'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { addLocalDays, formatDeliveryDate, normalizeDeliveryDate, todayLocal } from '@/lib/dates'
+import {
+  bossProductionItemKey,
+  ordersContainingProduct,
+  type ProductionOrderRow,
+} from '@/lib/production-items'
 
 const GROUPS: Record<string, string> = {
   jerky: 'Jerky by flavor',
@@ -18,7 +24,7 @@ function buildGroups(orders: Order[]) {
   orders.flatMap(order => order.order_items ?? []).forEach((item: any) => {
     const category = item.product_name.toLowerCase().includes('jerky') ? 'jerky' : 'items'
     const group = GROUPS[category] ?? 'Items'
-    const key = [item.product_name, item.selected_flavor, item.selected_weight && `${item.selected_weight} lb`, item.selected_size].filter(Boolean).join(' — ')
+    const key = bossProductionItemKey(item)
     grouped[group] ??= {}
     grouped[group][key] = (grouped[group][key] ?? 0) + Number(item.quantity)
   })
@@ -28,36 +34,70 @@ function buildGroups(orders: Order[]) {
 export default function BossProductionPage() {
   const [date, setDate] = useState(todayLocal())
   const [orders, setOrders] = useState<Order[]>([])
+  const [loading, setLoading] = useState(true)
+  const [panelOpen, setPanelOpen] = useState(false)
+  const [panelLoading, setPanelLoading] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
+  const [panelRows, setPanelRows] = useState<ProductionOrderRow[]>([])
 
   useEffect(() => { void loadOrders() }, [])
 
   async function loadOrders() {
+    setLoading(true)
     const res = await fetchWithAuth('/api/admin/orders')
     const data = await res.json()
     setOrders(data.orders ?? [])
+    setLoading(false)
   }
 
-  const todaysOrders = orders.filter(order => normalizeDeliveryDate(order.delivery_date) === date)
-  const confirmed = todaysOrders.filter(order => ['approved', 'ready_for_pickup', 'out_for_delivery', 'delivered'].includes(order.status))
-  const pending = todaysOrders.filter(order => order.status === 'pending')
+  const todaysOrders = useMemo(
+    () => orders.filter(order => normalizeDeliveryDate(order.delivery_date) === date),
+    [orders, date],
+  )
+  const confirmed = useMemo(
+    () => todaysOrders.filter(order => ['approved', 'ready_for_pickup', 'out_for_delivery', 'delivered'].includes(order.status)),
+    [todaysOrders],
+  )
+  const pending = useMemo(
+    () => todaysOrders.filter(order => order.status === 'pending'),
+    [todaysOrders],
+  )
   const dateLabel = formatDeliveryDate(date, { weekday: 'long', month: 'long', day: 'numeric' })
+
+  function openProductPanel(productKey: string, sourceOrders: Order[]) {
+    setSelectedProduct(productKey)
+    setPanelOpen(true)
+    setPanelLoading(true)
+    const rows = ordersContainingProduct(sourceOrders, productKey, bossProductionItemKey)
+    setPanelRows(rows)
+    setPanelLoading(false)
+  }
 
   function Section({ title, source }: { title: string; source: Order[] }) {
     const groups = buildGroups(source)
     return (
       <section className="rounded-3xl bg-white p-4 shadow-sm">
         <h2 className="mb-4 text-xl font-black">{title}</h2>
-        {Object.keys(groups).length === 0 ? <p className="text-base text-gray-400">Nothing for this section.</p> : Object.entries(groups).map(([group, items]) => (
-          <div key={group} className="mb-5 last:mb-0">
-            <h3 className="mb-2 text-lg font-black text-orange-700">{group}</h3>
-            {Object.entries(items).map(([name, qty]) => (
-              <div key={name} className="flex justify-between border-b py-3 text-lg">
-                <span className="font-bold">{name}</span>
-                <span className="font-black">{qty}</span>
-              </div>
-            ))}
-          </div>
-        ))}
+        {Object.keys(groups).length === 0 ? (
+          <p className="text-base text-gray-400">Nothing for this section.</p>
+        ) : (
+          Object.entries(groups).map(([group, items]) => (
+            <div key={group} className="mb-5 last:mb-0">
+              <h3 className="mb-2 text-lg font-black text-orange-700">{group}</h3>
+              {Object.entries(items).map(([name, qty]) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => openProductPanel(name, source)}
+                  className="flex w-full justify-between border-b py-3 text-left text-lg hover:bg-gray-50 active:bg-gray-100"
+                >
+                  <span className="font-bold">{name}</span>
+                  <span className="font-black">{qty}</span>
+                </button>
+              ))}
+            </div>
+          ))
+        )}
       </section>
     )
   }
@@ -73,8 +113,25 @@ export default function BossProductionPage() {
         <button onClick={() => window.print()} className="min-h-12 w-full rounded-2xl text-base font-black text-white" style={{ background: 'var(--navy)' }}>Print</button>
       </div>
 
-      <Section title="Confirmed" source={confirmed} />
-      <Section title="Pending" source={pending} />
+      {loading ? (
+        <div className="flex min-h-[200px] items-center justify-center rounded-3xl bg-white">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-orange-500" />
+        </div>
+      ) : (
+        <>
+          <Section title="Confirmed" source={confirmed} />
+          <Section title="Pending" source={pending} />
+        </>
+      )}
+
+      <ProductionOrdersPanel
+        open={panelOpen}
+        productName={selectedProduct ?? ''}
+        rows={panelRows}
+        loading={panelLoading}
+        orderDetailBasePath="/boss/orders"
+        onClose={() => setPanelOpen(false)}
+      />
     </div>
   )
 }
