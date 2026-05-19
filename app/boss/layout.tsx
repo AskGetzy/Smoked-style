@@ -64,7 +64,8 @@ export default function BossLayout({ children }: { children: React.ReactNode }) 
     )
   }
 
-  const title = TITLES[pathname] ?? (pathname.startsWith('/boss/orders/') ? 'Order Detail' : 'Boss Portal')
+  const orderDetailMatch = pathname.match(/^\/boss\/orders\/([^/]+)$/)
+  const title = TITLES[pathname] ?? (orderDetailMatch ? 'Order' : 'Boss Portal')
 
   return (
     <div className="min-h-screen pb-24 text-gray-900" style={{ background: '#f8fafc' }}>

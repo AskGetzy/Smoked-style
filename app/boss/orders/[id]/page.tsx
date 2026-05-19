@@ -58,6 +58,12 @@ export default function BossOrderDetailPage() {
   return (
     <div className="space-y-4 p-4 text-base">
       <section className="rounded-3xl bg-white p-4 shadow-sm">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <div className="text-xl font-black tracking-wide text-orange-600">{order.order_number}</div>
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-black capitalize">
+            {order.status.replace(/_/g, ' ')}
+          </span>
+        </div>
         <div className="text-2xl font-black">{customer?.full_name ?? 'Guest'}</div>
         {customer?.phone && <a className="block min-h-12 py-2 text-lg font-black text-green-700" href={`https://wa.me/${String(customer.phone).replace(/\D/g, '')}`}>{customer.phone}</a>}
         {customer?.email && <div className="text-base text-gray-500">{customer.email}</div>}
