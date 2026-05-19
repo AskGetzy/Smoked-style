@@ -3,35 +3,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import ProductionOrdersPanel from '@/components/ProductionOrdersPanel'
-import { formatDeliveryDate, todayLocal } from '@/lib/dates'
+import { formatDeliveryDate, normalizeDeliveryDate, todayLocal } from '@/lib/dates'
 import {
   adminProductionItemKey,
   ordersContainingProduct,
   tallyProductionItems,
   type ProductionOrderRow,
 } from '@/lib/production-items'
-import { supabase } from '@/lib/supabase'
-
-type ProductionOrder = {
-  id: string
-  order_number: string
-  status: string
-  delivery_date: string | null
-  customers?: { full_name?: string | null; phone?: string | null } | null
-  delivery_areas?: { name?: string | null } | null
-  order_items?: {
-    product_name: string
-    quantity: number
-    selected_weight?: number | null
-    selected_flavor?: string | null
-    selected_size?: string | null
-  }[]
-}
+import type { Order } from '@/types'
 
 export default function ProductionPage() {
   const [date, setDate] = useState(todayLocal())
-  const [orders, setOrders] = useState<ProductionOrder[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [panelOpen, setPanelOpen] = useState(false)
   const [panelLoading, setPanelLoading] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
@@ -41,13 +26,28 @@ export default function ProductionPage() {
 
   async function fetchProduction() {
     setLoading(true)
-    const { data: ordersData } = await supabase
-      .from('orders')
-      .select('id, order_number, status, delivery_date, customers(full_name, phone), delivery_areas(name), order_items(product_name, quantity, selected_weight, selected_flavor, selected_size)')
-      .eq('delivery_date', date)
-      .in('status', ['pending', 'approved'])
+    setError('')
 
-    setOrders((ordersData ?? []) as ProductionOrder[])
+    const res = await fetch('/api/admin/orders', {
+      credentials: 'include',
+      cache: 'no-store',
+    })
+    const data = await res.json()
+
+    if (!res.ok) {
+      setError(data.error ?? 'Could not load production data')
+      setOrders([])
+      setLoading(false)
+      return
+    }
+
+    const filtered = (data.orders ?? []).filter(
+      (order: Order) =>
+        normalizeDeliveryDate(order.delivery_date) === date &&
+        ['pending', 'approved'].includes(order.status),
+    )
+
+    setOrders(filtered)
     setLoading(false)
   }
 
@@ -75,7 +75,7 @@ export default function ProductionPage() {
     [pendingOrders],
   )
 
-  function openProductPanel(productKey: string, sourceOrders: ProductionOrder[]) {
+  function openProductPanel(productKey: string, sourceOrders: Order[]) {
     setSelectedProduct(productKey)
     setPanelOpen(true)
     setPanelLoading(true)
@@ -92,7 +92,7 @@ export default function ProductionPage() {
     qtyClassName,
   }: {
     items: { name: string; qty: number; unit: string }[]
-    sourceOrders: ProductionOrder[]
+    sourceOrders: Order[]
     qtyClassName: string
   }) {
     if (items.length === 0) {
@@ -122,6 +122,10 @@ export default function ProductionPage() {
         </div>
 
         <p className="text-gray-500 text-sm mb-6">{dateLabel}</p>
+
+        {error && (
+          <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{error}</p>
+        )}
 
         {loading ? (
           <div className="space-y-4">
