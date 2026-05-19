@@ -17,8 +17,6 @@ type LowStockProduct = {
 
 type ModalKind = 'revenue' | 'approved' | 'lowStock' | null
 
-const APPROVED_STATUSES = ['approved', 'ready_for_pickup', 'out_for_delivery', 'delivered']
-
 export default function BossDashboardPage() {
   const router = useRouter()
   const [orders, setOrders] = useState<DashboardOrder[]>([])
@@ -43,15 +41,17 @@ export default function BossDashboardPage() {
     () => orders.filter(order => order.created_at && isCreatedOnLocalDate(order.created_at, today)),
     [orders, today],
   )
-  const todayApprovedOrders = useMemo(
-    () => todayOrders.filter(order => APPROVED_STATUSES.includes(order.status)),
+  const todayRevenueOrders = useMemo(
+    () => todayOrders.filter(order => order.status !== 'cancelled'),
     [todayOrders],
   )
-  const todayRevenue = todayOrders
-    .filter(order => order.status !== 'cancelled')
-    .reduce((sum, order) => sum + Number(order.total), 0)
+  const approvedOrders = useMemo(
+    () => orders.filter(order => order.status === 'approved'),
+    [orders],
+  )
+  const todayRevenue = todayRevenueOrders.reduce((sum, order) => sum + Number(order.total), 0)
   const pendingCount = orders.filter(order => order.status === 'pending').length
-  const approvedCount = todayApprovedOrders.length
+  const approvedCount = approvedOrders.length
 
   function openModal(kind: ModalKind) {
     setModal(kind)
@@ -61,15 +61,15 @@ export default function BossDashboardPage() {
 
   const modalTitle =
     modal === 'revenue' ? "Today's orders"
-    : modal === 'approved' ? "Today's approved orders"
+    : modal === 'approved' ? 'Approved orders'
     : modal === 'lowStock' ? 'Low stock items'
     : ''
 
   const modalContent =
     modal === 'revenue' ? (
-      <DashboardOrderList orders={todayApprovedOrders} emptyMessage="No approved orders today." />
+      <DashboardOrderList orders={todayRevenueOrders} emptyMessage="No orders placed today." />
     ) : modal === 'approved' ? (
-      <DashboardOrderList orders={todayApprovedOrders} emptyMessage="No approved orders today." />
+      <DashboardOrderList orders={approvedOrders} emptyMessage="No approved orders." />
     ) : modal === 'lowStock' ? (
       lowStockProducts.length === 0 ? (
         <p className="text-base text-gray-500">All products are above the low stock threshold.</p>
