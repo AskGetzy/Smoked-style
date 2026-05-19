@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Customer, DeliveryArea, Product } from '@/types'
+import BossCardPayment, { type BossCardPaymentHandle } from '@/components/BossCardPayment'
 import BossPlaceOrderModal, { type BossPlaceOrderPayload } from '@/components/BossPlaceOrderModal'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { todayLocal } from '@/lib/dates'
@@ -43,8 +44,12 @@ export default function BossNewOrderPage() {
   const [deliveryAddress, setDeliveryAddress] = useState('')
   const [deliveryDate, setDeliveryDate] = useState(todayLocal())
   const [notes, setNotes] = useState('')
+  const [chargeCard, setChargeCard] = useState(false)
+  const [cardPaymentComplete, setCardPaymentComplete] = useState(false)
   const [showPlaceModal, setShowPlaceModal] = useState(false)
+  const [placingOrder, setPlacingOrder] = useState(false)
   const [message, setMessage] = useState('')
+  const cardPaymentRef = useRef<BossCardPaymentHandle>(null)
 
   useEffect(() => { void loadCatalog() }, [])
 
@@ -169,11 +174,54 @@ export default function BossNewOrderPage() {
 
   function handleOrderPlaced(orderNumber: string) {
     setShowPlaceModal(false)
+    setChargeCard(false)
+    setCardPaymentComplete(false)
+    setPlacingOrder(false)
     setMessage(`Order ${orderNumber} created.`)
     setLines([])
     setNotes('')
     clearCustomer()
     setDeliveryAddress('')
+  }
+
+  async function createOrder(paymentIntentId?: string) {
+    setPlacingOrder(true)
+    setMessage('')
+    try {
+      const res = await fetchWithAuth('/api/boss/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...placeOrderPayload, paymentIntentId }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        handleOrderPlaced(data.orderNumber)
+      } else {
+        setMessage(data.error ?? 'Could not create order')
+        setPlacingOrder(false)
+      }
+    } catch {
+      setMessage('Could not create order')
+      setPlacingOrder(false)
+    }
+  }
+
+  async function handlePlaceOrderClick() {
+    setMessage('')
+    if (chargeCard) {
+      if (!cardPaymentComplete) {
+        setMessage('Enter complete card details below.')
+        return
+      }
+      const result = await cardPaymentRef.current?.confirmPayment()
+      if (!result?.ok) {
+        setMessage(result?.error ?? 'Could not authorize card')
+        return
+      }
+      await createOrder(result.paymentIntentId)
+      return
+    }
+    setShowPlaceModal(true)
   }
 
   return (
@@ -351,17 +399,56 @@ export default function BossNewOrderPage() {
       </section>
 
       {canPlaceOrder ? (
-      <section className="rounded-3xl bg-white p-4 shadow-2xl">
-        <div className="mb-3 flex justify-between text-xl font-black"><span>Total</span><span>${total.toFixed(2)}</span></div>
+      <section className="space-y-4 rounded-3xl bg-white p-4 shadow-2xl">
+        <div className="flex justify-between text-xl font-black">
+          <span>Total</span>
+          <span style={{ color: 'var(--orange)' }}>${total.toFixed(2)}</span>
+        </div>
+
+        <label className="flex min-h-14 cursor-pointer items-start gap-3 rounded-2xl border-2 border-orange-200 bg-orange-50 px-4 py-3">
+          <input
+            type="checkbox"
+            checked={chargeCard}
+            onChange={e => {
+              setChargeCard(e.target.checked)
+              setCardPaymentComplete(false)
+              setMessage('')
+            }}
+            className="mt-1 h-5 w-5 rounded border-gray-300"
+          />
+          <span>
+            <span className="block text-base font-black text-gray-900">Charge credit card now</span>
+            <span className="block text-sm font-medium text-gray-600">
+              Card is authorized now and captured when you approve the order.
+            </span>
+          </span>
+        </label>
+
+        {chargeCard && (
+          <BossCardPayment
+            ref={cardPaymentRef}
+            active={chargeCard}
+            subtotal={subtotal}
+            deliveryFee={deliveryFeeAmount}
+            email={email}
+            onCompleteChange={setCardPaymentComplete}
+          />
+        )}
+
         <button
           type="button"
-          onClick={() => setShowPlaceModal(true)}
-          className="min-h-14 w-full rounded-2xl text-lg font-black text-white"
+          onClick={handlePlaceOrderClick}
+          disabled={placingOrder || (chargeCard && !cardPaymentComplete)}
+          className="min-h-14 w-full rounded-2xl text-lg font-black text-white disabled:opacity-40"
           style={{ background: 'var(--orange)' }}
         >
-          Place Order
+          {placingOrder
+            ? 'Placing order...'
+            : chargeCard
+              ? `Authorize card & place order — $${total.toFixed(2)}`
+              : 'Place order'}
         </button>
-        {message && <p className="mt-3 text-center text-base font-bold text-gray-700">{message}</p>}
+        {message && <p className="text-center text-base font-bold text-gray-700">{message}</p>}
       </section>
       ) : message ? (
         <p className="rounded-3xl bg-white p-4 text-center text-base font-bold text-gray-700 shadow-sm">{message}</p>
@@ -371,8 +458,6 @@ export default function BossNewOrderPage() {
         open={showPlaceModal}
         onClose={() => setShowPlaceModal(false)}
         payload={placeOrderPayload}
-        subtotal={subtotal}
-        deliveryFee={deliveryFeeAmount}
         total={total}
         lineCount={lines.length}
         onSuccess={handleOrderPlaced}
