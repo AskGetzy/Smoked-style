@@ -20,10 +20,13 @@ type BossLine = {
   line_total: number
 }
 
+type CustomerMode = 'search' | 'selected' | 'new'
+
 export default function BossNewOrderPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [areas, setAreas] = useState<DeliveryArea[]>([])
+  const [customerMode, setCustomerMode] = useState<CustomerMode>('search')
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerId, setCustomerId] = useState('')
   const [name, setName] = useState('')
@@ -53,13 +56,24 @@ export default function BossNewOrderPage() {
     setAreas(data.deliveryAreas ?? [])
   }
 
-  const matchingCustomers = customers.filter(customer => {
-    const query = customerSearch.toLowerCase()
-    return query && (
-      customer.full_name.toLowerCase().includes(query) ||
-      (customer.phone ?? '').toLowerCase().includes(query)
-    )
-  }).slice(0, 5)
+  const searchQuery = customerSearch.trim()
+  const matchingCustomers = useMemo(() => {
+    if (!searchQuery) return []
+    const query = searchQuery.toLowerCase()
+    const queryDigits = query.replace(/\D/g, '')
+    return customers.filter(customer => {
+      const phoneDigits = (customer.phone ?? '').replace(/\D/g, '')
+      return (
+        customer.full_name.toLowerCase().includes(query) ||
+        (customer.phone ?? '').toLowerCase().includes(query) ||
+        (queryDigits.length >= 3 && phoneDigits.includes(queryDigits)) ||
+        (customer.email ?? '').toLowerCase().includes(query)
+      )
+    }).slice(0, 8)
+  }, [customers, searchQuery])
+
+  const showCustomerDropdown = customerMode === 'search' && searchQuery.length >= 2 && matchingCustomers.length > 0
+  const showNewCustomerOption = customerMode === 'search' && searchQuery.length >= 2 && matchingCustomers.length === 0
 
   const filteredProducts = category === 'all' ? products : products.filter(product => product.category === category)
   const subtotal = lines.reduce((sum, line) => sum + line.line_total, 0)
@@ -87,19 +101,40 @@ export default function BossNewOrderPage() {
   }), [customerId, name, phone, email, lines, orderType, deliveryAreaId, deliveryAddress, deliveryFeeAmount, deliveryDate, notes])
 
   const placeOrderHint = useMemo(() => {
-    if (!name.trim() || !phone.trim()) return 'Enter customer name and phone'
+    if (!name.trim() || !phone.trim()) return 'Select or add a customer'
     if (lines.length === 0) return 'Add at least one product'
     if (!deliveryDate) return 'Choose a delivery or pickup date'
     if (orderType === 'delivery' && !deliveryAddress.trim()) return 'Enter delivery address'
     return ''
   }, [name, phone, lines.length, deliveryDate, orderType, deliveryAddress])
 
+  function clearCustomer() {
+    setCustomerMode('search')
+    setCustomerSearch('')
+    setCustomerId('')
+    setName('')
+    setPhone('')
+    setEmail('')
+  }
+
   function chooseCustomer(customer: Customer) {
-    setCustomerSearch(customer.full_name)
     setCustomerId(customer.id)
     setName(customer.full_name)
     setPhone(customer.phone ?? '')
-    setEmail(customer.email)
+    setEmail(customer.email ?? '')
+    setCustomerSearch('')
+    setCustomerMode('selected')
+  }
+
+  function startNewCustomer() {
+    const queryDigits = searchQuery.replace(/\D/g, '')
+    const looksLikePhone = queryDigits.length >= 7
+    setCustomerId('')
+    setName(looksLikePhone ? '' : searchQuery)
+    setPhone(looksLikePhone ? searchQuery : '')
+    setEmail('')
+    setCustomerSearch('')
+    setCustomerMode('new')
   }
 
   function openProduct(product: Product) {
@@ -137,11 +172,7 @@ export default function BossNewOrderPage() {
     setMessage(`Order ${orderNumber} created.`)
     setLines([])
     setNotes('')
-    setCustomerSearch('')
-    setCustomerId('')
-    setName('')
-    setPhone('')
-    setEmail('')
+    clearCustomer()
     setDeliveryAddress('')
   }
 
@@ -149,22 +180,93 @@ export default function BossNewOrderPage() {
     <div className="space-y-5 p-4 text-base">
       <section className="rounded-3xl bg-white p-4 shadow-sm">
         <h2 className="mb-3 text-lg font-black">Customer</h2>
-        <input value={customerSearch} onChange={e => { setCustomerSearch(e.target.value); setCustomerId('') }}
-          placeholder="Search name or phone" className="mb-3 h-12 w-full rounded-2xl border px-4 text-base" />
-        {matchingCustomers.length > 0 && (
-          <div className="mb-3 divide-y rounded-2xl border">
-            {matchingCustomers.map(customer => (
-              <button key={customer.id} onClick={() => chooseCustomer(customer)} className="block min-h-12 w-full px-4 py-3 text-left text-base">
-                <strong>{customer.full_name}</strong><br /><span className="text-gray-500">{customer.phone}</span>
+
+        {customerMode === 'search' && (
+          <div className="relative">
+            <input
+              type="search"
+              value={customerSearch}
+              onChange={e => setCustomerSearch(e.target.value)}
+              placeholder="Search customer by name or phone"
+              className="h-12 w-full rounded-2xl border px-4 text-base"
+              autoComplete="off"
+            />
+            {showCustomerDropdown && (
+              <div className="absolute left-0 right-0 top-[calc(100%+0.25rem)] z-20 max-h-64 overflow-y-auto divide-y rounded-2xl border bg-white shadow-lg">
+                {matchingCustomers.map(customer => (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    onClick={() => chooseCustomer(customer)}
+                    className="block min-h-12 w-full px-4 py-3 text-left text-base hover:bg-gray-50"
+                  >
+                    <div className="font-bold">{customer.full_name}</div>
+                    <div className="text-sm text-gray-500">{customer.phone}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {showNewCustomerOption && (
+              <button
+                type="button"
+                onClick={startNewCustomer}
+                className="mt-3 min-h-12 w-full rounded-2xl border-2 border-dashed border-gray-300 px-4 text-base font-bold text-gray-700 hover:border-orange-300 hover:bg-orange-50"
+              >
+                New customer
               </button>
-            ))}
+            )}
           </div>
         )}
-        <div className="grid gap-3">
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Customer name" className="h-12 rounded-2xl border px-4 text-base" />
-          <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className="h-12 rounded-2xl border px-4 text-base" />
-          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email optional" className="h-12 rounded-2xl border px-4 text-base" />
-        </div>
+
+        {customerMode === 'selected' && (
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1">
+                <div className="text-lg font-black">{name}</div>
+                <div className="text-base text-gray-700">{phone}</div>
+                <div className="text-sm text-gray-500">{email || 'No email on file'}</div>
+              </div>
+              <button
+                type="button"
+                onClick={clearCustomer}
+                className="shrink-0 rounded-xl bg-white px-3 py-2 text-sm font-bold text-gray-700 shadow-sm"
+              >
+                Change
+              </button>
+            </div>
+          </div>
+        )}
+
+        {customerMode === 'new' && (
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-gray-500">New customer</p>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Customer name"
+              className="h-12 w-full rounded-2xl border px-4 text-base"
+            />
+            <input
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="Phone"
+              className="h-12 w-full rounded-2xl border px-4 text-base"
+            />
+            <input
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="Email optional"
+              className="h-12 w-full rounded-2xl border px-4 text-base"
+            />
+            <button
+              type="button"
+              onClick={clearCustomer}
+              className="min-h-10 text-sm font-bold text-gray-600 underline"
+            >
+              Search existing customer
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="rounded-3xl bg-white p-4 shadow-sm">
