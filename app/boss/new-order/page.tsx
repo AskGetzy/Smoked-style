@@ -237,24 +237,33 @@ export default function BossNewOrderPage() {
         <input type="number" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)} placeholder="Delivery fee" className="mt-3 h-12 w-full rounded-2xl border px-4 text-base" />
         <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className="mt-3 h-12 w-full rounded-2xl border px-4 text-base" />
         <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Order notes" className="mt-3 min-h-24 w-full rounded-2xl border p-4 text-base" />
+        {!canPlaceOrder && placeOrderHint && (
+          <p className="mt-3 text-center text-sm font-semibold text-gray-500">{placeOrderHint}</p>
+        )}
+        {lines.length > 0 && !canPlaceOrder && (
+          <div className="mt-4 flex justify-between border-t border-gray-100 pt-4 text-lg font-black">
+            <span>Total</span>
+            <span style={{ color: 'var(--orange)' }}>${total.toFixed(2)}</span>
+          </div>
+        )}
       </section>
 
-      <div className="sticky bottom-24 rounded-3xl bg-white p-4 shadow-2xl">
+      {canPlaceOrder ? (
+      <section className="rounded-3xl bg-white p-4 shadow-2xl">
         <div className="mb-3 flex justify-between text-xl font-black"><span>Total</span><span>${total.toFixed(2)}</span></div>
-        {!canPlaceOrder && placeOrderHint && (
-          <p className="mb-3 text-center text-sm font-semibold text-gray-500">{placeOrderHint}</p>
-        )}
         <button
           type="button"
           onClick={() => setShowPlaceModal(true)}
-          disabled={!canPlaceOrder}
-          className="min-h-14 w-full rounded-2xl text-lg font-black text-white disabled:opacity-40"
+          className="min-h-14 w-full rounded-2xl text-lg font-black text-white"
           style={{ background: 'var(--orange)' }}
         >
           Place Order
         </button>
         {message && <p className="mt-3 text-center text-base font-bold text-gray-700">{message}</p>}
-      </div>
+      </section>
+      ) : message ? (
+        <p className="rounded-3xl bg-white p-4 text-center text-base font-bold text-gray-700 shadow-sm">{message}</p>
+      ) : null}
 
       <BossPlaceOrderModal
         open={showPlaceModal}
