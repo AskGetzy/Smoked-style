@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { Customer, DeliveryArea, Product } from '@/types'
+import BossPlaceOrderModal, { type BossPlaceOrderPayload } from '@/components/BossPlaceOrderModal'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { todayLocal } from '@/lib/dates'
 
@@ -39,7 +40,7 @@ export default function BossNewOrderPage() {
   const [deliveryAddress, setDeliveryAddress] = useState('')
   const [deliveryDate, setDeliveryDate] = useState(todayLocal())
   const [notes, setNotes] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [showPlaceModal, setShowPlaceModal] = useState(false)
   const [message, setMessage] = useState('')
 
   useEffect(() => { void loadCatalog() }, [])
@@ -62,7 +63,36 @@ export default function BossNewOrderPage() {
 
   const filteredProducts = category === 'all' ? products : products.filter(product => product.category === category)
   const subtotal = lines.reduce((sum, line) => sum + line.line_total, 0)
-  const total = subtotal + Number(deliveryFee || 0)
+  const deliveryFeeAmount = Number(deliveryFee || 0)
+  const total = subtotal + deliveryFeeAmount
+
+  const canPlaceOrder = useMemo(() => {
+    if (!name.trim() || !phone.trim()) return false
+    if (lines.length === 0) return false
+    if (!deliveryDate) return false
+    if (orderType === 'delivery' && !deliveryAddress.trim()) return false
+    return true
+  }, [name, phone, lines.length, deliveryDate, orderType, deliveryAddress])
+
+  const placeOrderPayload = useMemo((): BossPlaceOrderPayload => ({
+    customerId,
+    customer: { full_name: name.trim(), phone: phone.trim(), email: email.trim() },
+    items: lines,
+    orderType,
+    deliveryAreaId,
+    deliveryAddress,
+    deliveryFee: deliveryFeeAmount,
+    deliveryDate,
+    notes,
+  }), [customerId, name, phone, email, lines, orderType, deliveryAreaId, deliveryAddress, deliveryFeeAmount, deliveryDate, notes])
+
+  const placeOrderHint = useMemo(() => {
+    if (!name.trim() || !phone.trim()) return 'Enter customer name and phone'
+    if (lines.length === 0) return 'Add at least one product'
+    if (!deliveryDate) return 'Choose a delivery or pickup date'
+    if (orderType === 'delivery' && !deliveryAddress.trim()) return 'Enter delivery address'
+    return ''
+  }, [name, phone, lines.length, deliveryDate, orderType, deliveryAddress])
 
   function chooseCustomer(customer: Customer) {
     setCustomerSearch(customer.full_name)
@@ -102,33 +132,17 @@ export default function BossNewOrderPage() {
     setLines(current => current.filter((_, i) => i !== index))
   }
 
-  async function placeOrder() {
-    setSaving(true)
-    setMessage('')
-    const res = await fetchWithAuth('/api/boss/create-order', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        customerId,
-        customer: { full_name: name, phone, email },
-        items: lines,
-        orderType,
-        deliveryAreaId,
-        deliveryAddress,
-        deliveryFee: Number(deliveryFee || 0),
-        deliveryDate,
-        notes,
-      }),
-    })
-    const data = await res.json()
-    if (res.ok) {
-      setMessage(`Order ${data.orderNumber} created.`)
-      setLines([])
-      setNotes('')
-    } else {
-      setMessage(data.error ?? 'Could not create order')
-    }
-    setSaving(false)
+  function handleOrderPlaced(orderNumber: string) {
+    setShowPlaceModal(false)
+    setMessage(`Order ${orderNumber} created.`)
+    setLines([])
+    setNotes('')
+    setCustomerSearch('')
+    setCustomerId('')
+    setName('')
+    setPhone('')
+    setEmail('')
+    setDeliveryAddress('')
   }
 
   return (
@@ -227,11 +241,31 @@ export default function BossNewOrderPage() {
 
       <div className="sticky bottom-24 rounded-3xl bg-white p-4 shadow-2xl">
         <div className="mb-3 flex justify-between text-xl font-black"><span>Total</span><span>${total.toFixed(2)}</span></div>
-        <button onClick={placeOrder} disabled={saving} className="min-h-14 w-full rounded-2xl text-lg font-black text-white disabled:opacity-60" style={{ background: 'var(--orange)' }}>
-          {saving ? 'Creating...' : 'Place Order'}
+        {!canPlaceOrder && placeOrderHint && (
+          <p className="mb-3 text-center text-sm font-semibold text-gray-500">{placeOrderHint}</p>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowPlaceModal(true)}
+          disabled={!canPlaceOrder}
+          className="min-h-14 w-full rounded-2xl text-lg font-black text-white disabled:opacity-40"
+          style={{ background: 'var(--orange)' }}
+        >
+          Place Order
         </button>
         {message && <p className="mt-3 text-center text-base font-bold text-gray-700">{message}</p>}
       </div>
+
+      <BossPlaceOrderModal
+        open={showPlaceModal}
+        onClose={() => setShowPlaceModal(false)}
+        payload={placeOrderPayload}
+        subtotal={subtotal}
+        deliveryFee={deliveryFeeAmount}
+        total={total}
+        lineCount={lines.length}
+        onSuccess={handleOrderPlaced}
+      />
     </div>
   )
 }

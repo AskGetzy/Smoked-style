@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
+import { amountsMatch } from '@/lib/checkout-pricing'
 import { normalizeDeliveryDate } from '@/lib/dates'
 import { sendOrderConfirmation } from '@/lib/email'
+import { stripe } from '@/lib/stripe'
 
 type BossOrderItem = {
   product_id: string
@@ -67,6 +69,37 @@ export async function POST(req: NextRequest) {
 
     const subtotal = items.reduce((sum, item) => sum + Number(item.line_total), 0)
     const total = subtotal + deliveryFee
+    const paymentIntentId = String(body.paymentIntentId || '').trim() || null
+
+    if (paymentIntentId) {
+      const { data: existingOrder } = await supabase
+        .from('orders')
+        .select('id, order_number')
+        .eq('stripe_payment_intent_id', paymentIntentId)
+        .maybeSingle()
+
+      if (existingOrder) {
+        return NextResponse.json({
+          orderId: existingOrder.id,
+          orderNumber: existingOrder.order_number,
+        })
+      }
+
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+      if (paymentIntent.status !== 'requires_capture') {
+        return NextResponse.json(
+          { error: `Payment was not authorized. Current status: ${paymentIntent.status}` },
+          { status: 400 },
+        )
+      }
+      if (!amountsMatch(total, paymentIntent.amount)) {
+        return NextResponse.json(
+          { error: 'Authorized payment amount does not match order total' },
+          { status: 400 },
+        )
+      }
+    }
+
     const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true })
     const orderNumber = `SS-${new Date().getFullYear()}-${String((count ?? 0) + 1).padStart(4, '0')}`
 
@@ -84,11 +117,17 @@ export async function POST(req: NextRequest) {
         delivery_fee: deliveryFee,
         total,
         order_notes: notes,
+        stripe_payment_intent_id: paymentIntentId,
       })
       .select('id')
       .single()
 
-    if (orderError || !order) throw new Error(orderError?.message ?? 'Could not create order')
+    if (orderError || !order) {
+      if (paymentIntentId) {
+        await stripe.paymentIntents.cancel(paymentIntentId).catch(() => undefined)
+      }
+      throw new Error(orderError?.message ?? 'Could not create order')
+    }
 
     const { error: itemsError } = await supabase.from('order_items').insert(items.map(item => ({
       order_id: order.id,
@@ -101,7 +140,20 @@ export async function POST(req: NextRequest) {
       unit_price: item.unit_price,
       line_total: item.line_total,
     })))
-    if (itemsError) throw new Error(itemsError.message)
+    if (itemsError) {
+      if (paymentIntentId) {
+        await stripe.paymentIntents.cancel(paymentIntentId).catch(() => undefined)
+      }
+      await supabase.from('orders').delete().eq('id', order.id)
+      throw new Error(itemsError.message)
+    }
+
+    if (paymentIntentId) {
+      await stripe.paymentIntents.update(paymentIntentId, {
+        description: `Smoked Style Order ${orderNumber}`,
+        metadata: { orderNumber, orderId: order.id },
+      })
+    }
 
     try {
       await sendOrderConfirmation({
