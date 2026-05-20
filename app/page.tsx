@@ -7,7 +7,12 @@ import Header from '@/components/Header'
 import ProductCard from '@/components/ProductCard'
 import ProductModal from '@/components/ProductModal'
 import { formatPrice, getBoardVariants } from '@/lib/product-display'
-import { isOutOfStock } from '@/lib/product-stock'
+import {
+  clampLineQuantity,
+  formatStockLeft,
+  getMaxLineQuantity,
+  isOutOfStock,
+} from '@/lib/product-stock'
 
 const CATEGORIES = [
   { key: 'all', label: 'All' },
@@ -39,7 +44,7 @@ export default function CatalogPage() {
   async function fetchProducts() {
     const { data } = await supabase
       .from('products')
-      .select('*, stock_quantity, is_in_stock')
+      .select('*, stock_quantity, is_in_stock, jerky_flavor_stock')
       .order('category')
     setProducts(data ?? [])
     setLoading(false)
@@ -71,10 +76,28 @@ export default function CatalogPage() {
   }
 
   function addSimpleItem(product: Product, qty: number) {
+    const lineKey = { product_id: product.id }
+    const addQty = clampLineQuantity(product, cart, lineKey, qty)
+    if (addQty <= 0) {
+      showToast(`Only ${getMaxLineQuantity(product, cart, lineKey)} left in stock`)
+      return
+    }
+
     const existing = cart.find(i => i.product_id === product.id && !i.selected_flavor)
     if (existing) {
+      const newQty = clampLineQuantity(
+        product,
+        cart,
+        lineKey,
+        existing.quantity + addQty,
+        existing.id,
+      )
+      if (newQty <= existing.quantity) {
+        showToast(formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey, existing.id)) ?? 'Out of stock')
+        return
+      }
       saveCart(cart.map(i => i.product_id === product.id && !i.selected_flavor
-        ? { ...i, quantity: i.quantity + qty, line_total: (i.quantity + qty) * i.unit_price }
+        ? { ...i, quantity: newQty, line_total: newQty * i.unit_price }
         : i))
     } else {
       const item: CartItem = {
@@ -83,12 +106,12 @@ export default function CatalogPage() {
         product_name: product.name,
         category: product.category,
         price: product.price,
-        quantity: qty,
+        quantity: addQty,
         selected_flavor: null,
         selected_weight: null,
         selected_size: null,
         unit_price: product.price,
-        line_total: product.price * qty,
+        line_total: product.price * addQty,
         image_url: product.image_url,
       }
       saveCart([...cart, item])
@@ -102,21 +125,69 @@ export default function CatalogPage() {
       setShowSignInModal(true)
       return
     }
+
+    const product = products.find(p => p.id === item.product_id)
+    if (!product) return
+
+    const lineKey = {
+      product_id: item.product_id,
+      selected_flavor: item.selected_flavor,
+      selected_weight: item.selected_weight,
+      selected_size: item.selected_size,
+    }
+
+    let nextItem = item
+    if (product.category === 'jerky') {
+      const weight = item.selected_weight ?? 0
+      const allowedWeight = clampLineQuantity(product, cart, lineKey, weight)
+      if (allowedWeight <= 0) {
+        showToast(formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey)) ?? 'Out of stock')
+        return
+      }
+      if (allowedWeight !== weight) {
+        nextItem = {
+          ...item,
+          selected_weight: allowedWeight,
+          unit_price: product.price * allowedWeight,
+          line_total: product.price * allowedWeight,
+        }
+      }
+    } else {
+      const allowedQty = clampLineQuantity(product, cart, lineKey, item.quantity)
+      if (allowedQty <= 0) {
+        showToast(formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey)) ?? 'Out of stock')
+        return
+      }
+      if (allowedQty !== item.quantity) {
+        nextItem = {
+          ...item,
+          quantity: allowedQty,
+          line_total: allowedQty * item.unit_price,
+        }
+      }
+    }
+
     const existing = cart.find(i =>
-      i.product_id === item.product_id &&
-      i.selected_flavor === item.selected_flavor &&
-      i.selected_weight === item.selected_weight &&
-      i.selected_size === item.selected_size
+      i.product_id === nextItem.product_id &&
+      i.selected_flavor === nextItem.selected_flavor &&
+      i.selected_weight === nextItem.selected_weight &&
+      i.selected_size === nextItem.selected_size
     )
     if (existing) {
+      const mergedQty = existing.quantity + nextItem.quantity
+      const cappedQty = clampLineQuantity(product, cart, lineKey, mergedQty, existing.id)
+      if (cappedQty <= existing.quantity) {
+        showToast(formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey, existing.id)) ?? 'Out of stock')
+        return
+      }
       saveCart(cart.map(i => i.id === existing.id
-        ? { ...i, quantity: i.quantity + item.quantity, line_total: (i.quantity + item.quantity) * i.unit_price }
+        ? { ...i, quantity: cappedQty, line_total: cappedQty * i.unit_price }
         : i))
     } else {
-      saveCart([...cart, item])
+      saveCart([...cart, nextItem])
     }
     setSelectedProduct(null)
-    showToast(`${item.product_name} added to cart`)
+    showToast(`${nextItem.product_name} added to cart`)
   }
 
   function openProduct(product: Product) {
@@ -279,6 +350,7 @@ export default function CatalogPage() {
       {selectedProduct && (
         <ProductModal
           product={selectedProduct}
+          cart={cart}
           sizeVariants={getBoardVariants(selectedProduct, products)}
           onClose={() => setSelectedProduct(null)}
           onAdd={addModalItem}

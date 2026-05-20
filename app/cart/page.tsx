@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import type { CartItem, Product } from '@/types'
 import { useSupabaseUser } from '@/lib/use-supabase-user'
-import { isOutOfStock } from '@/lib/product-stock'
+import { getMaxLineQuantity, isOutOfStock } from '@/lib/product-stock'
 
 export default function CartPage() {
   const { user, authReady, supabase } = useSupabaseUser()
@@ -39,7 +39,7 @@ export default function CartPage() {
     async function loadProducts() {
       const { data } = await supabase
         .from('products')
-        .select('id, name, category, price, sold_as, flavors, weight_options, pack_size, size_label, stock_quantity, is_in_stock, image_url')
+        .select('id, name, category, price, sold_as, flavors, weight_options, pack_size, size_label, stock_quantity, jerky_flavor_stock, is_in_stock, image_url')
         .in('id', productIds)
 
       if (cancelled) return
@@ -68,11 +68,26 @@ export default function CartPage() {
   }
 
   function updateQty(id: string, delta: number) {
-    const updated = cart.map(i => {
-      if (i.id !== id) return i
-      const newQty = Math.max(1, i.quantity + delta)
-      return { ...i, quantity: newQty, line_total: newQty * i.unit_price }
-    })
+    const item = cart.find(i => i.id === id)
+    if (!item) return
+    const product = productsById.get(item.product_id)
+    if (!product || product.category === 'jerky') return
+
+    const lineKey = {
+      product_id: item.product_id,
+      selected_flavor: item.selected_flavor,
+      selected_weight: item.selected_weight,
+      selected_size: item.selected_size,
+    }
+    const maxQty = getMaxLineQuantity(product, cart, lineKey, item.id)
+    const newQty = Math.max(1, Math.min(maxQty, item.quantity + delta))
+    if (newQty === item.quantity) return
+
+    const updated = cart.map(i =>
+      i.id === id
+        ? { ...i, quantity: newQty, line_total: newQty * i.unit_price }
+        : i,
+    )
     saveCart(updated)
   }
 
@@ -159,11 +174,35 @@ export default function CartPage() {
                         ) : (
                           <p className="text-gray-500 text-xs mt-0.5">${item.unit_price.toFixed(2)} each</p>
                         )}
-                        {!unavailable && (
+                        {!unavailable && productsById.get(item.product_id)?.category !== 'jerky' && (
                           <div className="flex items-center gap-2 mt-2">
-                            <button onClick={() => updateQty(item.id, -1)} className="w-7 h-7 rounded-full border border-gray-300 text-sm font-bold text-gray-600 hover:bg-gray-50">−</button>
+                            <button
+                              onClick={() => updateQty(item.id, -1)}
+                              disabled={item.quantity <= 1}
+                              className="w-7 h-7 rounded-full border border-gray-300 text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                            >
+                              −
+                            </button>
                             <span className="text-sm font-bold w-6 text-center">{item.quantity}</span>
-                            <button onClick={() => updateQty(item.id, 1)} className="w-7 h-7 rounded-full border border-gray-300 text-sm font-bold text-gray-600 hover:bg-gray-50">+</button>
+                            <button
+                              onClick={() => updateQty(item.id, 1)}
+                              disabled={
+                                item.quantity >= getMaxLineQuantity(
+                                  productsById.get(item.product_id)!,
+                                  cart,
+                                  {
+                                    product_id: item.product_id,
+                                    selected_flavor: item.selected_flavor,
+                                    selected_weight: item.selected_weight,
+                                    selected_size: item.selected_size,
+                                  },
+                                  item.id,
+                                )
+                              }
+                              className="w-7 h-7 rounded-full border border-gray-300 text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                            >
+                              +
+                            </button>
                           </div>
                         )}
                       </div>

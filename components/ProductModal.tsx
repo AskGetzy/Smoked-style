@@ -4,16 +4,23 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Product, CartItem } from '@/types'
 import ProductImage from '@/components/ProductImage'
 import { categoryLabel, formatPrice } from '@/lib/product-display'
-import { isOutOfStock } from '@/lib/product-stock'
+import {
+  formatStockLeft,
+  getAvailableStock,
+  getMaxLineQuantity,
+  getRemainingStock,
+  isOutOfStock,
+} from '@/lib/product-stock'
 
 interface Props {
   product: Product
+  cart: CartItem[]
   sizeVariants?: Product[]
   onClose: () => void
   onAdd: (item: CartItem) => void
 }
 
-export default function ProductModal({ product: initialProduct, sizeVariants = [], onClose, onAdd }: Props) {
+export default function ProductModal({ product: initialProduct, cart, sizeVariants = [], onClose, onAdd }: Props) {
   const variants = sizeVariants.length > 1 ? sizeVariants : [initialProduct]
   const [activeProduct, setActiveProduct] = useState(initialProduct)
   const [flavor, setFlavor] = useState(initialProduct.flavors?.[0] ?? null)
@@ -40,6 +47,33 @@ export default function ProductModal({ product: initialProduct, sizeVariants = [
   const showQuantity = !isJerky && !isBoard
   const hasMultipleSizes = isBoard && variants.length > 1
 
+  const lineKey = useMemo(
+    () => ({
+      product_id: product.id,
+      selected_flavor: flavor,
+      selected_weight: isJerky ? weight : null,
+      selected_size: isBoard ? product.size_label : null,
+    }),
+    [product.id, product.size_label, flavor, weight, isJerky, isBoard],
+  )
+
+  const remainingStock = useMemo(
+    () => getRemainingStock(product, cart, lineKey),
+    [product, cart, lineKey],
+  )
+
+  const maxQty = useMemo(
+    () => getMaxLineQuantity(product, cart, lineKey),
+    [product, cart, lineKey],
+  )
+
+  const stockHint = formatStockLeft(product, remainingStock)
+
+  useEffect(() => {
+    if (!showQuantity) return
+    if (qty > maxQty && maxQty > 0) setQty(maxQty)
+  }, [maxQty, qty, showQuantity])
+
   const lineTotal = useMemo(() => {
     if (isJerky && weight) return product.price * weight
     return product.price * qty
@@ -48,7 +82,9 @@ export default function ProductModal({ product: initialProduct, sizeVariants = [
   const unitPrice = isJerky && weight ? product.price * weight : product.price
 
   function handleAdd() {
-    if (outOfStock) return
+    if (outOfStock || maxQty <= 0) return
+    if (isJerky && weight && weight > maxQty) return
+    if (!isJerky && qty > maxQty) return
     const item: CartItem = {
       id: crypto.randomUUID(),
       product_id: product.id,
@@ -132,20 +168,27 @@ export default function ProductModal({ product: initialProduct, sizeVariants = [
                 <div className="mt-4">
                   <label className="mb-2 block text-sm font-bold text-gray-700">Weight</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {product.weight_options.map(w => (
-                      <button
-                        key={w}
-                        onClick={() => setWeight(w)}
-                        type="button"
-                        className={`min-h-12 rounded-xl border-2 px-3 text-base font-semibold transition-all ${
-                          weight === w
-                            ? 'border-orange-500 bg-orange-50 text-orange-700'
-                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                        }`}
-                      >
-                        {w} lb — ${(product.price * w).toFixed(2)}
-                      </button>
-                    ))}
+                    {product.weight_options.map(w => {
+                      const flavorAvailable = flavor
+                        ? getAvailableStock(product, flavor)
+                        : getAvailableStock(product, null)
+                      const weightDisabled = w > flavorAvailable
+                      return (
+                        <button
+                          key={w}
+                          onClick={() => !weightDisabled && setWeight(w)}
+                          type="button"
+                          disabled={weightDisabled}
+                          className={`min-h-12 rounded-xl border-2 px-3 text-base font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+                            weight === w
+                              ? 'border-orange-500 bg-orange-50 text-orange-700'
+                              : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          }`}
+                        >
+                          {w} lb — ${(product.price * w).toFixed(2)}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )}
@@ -192,24 +235,33 @@ export default function ProductModal({ product: initialProduct, sizeVariants = [
                   ? `Quantity (packs of ${product.pack_size})`
                   : 'Quantity'}
               </label>
+              {stockHint && (
+                <p className="mb-2 text-sm font-medium text-amber-700">{stockHint}</p>
+              )}
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setQty(q => Math.max(1, q - 1))}
-                  className="flex h-12 min-w-12 items-center justify-center rounded-full border-2 border-gray-200 text-xl font-bold text-gray-600 hover:border-gray-400"
+                  disabled={qty <= 1}
+                  className="flex h-12 min-w-12 items-center justify-center rounded-full border-2 border-gray-200 text-xl font-bold text-gray-600 hover:border-gray-400 disabled:opacity-40"
                   type="button"
                 >
                   −
                 </button>
                 <span className="min-w-8 text-center text-2xl font-black">{qty}</span>
                 <button
-                  onClick={() => setQty(q => q + 1)}
-                  className="flex h-12 min-w-12 items-center justify-center rounded-full border-2 border-gray-200 text-xl font-bold text-gray-600 hover:border-gray-400"
+                  onClick={() => setQty(q => Math.min(maxQty, q + 1))}
+                  disabled={qty >= maxQty}
+                  className="flex h-12 min-w-12 items-center justify-center rounded-full border-2 border-gray-200 text-xl font-bold text-gray-600 hover:border-gray-400 disabled:opacity-40"
                   type="button"
                 >
                   +
                 </button>
               </div>
             </div>
+          )}
+
+          {isJerky && stockHint && (
+            <p className="mt-4 text-sm font-medium text-amber-700">{stockHint}</p>
           )}
 
           {!outOfStock && (
@@ -223,14 +275,15 @@ export default function ProductModal({ product: initialProduct, sizeVariants = [
         </div>
 
         <div className="shrink-0 border-t border-gray-100 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          {outOfStock ? (
+          {outOfStock || maxQty <= 0 ? (
             <div className="flex min-h-14 items-center justify-center rounded-xl bg-gray-100 text-lg font-bold text-gray-500">
               Out of Stock
             </div>
           ) : (
             <button
               onClick={handleAdd}
-              className="min-h-14 w-full rounded-xl text-lg font-black text-white transition-colors"
+              disabled={isJerky ? !weight || (weight ?? 0) > maxQty : qty > maxQty}
+              className="min-h-14 w-full rounded-xl text-lg font-black text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               style={{ background: 'var(--navy)' }}
               type="button"
             >

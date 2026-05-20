@@ -1,5 +1,5 @@
 import type { Product } from '@/types'
-import { isOutOfStock } from '@/lib/product-stock'
+import { assertCartWithinStock, isOutOfStock } from '@/lib/product-stock'
 
 export type CheckoutCartLine = {
   product_id: string
@@ -64,6 +64,8 @@ export function priceCartLines(
   if (lines.length === 0) {
     throw new Error('Cart is empty')
   }
+
+  assertCartWithinStock(lines, productsById)
 
   return lines.map((line) => {
     const product = productsById.get(line.product_id)
