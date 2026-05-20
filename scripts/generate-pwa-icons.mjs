@@ -1,27 +1,53 @@
 import sharp from 'sharp'
-import { writeFileSync } from 'fs'
+import { existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const publicDir = join(__dirname, '..', 'public')
+const rootDir = join(__dirname, '..')
+const publicDir = join(rootDir, 'public')
 
-function buildSvg(size) {
-  const center = size / 2
-  const radius = size * 0.34
-  const fontSize = Math.round(size * 0.28)
-  return `<svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${size}" height="${size}" fill="#1a1a1a"/>
-  <circle cx="${center}" cy="${center}" r="${radius}" fill="#c85c2d"/>
-  <text x="${center}" y="${center + fontSize * 0.35}" text-anchor="middle" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="700">SS</text>
-</svg>`
+const SOURCE_CANDIDATES = [
+  join(rootDir, 'logo.jpeg'),
+  join(rootDir, 'logo.png.jpeg'),
+  join(rootDir, 'logo.png'),
+]
+
+const sourcePath = SOURCE_CANDIDATES.find(path => existsSync(path))
+if (!sourcePath) {
+  throw new Error('Logo file not found. Add logo.jpeg to the project root.')
 }
 
-async function generate(size, filename) {
-  const png = await sharp(Buffer.from(buildSvg(size))).png().toBuffer()
-  writeFileSync(join(publicDir, filename), png)
+const BACKGROUND = '#ffffff'
+const PADDING_RATIO = 0.1
+
+async function generateIcon(size, filename) {
+  const padding = Math.round(size * PADDING_RATIO)
+  const inner = size - padding * 2
+
+  const logo = await sharp(sourcePath)
+    .resize(inner, inner, {
+      fit: 'contain',
+      background: BACKGROUND,
+    })
+    .png()
+    .toBuffer()
+
+  await sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 3,
+      background: BACKGROUND,
+    },
+  })
+    .composite([{ input: logo, gravity: 'center' }])
+    .png()
+    .toFile(join(publicDir, filename))
 }
 
-await generate(192, 'icon-192.png')
-await generate(512, 'icon-512.png')
-console.log('Generated public/icon-192.png and public/icon-512.png')
+await generateIcon(192, 'icon-192.png')
+await generateIcon(512, 'icon-512.png')
+await generateIcon(180, 'apple-touch-icon.png')
+
+console.log(`Generated PWA icons from ${sourcePath}`)

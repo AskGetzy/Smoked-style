@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: 'Smoked Style Boss',
   description: 'Smoked Style order management',
   manifest: '/manifest.json',
+  icons: {
+    apple: '/apple-touch-icon.png',
+  },
   appleWebApp: {
     capable: true,
     title: 'SS Boss',
