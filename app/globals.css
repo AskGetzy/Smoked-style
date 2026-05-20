@@ -16,3 +16,12 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+@keyframes boss-sheet-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.boss-sheet-slide-up {
+  animation: boss-sheet-slide-up 0.28s ease-out;
+}

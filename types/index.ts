@@ -33,6 +33,18 @@ export interface CartItem {
   image_url: string | null
 }
 
+export interface BossLine {
+  product_id: string
+  product_name: string
+  category: string
+  quantity: number
+  selected_flavor: string | null
+  selected_weight: number | null
+  selected_size: string | null
+  unit_price: number
+  line_total: number
+}
+
 export interface Customer {
   id: string
   full_name: string
