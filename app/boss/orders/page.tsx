@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
+import { displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 
 const TABS = ['all', 'pending', 'approved', 'delivered']
 
@@ -13,10 +14,11 @@ function matchesSearch(order: Order, query: string) {
   const q = query.trim().toLowerCase()
   if (!q) return true
   const customer = order.customers as { full_name?: string; phone?: string; email?: string } | undefined
-  const phoneDigits = customer?.phone?.replace(/\D/g, '') ?? ''
+  const phoneDigits = (order.buyer_phone ?? customer?.phone ?? '').replace(/\D/g, '')
   const queryDigits = q.replace(/\D/g, '')
   return (
     order.order_number?.toLowerCase().includes(q) ||
+    order.buyer_name?.toLowerCase().includes(q) ||
     customer?.full_name?.toLowerCase().includes(q) ||
     order.recipient_name?.toLowerCase().includes(q) ||
     (queryDigits.length > 0 && phoneDigits.includes(queryDigits)) ||
@@ -108,19 +110,19 @@ export default function BossOrdersPage() {
                       <div className="text-base font-black tracking-wide text-orange-600">
                         {order.order_number}
                       </div>
-                      <div className="mt-1 text-lg font-black">{customer?.full_name ?? 'Guest'}</div>
+                      <div className="mt-1 text-lg font-black">{displayBuyerName(order)}</div>
                       {order.created_at && (
                         <div className="text-sm text-gray-400">
                           Ordered: {formatOrderDate(order.created_at)}
                         </div>
                       )}
-                      {customer?.phone && (
+                      {displayBuyerPhone(order) && (
                         <a
-                          href={`tel:${customer.phone}`}
+                          href={`tel:${displayBuyerPhone(order)}`}
                           onClick={e => e.stopPropagation()}
                           className="block min-h-8 text-base font-bold text-blue-700"
                         >
-                          {customer.phone}
+                          {displayBuyerPhone(order)}
                         </a>
                       )}
                       {itemSummary && <div className="mt-1 text-sm text-gray-500">{itemSummary}</div>}

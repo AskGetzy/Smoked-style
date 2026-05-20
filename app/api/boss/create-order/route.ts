@@ -41,18 +41,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Delivery or pickup date is required' }, { status: 400 })
     }
 
+    const buyerName = customer.full_name.trim()
+    const buyerPhone = customer.phone.trim()
+    const buyerEmail =
+      String(customer.email || '').trim().toLowerCase() ||
+      `${buyerPhone.replace(/\D/g, '')}@boss.local`
+
     let customerId = body.customerId as string | undefined
-    const email = String(customer.email || '').trim().toLowerCase() || `${String(customer.phone).replace(/\D/g, '')}@boss.local`
     if (customerId) {
-      await supabase
+      const { data: existingRow, error: fetchError } = await supabase
         .from('customers')
-        .update({ full_name: customer.full_name.trim(), phone: customer.phone.trim(), email })
+        .select('id, full_name')
         .eq('id', customerId)
+        .single()
+
+      if (fetchError) throw new Error(`Customer lookup failed: ${fetchError.message}`)
+
+      if (!existingRow?.full_name?.trim()) {
+        const { error: updateError } = await supabase
+          .from('customers')
+          .update({ full_name: buyerName, phone: buyerPhone, email: buyerEmail })
+          .eq('id', customerId)
+
+        if (updateError) throw new Error(updateError.message)
+      }
     } else {
       const { data: existing } = await supabase
         .from('customers')
         .select('id')
-        .eq('phone', customer.phone.trim())
+        .eq('phone', buyerPhone)
         .maybeSingle()
 
       if (existing) {
@@ -60,7 +77,7 @@ export async function POST(req: NextRequest) {
       } else {
         const { data: created, error: customerError } = await supabase
           .from('customers')
-          .insert({ full_name: customer.full_name.trim(), phone: customer.phone.trim(), email })
+          .insert({ full_name: buyerName, phone: buyerPhone, email: buyerEmail })
           .select('id')
           .single()
         if (customerError || !created) throw new Error(customerError?.message ?? 'Could not create customer')
@@ -109,6 +126,9 @@ export async function POST(req: NextRequest) {
       .insert({
         order_number: orderNumber,
         customer_id: customerId,
+        buyer_name: buyerName,
+        buyer_email: buyerEmail,
+        buyer_phone: buyerPhone,
         status: 'pending',
         order_type: orderType,
         delivery_area_id: body.deliveryAreaId || null,
@@ -165,14 +185,14 @@ export async function POST(req: NextRequest) {
         subtotal,
         delivery_fee: deliveryFee,
         total,
-        customers: { full_name: customer.full_name, phone: customer.phone, email },
+        customers: { full_name: buyerName, phone: buyerPhone, email: buyerEmail },
         order_items: items,
       })
     } catch (emailError) {
       console.error('Boss order confirmation email failed', emailError)
     }
 
-    await sendNewOrderPushNotification(customer.full_name.trim(), total)
+    await sendNewOrderPushNotification(buyerName, total)
 
     return NextResponse.json({ orderId: order.id, orderNumber })
   } catch (e: unknown) {

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { formatDeliveryDate } from '@/lib/dates'
+import { displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 
 export type DashboardOrder = {
   id: string
@@ -10,6 +11,8 @@ export type DashboardOrder = {
   total: number
   created_at: string
   delivery_date?: string | null
+  buyer_name?: string | null
+  buyer_phone?: string | null
   customers?: { full_name?: string | null; phone?: string | null } | null
 }
 
@@ -36,7 +39,7 @@ export default function DashboardOrderList({
   return (
     <ul className="space-y-3">
       {orders.map(order => {
-        const phone = order.customers?.phone
+        const phone = displayBuyerPhone(order)
         const links = phone ? phoneLinks(phone) : null
         return (
           <li key={order.id} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
@@ -46,7 +49,7 @@ export default function DashboardOrderList({
             >
               {order.order_number}
             </Link>
-            <div className="mt-1 text-base font-bold">{order.customers?.full_name ?? 'Guest'}</div>
+            <div className="mt-1 text-base font-bold">{displayBuyerName(order)}</div>
             {phone && links && (
               <div className="mt-2 flex flex-wrap gap-2">
                 <a href={links.tel} className="min-h-10 rounded-xl bg-white px-3 py-2 text-sm font-bold text-blue-700 ring-1 ring-gray-200">

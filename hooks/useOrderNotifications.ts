@@ -11,6 +11,7 @@ import {
   showOrderNotification,
   vibrateNewOrder,
 } from '@/lib/order-notifications'
+import { displayBuyerName } from '@/lib/order-buyer'
 import type { Order } from '@/types'
 
 type Mode = 'admin' | 'boss'
@@ -23,7 +24,7 @@ type Options = {
 }
 
 function customerName(order: Order) {
-  return (order.customers as { full_name?: string } | undefined)?.full_name ?? 'Guest'
+  return displayBuyerName(order)
 }
 
 export function useOrderNotifications({

@@ -55,12 +55,23 @@ async function resolveCustomerId(
     .maybeSingle()
 
   if (existingByEmail) {
-    const { error: updateError } = await supabase
+    const { data: existingRow, error: fetchError } = await supabase
       .from('customers')
-      .update({ full_name, phone })
+      .select('id, full_name')
       .eq('id', existingByEmail.id)
+      .single()
 
-    if (updateError) throw new Error(`Customer update failed: ${updateError.message}`)
+    if (fetchError) throw new Error(`Customer lookup failed: ${fetchError.message}`)
+
+    if (!existingRow?.full_name?.trim()) {
+      const { error: updateError } = await supabase
+        .from('customers')
+        .update({ full_name, phone })
+        .eq('id', existingByEmail.id)
+
+      if (updateError) throw new Error(`Customer update failed: ${updateError.message}`)
+    }
+
     return existingByEmail.id
   }
 
@@ -181,6 +192,9 @@ export async function POST(req: NextRequest) {
     }
 
     const customerId = await resolveCustomerId(supabase, userId, contact)
+    const buyerName = contact.name.trim()
+    const buyerEmail = contact.email.trim().toLowerCase()
+    const buyerPhone = contact.phone?.trim() || null
 
     const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true })
     const orderNumber = `SS-${new Date().getFullYear()}-${String((count ?? 0) + 1).padStart(4, '0')}`
@@ -190,6 +204,9 @@ export async function POST(req: NextRequest) {
       .insert({
         order_number: orderNumber,
         customer_id: customerId,
+        buyer_name: buyerName,
+        buyer_email: buyerEmail,
+        buyer_phone: buyerPhone,
         status: 'pending',
         order_type: orderType,
         delivery_area_id: orderType === 'delivery' ? areaId : null,

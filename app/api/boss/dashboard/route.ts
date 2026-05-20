@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const [orders, lowStock] = await Promise.all([
     supabase
       .from('orders')
-      .select('id, order_number, status, total, created_at, delivery_date, customers(full_name, phone)'),
+      .select('id, order_number, status, total, created_at, delivery_date, buyer_name, buyer_phone, customers(full_name, phone)'),
     supabase
       .from('products')
       .select('id, name, stock_quantity, low_stock_threshold')

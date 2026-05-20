@@ -1,3 +1,5 @@
+import { displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
+
 export type ProductionLineItem = {
   product_name: string
   quantity: number
@@ -58,6 +60,8 @@ type OrderWithItems = {
   id: string
   order_number: string
   delivery_date?: string | null
+  buyer_name?: string | null
+  buyer_phone?: string | null
   customers?: { full_name?: string | null; phone?: string | null } | null
   delivery_areas?: { name?: string | null } | null
   order_items?: ProductionLineItem[] | null
@@ -78,8 +82,8 @@ export function ordersContainingProduct(
     rows.push({
       orderId: order.id,
       orderNumber: order.order_number,
-      customerName: order.customers?.full_name ?? 'Guest',
-      phone: order.customers?.phone ?? null,
+      customerName: displayBuyerName(order),
+      phone: displayBuyerPhone(order),
       quantity,
       deliveryArea: order.delivery_areas?.name ?? '—',
       deliveryDate: order.delivery_date ?? '—',

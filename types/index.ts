@@ -67,6 +67,9 @@ export interface Order {
   delivery_date: string | null
   recipient_name: string | null
   recipient_phone: string | null
+  buyer_name: string | null
+  buyer_email: string | null
+  buyer_phone: string | null
   subtotal: number
   delivery_fee: number
   custom_adjustment: number

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AdminLayout from '@/components/AdminLayout'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
+import { displayBuyerEmail, displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 import type { Order, OrderItem } from '@/types'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -194,12 +195,16 @@ export default function OrderDetailPage() {
           {/* Customer */}
           <div className="md:col-span-2 bg-white rounded-xl border border-gray-100 p-4">
             <h3 className="font-semibold text-gray-900 mb-3">Customer</h3>
-            <p className="font-bold text-gray-900">{customer?.full_name ?? 'Guest'}</p>
+            <p className="font-bold text-gray-900">{displayBuyerName(order)}</p>
             {order.created_at && (
               <p className="text-sm text-gray-500">Ordered: {formatOrderDate(order.created_at)}</p>
             )}
-            {customer?.email && <p className="text-sm text-gray-500">{customer.email}</p>}
-            {customer?.phone && <p className="text-sm text-gray-500">📞 {customer.phone}</p>}
+            {displayBuyerEmail(order) && (
+              <p className="text-sm text-gray-500">{displayBuyerEmail(order)}</p>
+            )}
+            {displayBuyerPhone(order) && (
+              <p className="text-sm text-gray-500">📞 {displayBuyerPhone(order)}</p>
+            )}
             {order.delivery_address && <p className="text-sm text-gray-600 mt-2">📍 {order.delivery_address}</p>}
             {order.delivery_date && (
               <p className="text-sm text-gray-600 mt-1">

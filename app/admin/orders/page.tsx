@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import AdminLayout from '@/components/AdminLayout'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
+import { displayBuyerName } from '@/lib/order-buyer'
 import type { Order } from '@/types'
 
 const STATUS_TABS = ['all', 'pending', 'approved', 'out_for_delivery', 'delivered', 'cancelled']
@@ -71,7 +72,7 @@ export default function OrdersPage() {
     const matchTab = activeTab === 'all' || o.status === activeTab
     const matchSearch = search === '' ||
       o.order_number.toLowerCase().includes(search.toLowerCase()) ||
-      (o.customers as { full_name?: string })?.full_name?.toLowerCase().includes(search.toLowerCase())
+      displayBuyerName(o).toLowerCase().includes(search.toLowerCase())
     return matchTab && matchSearch
   })
 
@@ -143,7 +144,7 @@ export default function OrdersPage() {
                           {order.status.replace('_', ' ')}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600">{(order.customers as { full_name?: string })?.full_name ?? 'Guest'}</p>
+                      <p className="text-sm text-gray-600">{displayBuyerName(order)}</p>
                       {order.created_at && (
                         <p className="text-xs text-gray-400">
                           Ordered: {formatOrderDate(order.created_at)}

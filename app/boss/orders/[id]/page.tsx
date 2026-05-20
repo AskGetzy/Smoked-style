@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
+import { displayBuyerEmail, displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 
 export default function BossOrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -73,19 +74,21 @@ export default function BossOrderDetailPage() {
             {order.status.replace(/_/g, ' ')}
           </span>
         </div>
-        <div className="text-2xl font-black">{customer?.full_name ?? 'Guest'}</div>
+        <div className="text-2xl font-black">{displayBuyerName(order)}</div>
         {order.created_at && (
           <div className="text-sm text-gray-500">Ordered: {formatOrderDate(order.created_at)}</div>
         )}
-        {customer?.phone && (
+        {displayBuyerPhone(order) && (
           <a
             className="block min-h-12 py-2 text-lg font-black text-green-700"
-            href={`https://wa.me/${String(customer.phone).replace(/\D/g, '')}`}
+            href={`https://wa.me/${String(displayBuyerPhone(order)).replace(/\D/g, '')}`}
           >
-            {customer.phone}
+            {displayBuyerPhone(order)}
           </a>
         )}
-        {customer?.email && <div className="text-base text-gray-500">{customer.email}</div>}
+        {displayBuyerEmail(order) && (
+          <div className="text-base text-gray-500">{displayBuyerEmail(order)}</div>
+        )}
         {order.recipient_name && (
           <div className="mt-2 text-base text-gray-600">
             Recipient: <span className="font-bold">{order.recipient_name}</span>
