@@ -11,6 +11,7 @@ export default function CartPage() {
   const { user, authReady, supabase } = useSupabaseUser()
   const [cart, setCart] = useState<CartItem[]>([])
   const [productsById, setProductsById] = useState<Map<string, Product>>(new Map())
+  const [productsLoaded, setProductsLoaded] = useState(false)
   const [notes, setNotes] = useState('')
   const [giftMessage, setGiftMessage] = useState('')
 
@@ -31,13 +32,15 @@ export default function CartPage() {
   useEffect(() => {
     if (productIds.length === 0) {
       setProductsById(new Map())
+      setProductsLoaded(true)
       return
     }
 
     let cancelled = false
+    setProductsLoaded(false)
 
     async function loadProducts() {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('products')
         .select('id, name, category, price, sold_as, flavors, weight_options, pack_size, size_label, stock_quantity, is_in_stock, image_url')
         .in('id', productIds)
@@ -45,10 +48,13 @@ export default function CartPage() {
       if (cancelled) return
 
       const map = new Map<string, Product>()
-      for (const p of data ?? []) {
-        map.set(p.id, p as Product)
+      if (!error) {
+        for (const p of data ?? []) {
+          map.set(p.id, p as Product)
+        }
       }
       setProductsById(map)
+      setProductsLoaded(true)
     }
 
     void loadProducts()
@@ -105,9 +111,14 @@ export default function CartPage() {
     localStorage.setItem('smoked-gift', val)
   }
 
+  function getCartProduct(item: CartItem): Product | undefined {
+    return productsById.get(item.product_id)
+  }
+
   function itemIsOutOfStock(item: CartItem): boolean {
-    const product = productsById.get(item.product_id)
-    if (!product) return false
+    if (!productsLoaded) return false
+    const product = getCartProduct(item)
+    if (!product) return true
     return isOutOfStock(product)
   }
 
@@ -156,7 +167,19 @@ export default function CartPage() {
 
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-100">
                 {cart.map(item => {
+                  const product = getCartProduct(item)
                   const unavailable = itemIsOutOfStock(item)
+                  const canAdjustQty = Boolean(
+                    product && productsLoaded && !unavailable && product.category !== 'jerky',
+                  )
+                  const maxQty = product
+                    ? getMaxLineQuantity(product, cart, {
+                        product_id: item.product_id,
+                        selected_flavor: item.selected_flavor,
+                        selected_weight: item.selected_weight,
+                        selected_size: item.selected_size,
+                      }, item.id)
+                    : 0
                   return (
                     <div
                       key={item.id}
@@ -174,7 +197,7 @@ export default function CartPage() {
                         ) : (
                           <p className="text-gray-500 text-xs mt-0.5">${item.unit_price.toFixed(2)} each</p>
                         )}
-                        {!unavailable && productsById.get(item.product_id)?.category !== 'jerky' && (
+                        {canAdjustQty && (
                           <div className="flex items-center gap-2 mt-2">
                             <button
                               onClick={() => updateQty(item.id, -1)}
@@ -186,19 +209,7 @@ export default function CartPage() {
                             <span className="text-sm font-bold w-6 text-center">{item.quantity}</span>
                             <button
                               onClick={() => updateQty(item.id, 1)}
-                              disabled={
-                                item.quantity >= getMaxLineQuantity(
-                                  productsById.get(item.product_id)!,
-                                  cart,
-                                  {
-                                    product_id: item.product_id,
-                                    selected_flavor: item.selected_flavor,
-                                    selected_weight: item.selected_weight,
-                                    selected_size: item.selected_size,
-                                  },
-                                  item.id,
-                                )
-                              }
+                              disabled={item.quantity >= maxQty}
                               className="w-7 h-7 rounded-full border border-gray-300 text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
                             >
                               +

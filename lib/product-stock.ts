@@ -51,7 +51,8 @@ function parseFlavorStock(raw: unknown): Record<string, number> {
 }
 
 /** Units available to sell (pieces, packs, or lbs for jerky by flavor). */
-export function getAvailableStock(product: Product, flavor?: string | null): number {
+export function getAvailableStock(product: Product | null | undefined, flavor?: string | null): number {
+  if (!product) return 0
   if (isOutOfStock(product)) return 0
 
   if (product.category === 'jerky' && flavor) {
@@ -68,8 +69,9 @@ export function getAvailableStock(product: Product, flavor?: string | null): num
 /** How much of the product this cart line consumes from inventory. */
 export function getLineStockUsage(
   item: Pick<CartItem, 'quantity' | 'selected_weight'>,
-  product: Product,
+  product: Product | null | undefined,
 ): number {
+  if (!product) return 0
   if (product.category === 'jerky') {
     const weight = Number(item.selected_weight)
     if (Number.isFinite(weight) && weight > 0) return weight
@@ -78,8 +80,8 @@ export function getLineStockUsage(
 }
 
 /** Pool key: jerky shares stock by flavor; other lines use full variant key. */
-export function stockPoolKey(product: Product, line: StockLineKey): string {
-  if (product.category === 'jerky') {
+export function stockPoolKey(product: Product | null | undefined, line: StockLineKey): string {
+  if (product?.category === 'jerky') {
     return `${line.product_id}|${line.selected_flavor ?? ''}`
   }
   return stockLineKey(line)
@@ -100,11 +102,12 @@ export function getCartPoolUsage(
 }
 
 export function getRemainingStock(
-  product: Product,
+  product: Product | null | undefined,
   cart: Array<Pick<CartItem, 'id' | 'product_id' | 'quantity' | 'selected_flavor' | 'selected_weight' | 'selected_size'>>,
   line: StockLineKey,
   excludeItemId?: string,
 ): number {
+  if (!product) return 0
   const poolKey = stockPoolKey(product, line)
   const available = getAvailableStock(product, line.selected_flavor)
   const inCart = getCartPoolUsage(cart, product, poolKey, excludeItemId)
@@ -122,12 +125,13 @@ export function getMaxLineQuantity(
 }
 
 export function clampLineQuantity(
-  product: Product,
+  product: Product | null | undefined,
   cart: Array<Pick<CartItem, 'id' | 'product_id' | 'quantity' | 'selected_flavor' | 'selected_weight' | 'selected_size'>>,
   line: StockLineKey,
   requested: number,
   excludeItemId?: string,
 ): number {
+  if (!product) return 0
   const max = getMaxLineQuantity(product, cart, line, excludeItemId)
   if (max <= 0) return 0
   if (product.category === 'jerky') {
