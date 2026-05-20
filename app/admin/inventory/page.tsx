@@ -3,24 +3,27 @@
 import { useEffect, useState, useRef } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import JerkyInventoryPanel from '@/components/JerkyInventoryPanel'
-import { supabase } from '@/lib/supabase'
+import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 import { useLanguage } from '@/lib/language-context'
 import { productCategoryLabel } from '@/lib/i18n'
 import type { Product } from '@/types'
 
 export default function InventoryPage() {
   const { t } = useLanguage()
+  const [supabase] = useState(() => createBrowserSupabaseClient())
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [uploading, setUploading] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [saveError, setSaveError] = useState<string | null>(null)
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
-  useEffect(() => { fetchProducts() }, [])
+  useEffect(() => { void fetchProducts() }, [supabase])
 
   async function fetchProducts() {
-    const { data } = await supabase.from('products').select('*').order('category, name')
+    const { data, error } = await supabase.from('products').select('*').order('category, name')
+    if (error) setSaveError(error.message)
     setProducts(data ?? [])
     setLoading(false)
   }
@@ -31,13 +34,24 @@ export default function InventoryPage() {
 
   async function updateProduct(id: string, qty: number, price: number) {
     setSaving(id)
-    await supabase.from('products').update({ stock_quantity: qty, price }).eq('id', id)
+    setSaveError(null)
+    const { error } = await supabase.from('products').update({ stock_quantity: qty, price }).eq('id', id)
+    if (error) {
+      setSaveError(error.message)
+      setSaving(null)
+      return
+    }
     setProducts(ps => ps.map(p => p.id === id ? { ...p, stock_quantity: qty, price } : p))
     setSaving(null)
   }
 
   async function toggleStock(id: string, current: boolean) {
-    await supabase.from('products').update({ is_in_stock: !current }).eq('id', id)
+    setSaveError(null)
+    const { error } = await supabase.from('products').update({ is_in_stock: !current }).eq('id', id)
+    if (error) {
+      setSaveError(error.message)
+      return
+    }
     setProducts(ps => ps.map(p => p.id === id ? { ...p, is_in_stock: !current } : p))
   }
 
@@ -101,6 +115,12 @@ export default function InventoryPage() {
           className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-6 focus:outline-none focus:border-orange-400"
         />
 
+        {saveError && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {saveError}
+          </div>
+        )}
+
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1,2,3,4,5,6].map(i => <div key={i} className="h-32 bg-gray-200 rounded-xl animate-pulse" />)}
@@ -120,8 +140,13 @@ export default function InventoryPage() {
                   {items.map(p => (
                     <JerkyInventoryPanel
                       key={p.id}
+                      supabase={supabase}
                       product={p}
-                      onUpdate={updateProductInState}
+                      onUpdate={updated => {
+                        setSaveError(null)
+                        updateProductInState(updated)
+                      }}
+                      onError={setSaveError}
                       t={jerkyLabels}
                       uploading={uploading}
                       onUploadImage={uploadImage}

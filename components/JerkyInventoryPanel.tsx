@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   getJerkyFlavorStock,
   getJerkyFlavorThreshold,
@@ -12,9 +12,21 @@ import {
 } from '@/lib/jerky-stock'
 import type { Product } from '@/types'
 
+function formatInventoryError(message: string): string {
+  if (message.includes('jerky_flavor')) {
+    return 'Missing jerky columns in database. Run migrations 004 and 005 in the Supabase SQL editor.'
+  }
+  if (message.includes('row-level security') || message.includes('policy')) {
+    return 'Not allowed to save inventory. Sign in as admin and apply migration 006_admin_inventory_write.sql.'
+  }
+  return message
+}
+
 type Props = {
+  supabase: SupabaseClient
   product: Product
   onUpdate: (updated: Product) => void
+  onError?: (message: string) => void
   t: {
     priceLabel: string
     save: string
@@ -38,8 +50,10 @@ type Props = {
 type EditField = { flavor: string; field: 'stock' | 'threshold' } | null
 
 export default function JerkyInventoryPanel({
+  supabase,
   product,
   onUpdate,
+  onError,
   t,
   uploading,
   onUploadImage,
@@ -58,13 +72,22 @@ export default function JerkyInventoryPanel({
 
   async function toggleStock() {
     const next = !product.is_in_stock
-    await supabase.from('products').update({ is_in_stock: next }).eq('id', product.id)
+    const { error } = await supabase.from('products').update({ is_in_stock: next }).eq('id', product.id)
+    if (error) {
+      onError?.(formatInventoryError(error.message))
+      return
+    }
     onUpdate({ ...product, is_in_stock: next })
   }
 
   async function savePrice(price: number) {
     setSaving('price')
-    await supabase.from('products').update({ price }).eq('id', product.id)
+    const { error } = await supabase.from('products').update({ price }).eq('id', product.id)
+    if (error) {
+      onError?.(formatInventoryError(error.message))
+      setSaving(null)
+      return
+    }
     onUpdate({ ...product, price })
     setSaving(null)
   }
@@ -83,22 +106,31 @@ export default function JerkyInventoryPanel({
       })
       .eq('id', product.id)
 
-    if (!error) {
-      await supabase.from('stock_history').insert({
-        product_id: product.id,
-        change_amount: stock - previous,
-        previous_quantity: previous,
-        new_quantity: stock,
-        reason: `Manual stock update — ${flavor}`,
-      })
-      setLocalStock(nextStock)
-      setLocalThresholds(nextThresholds)
-      onUpdate({
-        ...product,
-        jerky_flavor_stock: nextStock,
-        jerky_flavor_thresholds: nextThresholds,
-      })
+    if (error) {
+      onError?.(formatInventoryError(error.message))
+      setSaving(null)
+      return
     }
+
+    const { error: historyError } = await supabase.from('stock_history').insert({
+      product_id: product.id,
+      change_amount: stock - previous,
+      previous_quantity: previous,
+      new_quantity: stock,
+      reason: `Manual stock update — ${flavor}`,
+    })
+
+    if (historyError) {
+      console.warn('Stock history insert failed', historyError)
+    }
+
+    setLocalStock(nextStock)
+    setLocalThresholds(nextThresholds)
+    onUpdate({
+      ...product,
+      jerky_flavor_stock: nextStock,
+      jerky_flavor_thresholds: nextThresholds,
+    })
 
     setSaving(null)
     setEditing(null)
