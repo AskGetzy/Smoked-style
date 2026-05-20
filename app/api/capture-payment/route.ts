@@ -28,11 +28,6 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    await supabase.from('orders').update({
-      status: 'approved',
-      approved_at: new Date().toISOString(),
-    }).eq('id', orderId)
-
     try {
       await deductInventoryOnApproval(supabase, orderId, order.order_number)
     } catch (inventoryError) {
@@ -42,6 +37,11 @@ export async function POST(req: NextRequest) {
         { status: 500 },
       )
     }
+
+    await supabase.from('orders').update({
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+    }).eq('id', orderId)
 
     try {
       console.log('[email] About to send order approval', {
