@@ -6,15 +6,16 @@ interface HeaderProps {
   cartCount: number
   cartTotal: number
   user: any
+  onSignIn?: () => void
   onSignOut: () => void
 }
 
-export default function Header({ cartCount, cartTotal, user, onSignOut }: HeaderProps) {
+export default function Header({ cartCount, cartTotal, user, onSignIn, onSignOut }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 shadow-md" style={{ background: 'var(--navy)' }}>
-      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-white font-black text-xl tracking-wide">
+          <span className="text-xl font-black tracking-wide text-white">
             SMOKED <span style={{ color: 'var(--orange)' }}>STYLE</span>
           </span>
         </Link>
@@ -22,22 +23,31 @@ export default function Header({ cartCount, cartTotal, user, onSignOut }: Header
         <div className="flex items-center gap-3">
           {user ? (
             <button
+              type="button"
               onClick={onSignOut}
-              className="text-white/70 hover:text-white text-sm transition-colors"
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
             >
               Sign Out
+            </button>
+          ) : onSignIn ? (
+            <button
+              type="button"
+              onClick={onSignIn}
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+            >
+              Sign In
             </button>
           ) : null}
 
           <Link
             href="/cart"
-            className="flex items-center gap-2 text-white font-semibold px-4 py-2 rounded-xl text-sm transition-colors"
+            className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors"
             style={{ background: 'rgba(255,255,255,0.1)' }}
           >
             <CartIcon />
             {cartCount > 0 && (
               <>
-                <span className="bg-orange-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
                   {cartCount}
                 </span>
                 <span className="hidden sm:inline">${cartTotal.toFixed(2)}</span>

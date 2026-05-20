@@ -160,7 +160,13 @@ export default function CatalogPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--cream)' }}>
-      <Header cartCount={cartCount} cartTotal={cartTotal} user={user} onSignOut={() => supabase.auth.signOut()} />
+      <Header
+        cartCount={cartCount}
+        cartTotal={cartTotal}
+        user={user}
+        onSignIn={signInWithGoogle}
+        onSignOut={() => supabase.auth.signOut()}
+      />
 
       {/* Toast */}
       {toast && (

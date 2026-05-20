@@ -58,8 +58,28 @@ export default function CheckoutPage() {
         })
       }
     })
+    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
+      const u = session?.user ?? null
+      setUser(u)
+      if (u) {
+        setContact({
+          name: u.user_metadata?.full_name ?? '',
+          email: u.email ?? '',
+          phone: '',
+        })
+      }
+    })
     fetchAreas()
+    return () => listener.subscription.unsubscribe()
   }, [])
+
+  async function signInWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    })
+    if (error) setError(error.message)
+  }
 
   async function fetchAreas() {
     const { data } = await supabase
@@ -234,6 +254,7 @@ export default function CheckoutPage() {
         cartCount={cartCount}
         cartTotal={displayTotal}
         user={user}
+        onSignIn={signInWithGoogle}
         onSignOut={() => supabase.auth.signOut()}
       />
 

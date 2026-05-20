@@ -21,7 +21,18 @@ export default function CartPage() {
     const g = localStorage.getItem('smoked-gift')
     if (g) setGiftMessage(g)
     supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null))
+    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => listener.subscription.unsubscribe()
   }, [])
+
+  async function signInWithGoogle() {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    })
+  }
 
   function saveCart(items: CartItem[]) {
     setCart(items)
@@ -69,6 +80,7 @@ export default function CartPage() {
         cartCount={cartCount}
         cartTotal={subtotal}
         user={user}
+        onSignIn={signInWithGoogle}
         onSignOut={() => supabase.auth.signOut()}
       />
 

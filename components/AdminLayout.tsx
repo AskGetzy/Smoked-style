@@ -16,31 +16,42 @@ const NAV: { href: string; key: TranslationKey; icon: string }[] = [
   { href: '/admin/customers', key: 'customers', icon: '👥' },
 ]
 
+/** Persists across per-page AdminLayout remounts so nav does not flash on route change. */
+let adminSessionVerified = false
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = createBrowserSupabaseClient()
   const router = useRouter()
   const pathname = usePathname()
   const { t } = useLanguage()
-  const [checking, setChecking] = useState(true)
+  const [checking, setChecking] = useState(!adminSessionVerified)
 
   useEffect(() => {
+    if (adminSessionVerified) {
+      setChecking(false)
+      return
+    }
+
+    let cancelled = false
     supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) router.push('/admin/login')
-      else setChecking(false)
+      if (cancelled) return
+      if (!data.session) {
+        adminSessionVerified = false
+        router.push('/admin/login')
+        return
+      }
+      adminSessionVerified = true
+      setChecking(false)
     })
+    return () => {
+      cancelled = true
+    }
   }, [router, supabase])
 
   async function signOut() {
     await supabase.auth.signOut()
+    adminSessionVerified = false
     router.push('/admin/login')
-  }
-
-  if (checking) {
-    return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: 'var(--navy)' }}>
-        <div className="text-sm text-white">{t.loading}</div>
-      </div>
-    )
   }
 
   return (
@@ -83,16 +94,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <button
             onClick={signOut}
             type="button"
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-white/40 transition-colors hover:text-white/70"
+            className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-white/85 transition-colors hover:bg-white/10 hover:text-white"
           >
             {t.signOut}
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
-        <OrderNotificationWatcher mode="admin" />
-        {children}
+      <main className="relative flex-1 overflow-auto">
+        {checking ? (
+          <div className="flex min-h-[calc(100vh-0px)] items-center justify-center p-6">
+            <div className="text-sm text-gray-500">{t.loading}</div>
+          </div>
+        ) : (
+          <>
+            <OrderNotificationWatcher mode="admin" />
+            {children}
+          </>
+        )}
       </main>
     </div>
   )
