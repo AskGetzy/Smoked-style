@@ -9,6 +9,7 @@ import {
 } from '@/lib/checkout-pricing'
 import { normalizeDeliveryDate } from '@/lib/dates'
 import { sendOrderConfirmation } from '@/lib/email'
+import { sendNewOrderPushNotification } from '@/lib/send-new-order-push'
 import type { Product } from '@/types'
 
 type CreateOrderBody = {
@@ -272,6 +273,8 @@ export async function POST(req: NextRequest) {
     } catch (emailError) {
       console.error('Order confirmation email failed', emailError)
     }
+
+    await sendNewOrderPushNotification(contact.name.trim(), total)
 
     return NextResponse.json({ orderId: order.id, orderNumber })
   } catch (e: unknown) {

@@ -3,6 +3,7 @@ import { requireAdmin } from '@/lib/admin-auth'
 import { amountsMatch } from '@/lib/checkout-pricing'
 import { normalizeDeliveryDate } from '@/lib/dates'
 import { sendOrderConfirmation } from '@/lib/email'
+import { sendNewOrderPushNotification } from '@/lib/send-new-order-push'
 import { stripe } from '@/lib/stripe'
 
 type BossOrderItem = {
@@ -170,6 +171,8 @@ export async function POST(req: NextRequest) {
     } catch (emailError) {
       console.error('Boss order confirmation email failed', emailError)
     }
+
+    await sendNewOrderPushNotification(customer.full_name.trim(), total)
 
     return NextResponse.json({ orderId: order.id, orderNumber })
   } catch (e: unknown) {

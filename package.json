@@ -7,18 +7,22 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "generate-docs": "node generate-instructions.js"
+    "generate-docs": "node generate-instructions.js",
+    "generate-pwa-icons": "node scripts/generate-pwa-icons.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^2.7.0",
     "@stripe/stripe-js": "^3.3.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.39.3",
+    "@types/web-push": "^3.6.4",
     "next": "14.2.3",
     "react": "^18",
     "react-dom": "^18",
     "resend": "^6.12.3",
-    "stripe": "^14.18.0"
+    "sharp": "^0.34.5",
+    "stripe": "^14.18.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/node": "^20",
