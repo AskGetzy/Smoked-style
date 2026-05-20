@@ -25,3 +25,13 @@ body {
 .boss-sheet-slide-up {
   animation: boss-sheet-slide-up 0.28s ease-out;
 }
+
+.catalog-modal-slide-up {
+  animation: boss-sheet-slide-up 0.28s ease-out;
+}
+
+@media (min-width: 640px) {
+  .catalog-modal-slide-up {
+    animation: none;
+  }
+}

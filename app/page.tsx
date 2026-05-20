@@ -4,7 +4,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 import type { Product, CartItem } from '@/types'
 import Header from '@/components/Header'
+import ProductCard from '@/components/ProductCard'
 import ProductModal from '@/components/ProductModal'
+import { formatPrice, getBoardVariants } from '@/lib/product-display'
 
 const CATEGORIES = [
   { key: 'all', label: 'All' },
@@ -14,16 +16,6 @@ const CATEGORIES = [
   { key: 'non_smoked', label: 'Non-Smoked' },
   { key: 'boards', label: 'Boards' },
 ]
-
-function formatPrice(product: Product): string {
-  switch (product.sold_as) {
-    case 'per_lb': return `$${product.price}/lb`
-    case 'per_pack': return `$${product.price}/pack`
-    case 'per_pan': return `$${product.price}/pan`
-    case 'per_board': return `$${product.price}`
-    default: return `$${product.price}`
-  }
-}
 
 export default function CatalogPage() {
   const supabase = createBrowserSupabaseClient()
@@ -113,6 +105,11 @@ export default function CatalogPage() {
   }
 
   function addModalItem(item: CartItem) {
+    if (!user) {
+      setPendingProduct(selectedProduct)
+      setShowSignInModal(true)
+      return
+    }
     const existing = cart.find(i =>
       i.product_id === item.product_id &&
       i.selected_flavor === item.selected_flavor &&
@@ -128,6 +125,10 @@ export default function CatalogPage() {
     }
     setSelectedProduct(null)
     showToast(`${item.product_name} added to cart`)
+  }
+
+  function openProduct(product: Product) {
+    setSelectedProduct(product)
   }
 
   async function signInWithGoogle() {
@@ -242,7 +243,7 @@ export default function CatalogPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse">
-                <div className="h-52 bg-gray-200" />
+                <div className="h-48 bg-gray-200" />
                 <div className="p-4 space-y-2">
                   <div className="h-4 bg-gray-200 rounded w-3/4" />
                   <div className="h-3 bg-gray-200 rounded w-full" />
@@ -262,11 +263,12 @@ export default function CatalogPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid auto-rows-fr grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map(product => (
               <ProductCard
                 key={product.id}
                 product={product}
+                onOpen={() => openProduct(product)}
                 onAdd={() => handleAddToCart(product)}
               />
             ))}
@@ -278,6 +280,7 @@ export default function CatalogPage() {
       {selectedProduct && (
         <ProductModal
           product={selectedProduct}
+          sizeVariants={getBoardVariants(selectedProduct, products)}
           onClose={() => setSelectedProduct(null)}
           onAdd={addModalItem}
         />
@@ -343,51 +346,3 @@ function ClearIcon() {
   )
 }
 
-function ProductCard({ product, onAdd }: { product: Product; onAdd: () => void }) {
-  return (
-    <div className={`bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow ${!product.is_in_stock ? 'opacity-75' : ''}`}>
-      <div className="h-52 bg-gray-100 flex items-center justify-center text-5xl relative">
-        {product.image_url
-          ? <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-          : <span>{product.category === 'jerky' ? '🥩' : product.category === 'boards' ? '🪵' : product.category === 'steaks' ? '🥩' : '🍖'}</span>
-        }
-        {!product.is_in_stock && (
-          <div className="absolute top-3 left-3 bg-gray-700 text-white text-xs font-bold px-2 py-1 rounded-full">
-            Out of Stock
-          </div>
-        )}
-        {product.is_featured_purim && (
-          <div className="absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-            Purim Special
-          </div>
-        )}
-      </div>
-      <div className="p-4">
-        <h3 className="font-bold text-gray-900 text-base leading-tight">
-          {product.name}{product.size_label ? ` — ${product.size_label}` : ''}
-        </h3>
-        {product.description && (
-          <p className="text-gray-500 text-sm mt-1 line-clamp-2">{product.description}</p>
-        )}
-        <div className="mt-3 flex items-center justify-between">
-          <span className="font-bold text-lg" style={{ color: 'var(--orange)' }}>
-            {formatPrice(product)}
-          </span>
-          {product.is_in_stock ? (
-            <button
-              onClick={onAdd}
-              className="text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors"
-              style={{ background: 'var(--navy)' }}
-              onMouseOver={e => (e.currentTarget.style.background = '#243258')}
-              onMouseOut={e => (e.currentTarget.style.background = 'var(--navy)')}
-            >
-              Add to Cart
-            </button>
-          ) : (
-            <span className="text-gray-400 text-sm font-medium">Unavailable</span>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
