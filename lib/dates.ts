@@ -50,3 +50,20 @@ export function formatDeliveryDate(
 export function isCreatedOnLocalDate(createdAt: string, localDate: string) {
   return toLocalDateString(new Date(createdAt)) === localDate
 }
+
+export function formatOrderDate(dateString: string): string {
+  const d = new Date(dateString)
+  return (
+    d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }) +
+    ' at ' +
+    d.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+  )
+}

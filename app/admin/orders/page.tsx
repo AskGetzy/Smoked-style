@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import AdminLayout from '@/components/AdminLayout'
-import { formatDeliveryDate } from '@/lib/dates'
+import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
 import type { Order } from '@/types'
 
 const STATUS_TABS = ['all', 'pending', 'approved', 'out_for_delivery', 'delivered', 'cancelled']
@@ -144,6 +144,11 @@ export default function OrdersPage() {
                         </span>
                       </div>
                       <p className="text-sm text-gray-600">{(order.customers as { full_name?: string })?.full_name ?? 'Guest'}</p>
+                      {order.created_at && (
+                        <p className="text-xs text-gray-400">
+                          Ordered: {formatOrderDate(order.created_at)}
+                        </p>
+                      )}
                       {order.delivery_date && (
                         <p className="mt-0.5 text-xs text-gray-400">
                           📅 {formatDeliveryDate(order.delivery_date, { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -152,9 +157,6 @@ export default function OrdersPage() {
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold" style={{ color: 'var(--orange)' }}>${order.total.toFixed(2)}</div>
-                      <div className="mt-0.5 text-xs text-gray-400">
-                        {new Date(order.created_at).toLocaleDateString()}
-                      </div>
                     </div>
                   </div>
                 </div>

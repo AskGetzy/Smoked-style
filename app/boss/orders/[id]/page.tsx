@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
-import { formatDeliveryDate } from '@/lib/dates'
+import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
 
 export default function BossOrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -74,6 +74,9 @@ export default function BossOrderDetailPage() {
           </span>
         </div>
         <div className="text-2xl font-black">{customer?.full_name ?? 'Guest'}</div>
+        {order.created_at && (
+          <div className="text-sm text-gray-500">Ordered: {formatOrderDate(order.created_at)}</div>
+        )}
         {customer?.phone && (
           <a
             className="block min-h-12 py-2 text-lg font-black text-green-700"

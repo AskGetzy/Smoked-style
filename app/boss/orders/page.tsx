@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
-import { formatDeliveryDate } from '@/lib/dates'
+import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
 
 const TABS = ['all', 'pending', 'approved', 'delivered']
 
@@ -109,6 +109,11 @@ export default function BossOrdersPage() {
                         {order.order_number}
                       </div>
                       <div className="mt-1 text-lg font-black">{customer?.full_name ?? 'Guest'}</div>
+                      {order.created_at && (
+                        <div className="text-sm text-gray-400">
+                          Ordered: {formatOrderDate(order.created_at)}
+                        </div>
+                      )}
                       {customer?.phone && (
                         <a
                           href={`tel:${customer.phone}`}
