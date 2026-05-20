@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import AdminLayout from '@/components/AdminLayout'
+import JerkyInventoryPanel from '@/components/JerkyInventoryPanel'
 import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/lib/language-context'
 import { productCategoryLabel } from '@/lib/i18n'
@@ -22,6 +23,10 @@ export default function InventoryPage() {
     const { data } = await supabase.from('products').select('*').order('category, name')
     setProducts(data ?? [])
     setLoading(false)
+  }
+
+  function updateProductInState(updated: Product) {
+    setProducts(ps => ps.map(p => (p.id === updated.id ? updated : p)))
   }
 
   async function updateProduct(id: string, qty: number, price: number) {
@@ -70,6 +75,22 @@ export default function InventoryPage() {
     return acc
   }, {} as Record<string, Product[]>)
 
+  const jerkyLabels = {
+    priceLabel: t.priceLabel,
+    save: t.save,
+    inStock: t.inStock,
+    off: t.off,
+    outOfStock: t.outOfStock,
+    lowStock: t.lowStock,
+    uploading: t.uploading,
+    changePhoto: t.changePhoto,
+    addPhoto: t.addPhoto,
+    flavor: t.flavor,
+    stockLbs: t.stockLbs,
+    threshold: t.threshold,
+    unavailable: t.unavailable,
+  }
+
   return (
     <AdminLayout>
       <div className="p-6">
@@ -93,85 +114,101 @@ export default function InventoryPage() {
           Object.entries(grouped).map(([cat, items]) => (
             <div key={cat} className="mb-8">
               <h2 className="font-bold text-gray-700 text-sm uppercase tracking-wider mb-3">{productCategoryLabel(t, cat)}</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {items.map(p => {
-                  const isLow = p.is_in_stock && p.stock_quantity <= p.low_stock_threshold
-                  return (
-                    <div key={p.id} className={`bg-white rounded-xl border p-4 ${
-                      !p.is_in_stock ? 'border-red-200 bg-red-50' : isLow ? 'border-yellow-200 bg-yellow-50' : 'border-gray-100'
-                    }`}>
-                      {/* Image */}
-                      <div
-                        className="w-full h-36 rounded-lg mb-3 overflow-hidden relative group cursor-pointer bg-gray-100 flex items-center justify-center"
-                        onClick={() => fileRefs.current[p.id]?.click()}
-                      >
-                        {p.image_url ? (
-                          <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-4xl">🥩</span>
-                        )}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                          <span className="text-white text-sm font-semibold">
-                            {uploading === p.id ? t.uploading : p.image_url ? `📷 ${t.changePhoto}` : `📷 ${t.addPhoto}`}
-                          </span>
-                        </div>
-                        <input
-                          ref={el => { fileRefs.current[p.id] = el }}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={e => {
-                            const file = e.target.files?.[0]
-                            if (file) uploadImage(p.id, file)
-                          }}
-                        />
-                      </div>
 
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <p className="font-semibold text-sm text-gray-900">{p.name}{p.size_label ? ` — ${p.size_label}` : ''}</p>
-                          {!p.is_in_stock && <span className="text-xs text-red-600 font-bold">{t.outOfStock.toUpperCase()}</span>}
-                          {isLow && <span className="text-xs text-yellow-700 font-bold">{t.lowStock.toUpperCase()}</span>}
-                        </div>
-                        <button onClick={() => toggleStock(p.id, p.is_in_stock)}
-                          className={`px-2 py-1 rounded-lg text-xs font-semibold ${p.is_in_stock ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-                          {p.is_in_stock ? t.inStock : t.off}
-                        </button>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-10">{t.priceLabel}</span>
-                          <div className="relative flex-1">
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                            <input
-                              type="number" min="0" step="1"
-                              value={p.price}
-                              onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, price: Number(e.target.value) } : x))}
-                              className="w-full border border-gray-200 rounded-lg pl-6 pr-2 py-1 text-sm focus:outline-none focus:border-orange-400"
-                            />
+              {cat === 'jerky' ? (
+                <div className="grid grid-cols-1 gap-3">
+                  {items.map(p => (
+                    <JerkyInventoryPanel
+                      key={p.id}
+                      product={p}
+                      onUpdate={updateProductInState}
+                      t={jerkyLabels}
+                      uploading={uploading}
+                      onUploadImage={uploadImage}
+                      fileInputRef={el => { fileRefs.current[p.id] = el }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {items.map(p => {
+                    const isLow = p.is_in_stock && p.stock_quantity <= p.low_stock_threshold
+                    return (
+                      <div key={p.id} className={`bg-white rounded-xl border p-4 ${
+                        !p.is_in_stock ? 'border-red-200 bg-red-50' : isLow ? 'border-yellow-200 bg-yellow-50' : 'border-gray-100'
+                      }`}>
+                        <div
+                          className="w-full h-36 rounded-lg mb-3 overflow-hidden relative group cursor-pointer bg-gray-100 flex items-center justify-center"
+                          onClick={() => fileRefs.current[p.id]?.click()}
+                        >
+                          {p.image_url ? (
+                            <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-4xl">🥩</span>
+                          )}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                            <span className="text-white text-sm font-semibold">
+                              {uploading === p.id ? t.uploading : p.image_url ? `📷 ${t.changePhoto}` : `📷 ${t.addPhoto}`}
+                            </span>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-10">{t.stockLabel}</span>
                           <input
-                            type="number" min="0"
-                            value={p.stock_quantity}
-                            onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, stock_quantity: Number(e.target.value) } : x))}
-                            className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:border-orange-400"
+                            ref={el => { fileRefs.current[p.id] = el }}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={e => {
+                              const file = e.target.files?.[0]
+                              if (file) uploadImage(p.id, file)
+                            }}
                           />
-                          <button onClick={() => updateProduct(p.id, p.stock_quantity, p.price)}
-                            disabled={saving === p.id}
-                            className="text-xs px-3 py-1.5 rounded-lg text-white font-semibold disabled:opacity-60 flex-shrink-0"
-                            style={{ background: 'var(--navy)' }}>
-                            {saving === p.id ? '...' : t.save}
+                        </div>
+
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="font-semibold text-sm text-gray-900">{p.name}{p.size_label ? ` — ${p.size_label}` : ''}</p>
+                            {!p.is_in_stock && <span className="text-xs text-red-600 font-bold">{t.outOfStock.toUpperCase()}</span>}
+                            {isLow && <span className="text-xs text-yellow-700 font-bold">{t.lowStock.toUpperCase()}</span>}
+                          </div>
+                          <button onClick={() => toggleStock(p.id, p.is_in_stock)}
+                            className={`px-2 py-1 rounded-lg text-xs font-semibold ${p.is_in_stock ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                            {p.is_in_stock ? t.inStock : t.off}
                           </button>
                         </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-10">{t.priceLabel}</span>
+                            <div className="relative flex-1">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                              <input
+                                type="number" min="0" step="1"
+                                value={p.price}
+                                onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, price: Number(e.target.value) } : x))}
+                                className="w-full border border-gray-200 rounded-lg pl-6 pr-2 py-1 text-sm focus:outline-none focus:border-orange-400"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-10">{t.stockLabel}</span>
+                            <input
+                              type="number" min="0"
+                              value={p.stock_quantity}
+                              onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, stock_quantity: Number(e.target.value) } : x))}
+                              className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:border-orange-400"
+                            />
+                            <button onClick={() => updateProduct(p.id, p.stock_quantity, p.price)}
+                              disabled={saving === p.id}
+                              className="text-xs px-3 py-1.5 rounded-lg text-white font-semibold disabled:opacity-60 flex-shrink-0"
+                              style={{ background: 'var(--navy)' }}>
+                              {saving === p.id ? '...' : t.save}
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           ))
         )}

@@ -5,6 +5,11 @@ import type { Product, CartItem } from '@/types'
 import ProductImage from '@/components/ProductImage'
 import { categoryLabel, formatPrice } from '@/lib/product-display'
 import {
+  getFirstAvailableJerkyFlavor,
+  getJerkyFlavors,
+  isJerkyFlavorAvailable,
+} from '@/lib/jerky-stock'
+import {
   formatStockLeft,
   getAvailableStock,
   getMaxLineQuantity,
@@ -27,15 +32,27 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
   const [weight, setWeight] = useState(initialProduct.weight_options?.[0] ?? null)
   const [qty, setQty] = useState(1)
 
+  function defaultFlavorFor(product: Product) {
+    return getFirstAvailableJerkyFlavor(product) ?? getJerkyFlavors(product)[0] ?? null
+  }
+
   useEffect(() => {
     setActiveProduct(initialProduct)
-    setFlavor(initialProduct.flavors?.[0] ?? null)
+    setFlavor(
+      initialProduct.category === 'jerky'
+        ? defaultFlavorFor(initialProduct)
+        : initialProduct.flavors?.[0] ?? null,
+    )
     setWeight(initialProduct.weight_options?.[0] ?? null)
     setQty(1)
   }, [initialProduct.id])
 
   useEffect(() => {
-    setFlavor(activeProduct.flavors?.[0] ?? null)
+    setFlavor(
+      activeProduct.category === 'jerky'
+        ? defaultFlavorFor(activeProduct)
+        : activeProduct.flavors?.[0] ?? null,
+    )
     setWeight(activeProduct.weight_options?.[0] ?? null)
     setQty(1)
   }, [activeProduct.id])
@@ -83,6 +100,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
 
   function handleAdd() {
     if (outOfStock || maxQty <= 0) return
+    if (isJerky && flavor && !isJerkyFlavorAvailable(product, flavor)) return
     if (isJerky && weight && weight > maxQty) return
     if (!isJerky && qty > maxQty) return
     const item: CartItem = {
@@ -148,7 +166,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
 
           {isJerky && (
             <>
-              {product.flavors && product.flavors.length > 0 && (
+              {getJerkyFlavors(product).length > 0 && (
                 <div className="mt-5">
                   <label className="mb-2 block text-sm font-bold text-gray-700">Flavor</label>
                   <select
@@ -156,12 +174,18 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
                     onChange={e => setFlavor(e.target.value)}
                     className="min-h-12 w-full rounded-xl border border-gray-200 px-3 text-base focus:border-orange-400 focus:outline-none"
                   >
-                    {product.flavors.map(f => (
-                      <option key={f} value={f}>
-                        {f}
-                      </option>
-                    ))}
+                    {getJerkyFlavors(product).map(f => {
+                      const available = isJerkyFlavorAvailable(product, f)
+                      return (
+                        <option key={f} value={f} disabled={!available}>
+                          {available ? f : `${f} — Out of stock`}
+                        </option>
+                      )
+                    })}
                   </select>
+                  {flavor && !isJerkyFlavorAvailable(product, flavor) && (
+                    <p className="mt-2 text-sm font-medium text-red-600">This flavor is currently unavailable.</p>
+                  )}
                 </div>
               )}
               {product.weight_options && product.weight_options.length > 0 && (
@@ -169,10 +193,10 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
                   <label className="mb-2 block text-sm font-bold text-gray-700">Weight</label>
                   <div className="grid grid-cols-2 gap-2">
                     {product.weight_options.map(w => {
-                      const flavorAvailable = flavor
+                      const flavorAvailable = flavor && isJerkyFlavorAvailable(product, flavor)
                         ? getAvailableStock(product, flavor)
-                        : getAvailableStock(product, null)
-                      const weightDisabled = w > flavorAvailable
+                        : 0
+                      const weightDisabled = !flavorAvailable || w > flavorAvailable
                       return (
                         <button
                           key={w}
@@ -282,7 +306,11 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
           ) : (
             <button
               onClick={handleAdd}
-              disabled={isJerky ? !weight || (weight ?? 0) > maxQty : qty > maxQty}
+              disabled={
+                isJerky
+                  ? !flavor || !isJerkyFlavorAvailable(product, flavor) || !weight || (weight ?? 0) > maxQty
+                  : qty > maxQty
+              }
               className="min-h-14 w-full rounded-xl text-lg font-black text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               style={{ background: 'var(--navy)' }}
               type="button"

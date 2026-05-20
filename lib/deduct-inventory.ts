@@ -13,15 +13,7 @@ type ProductRow = {
   jerky_flavor_stock: Record<string, number> | null
 }
 
-function parseFlavorStock(raw: unknown): Record<string, number> {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
-  const out: Record<string, number> = {}
-  for (const [key, value] of Object.entries(raw)) {
-    const n = Number(value)
-    if (Number.isFinite(n)) out[key] = n
-  }
-  return out
-}
+import { parseJerkyFlavorStock } from '@/lib/jerky-stock'
 
 function deductAmount(item: OrderItem, category: string): number {
   if (category === 'jerky') {
@@ -62,7 +54,7 @@ export async function deductInventoryOnApproval(
     const reason = `Order ${orderNumber} approved`
 
     if (row.category === 'jerky' && item.selected_flavor) {
-      const flavorStock = parseFlavorStock(row.jerky_flavor_stock)
+      const flavorStock = parseJerkyFlavorStock(row.jerky_flavor_stock)
       const flavor = item.selected_flavor
       const previous = Number(flavorStock[flavor] ?? row.stock_quantity ?? 0)
       const next = Math.max(0, previous - amount)

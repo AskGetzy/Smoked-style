@@ -1,7 +1,14 @@
 import type { CartItem, Product } from '@/types'
+import {
+  getJerkyFlavorStock,
+  isJerkyProductOutOfStock,
+} from '@/lib/jerky-stock'
 
 export function isOutOfStock(product: Product): boolean {
   if (product.is_in_stock === false) return true
+  if (product.category === 'jerky') {
+    return isJerkyProductOutOfStock(product)
+  }
   if (
     product.stock_quantity !== null &&
     product.stock_quantity !== undefined &&
@@ -40,27 +47,20 @@ export function matchesStockLine(
   )
 }
 
-function parseFlavorStock(raw: unknown): Record<string, number> {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
-  const out: Record<string, number> = {}
-  for (const [key, value] of Object.entries(raw)) {
-    const n = Number(value)
-    if (Number.isFinite(n)) out[key] = n
-  }
-  return out
-}
-
 /** Units available to sell (pieces, packs, or lbs for jerky by flavor). */
 export function getAvailableStock(product: Product | null | undefined, flavor?: string | null): number {
   if (!product) return 0
-  if (isOutOfStock(product)) return 0
+  if (!product.is_in_stock) return 0
 
   if (product.category === 'jerky' && flavor) {
-    const flavorStock = parseFlavorStock(product.jerky_flavor_stock)
-    if (flavor in flavorStock) {
-      return Math.max(0, flavorStock[flavor])
-    }
+    return getJerkyFlavorStock(product, flavor)
   }
+
+  if (product.category === 'jerky') {
+    return isJerkyProductOutOfStock(product) ? 0 : Number(product.stock_quantity) || 0
+  }
+
+  if (isOutOfStock(product)) return 0
 
   const stock = Number(product.stock_quantity)
   return Number.isFinite(stock) ? Math.max(0, stock) : 0
@@ -167,6 +167,10 @@ export function assertCartWithinStock(
     if (!product) throw new Error(`Product not found: ${line.product_id}`)
     if (isOutOfStock(product)) {
       throw new Error(`${product.name} is out of stock`)
+    }
+
+    if (product.category === 'jerky' && line.selected_flavor && !getJerkyFlavorStock(product, line.selected_flavor)) {
+      throw new Error(`${line.selected_flavor} is out of stock for ${product.name}`)
     }
 
     const key = stockPoolKey(product, line)
