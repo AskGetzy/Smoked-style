@@ -39,7 +39,7 @@ export default function CartPage() {
     async function loadProducts() {
       const { data } = await supabase
         .from('products')
-        .select('id, name, category, price, sold_as, flavors, weight_options, pack_size, size_label, stock_quantity, jerky_flavor_stock, is_in_stock, image_url')
+        .select('id, name, category, price, sold_as, flavors, weight_options, pack_size, size_label, stock_quantity, is_in_stock, image_url')
         .in('id', productIds)
 
       if (cancelled) return

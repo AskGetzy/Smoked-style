@@ -42,11 +42,18 @@ export default function CatalogPage() {
   }, [])
 
   async function fetchProducts() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('products')
-      .select('*, stock_quantity, is_in_stock, jerky_flavor_stock')
+      .select('*')
       .order('category')
-    setProducts(data ?? [])
+
+    if (error) {
+      console.error('Failed to load products', error)
+      showToast('Could not load products. Please refresh.')
+      setProducts([])
+    } else {
+      setProducts(data ?? [])
+    }
     setLoading(false)
   }
 
