@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Product, CartItem } from '@/types'
 import ProductImage from '@/components/ProductImage'
 import { categoryLabel, formatPrice } from '@/lib/product-display'
+import { isOutOfStock } from '@/lib/product-stock'
 
 interface Props {
   product: Product
@@ -33,7 +34,7 @@ export default function ProductModal({ product: initialProduct, sizeVariants = [
   }, [activeProduct.id])
 
   const product = activeProduct
-  const outOfStock = !product.is_in_stock
+  const outOfStock = isOutOfStock(product)
   const isJerky = product.category === 'jerky'
   const isBoard = product.category === 'boards'
   const showQuantity = !isJerky && !isBoard
@@ -160,7 +161,7 @@ export default function ProductModal({ product: initialProduct, sizeVariants = [
                     key={variant.id}
                     type="button"
                     onClick={() => setActiveProduct(variant)}
-                    disabled={!variant.is_in_stock}
+                    disabled={isOutOfStock(variant)}
                     className={`flex min-h-12 items-center justify-between rounded-xl border-2 px-4 text-base font-semibold transition-all disabled:opacity-40 ${
                       activeProduct.id === variant.id
                         ? 'border-orange-500 bg-orange-50 text-orange-700'

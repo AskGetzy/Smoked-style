@@ -1,4 +1,5 @@
 import type { Product } from '@/types'
+import { isOutOfStock } from '@/lib/product-stock'
 
 export type CheckoutCartLine = {
   product_id: string
@@ -16,7 +17,7 @@ export type PricedCartLine = CheckoutCartLine & {
 }
 
 export function computeLineTotal(product: Product, line: CheckoutCartLine): PricedCartLine {
-  if (!product.is_in_stock) {
+  if (isOutOfStock(product)) {
     throw new Error(`${product.name} is out of stock`)
   }
 

@@ -7,6 +7,7 @@ import Header from '@/components/Header'
 import ProductCard from '@/components/ProductCard'
 import ProductModal from '@/components/ProductModal'
 import { formatPrice, getBoardVariants } from '@/lib/product-display'
+import { isOutOfStock } from '@/lib/product-stock'
 
 const CATEGORIES = [
   { key: 'all', label: 'All' },
@@ -36,7 +37,10 @@ export default function CatalogPage() {
   }, [])
 
   async function fetchProducts() {
-    const { data } = await supabase.from('products').select('*').order('category')
+    const { data } = await supabase
+      .from('products')
+      .select('*, stock_quantity, is_in_stock')
+      .order('category')
     setProducts(data ?? [])
     setLoading(false)
   }
@@ -52,6 +56,7 @@ export default function CatalogPage() {
   }
 
   function handleAddToCart(product: Product) {
+    if (isOutOfStock(product)) return
     if (!user) {
       setPendingProduct(product)
       setShowSignInModal(true)

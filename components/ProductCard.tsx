@@ -3,6 +3,7 @@
 import type { Product } from '@/types'
 import ProductImage from '@/components/ProductImage'
 import { formatPrice } from '@/lib/product-display'
+import { isOutOfStock } from '@/lib/product-stock'
 
 type Props = {
   product: Product
@@ -11,12 +12,12 @@ type Props = {
 }
 
 export default function ProductCard({ product, onOpen, onAdd }: Props) {
-  const outOfStock = !product.is_in_stock
+  const outOfStock = isOutOfStock(product)
 
   return (
     <article
       className={`flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow sm:hover:-translate-y-0.5 sm:hover:shadow-lg ${
-        outOfStock ? 'opacity-75' : ''
+        outOfStock ? 'opacity-60 grayscale' : ''
       }`}
     >
       <button

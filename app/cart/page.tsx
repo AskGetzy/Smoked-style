@@ -1,14 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
-import type { CartItem } from '@/types'
+import type { CartItem, Product } from '@/types'
 import { useSupabaseUser } from '@/lib/use-supabase-user'
+import { isOutOfStock } from '@/lib/product-stock'
 
 export default function CartPage() {
   const { user, authReady, supabase } = useSupabaseUser()
   const [cart, setCart] = useState<CartItem[]>([])
+  const [productsById, setProductsById] = useState<Map<string, Product>>(new Map())
   const [notes, setNotes] = useState('')
   const [giftMessage, setGiftMessage] = useState('')
 
@@ -20,6 +22,38 @@ export default function CartPage() {
     const g = localStorage.getItem('smoked-gift')
     if (g) setGiftMessage(g)
   }, [])
+
+  const productIds = useMemo(
+    () => Array.from(new Set(cart.map(i => i.product_id).filter(Boolean))),
+    [cart],
+  )
+
+  useEffect(() => {
+    if (productIds.length === 0) {
+      setProductsById(new Map())
+      return
+    }
+
+    let cancelled = false
+
+    async function loadProducts() {
+      const { data } = await supabase
+        .from('products')
+        .select('id, name, category, price, sold_as, flavors, weight_options, pack_size, size_label, stock_quantity, is_in_stock, image_url')
+        .in('id', productIds)
+
+      if (cancelled) return
+
+      const map = new Map<string, Product>()
+      for (const p of data ?? []) {
+        map.set(p.id, p as Product)
+      }
+      setProductsById(map)
+    }
+
+    void loadProducts()
+    return () => { cancelled = true }
+  }, [supabase, productIds])
 
   async function signInWithGoogle() {
     await supabase.auth.signInWithOAuth({
@@ -56,9 +90,15 @@ export default function CartPage() {
     localStorage.setItem('smoked-gift', val)
   }
 
+  function itemIsOutOfStock(item: CartItem): boolean {
+    const product = productsById.get(item.product_id)
+    if (!product) return false
+    return isOutOfStock(product)
+  }
+
   const subtotal = cart.reduce((s, i) => s + i.line_total, 0)
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
-  const hasOOS = false
+  const hasOOS = cart.some(itemIsOutOfStock)
 
   function itemLabel(item: CartItem): string {
     const parts = [item.product_name]
@@ -92,34 +132,52 @@ export default function CartPage() {
           </div>
         ) : (
           <div className="flex flex-col lg:flex-row gap-6">
-            {/* Items */}
             <div className="flex-1">
+              {hasOOS && (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                  Some items are no longer available. Remove them before checkout.
+                </div>
+              )}
+
               <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-100">
-                {cart.map(item => (
-                  <div key={item.id} className="p-4 flex gap-4">
-                    <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
-                      {item.image_url
-                        ? <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover rounded-xl" />
-                        : '🥩'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900 text-sm leading-tight">{itemLabel(item)}</p>
-                      <p className="text-gray-500 text-xs mt-0.5">${item.unit_price.toFixed(2)} each</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <button onClick={() => updateQty(item.id, -1)} className="w-7 h-7 rounded-full border border-gray-300 text-sm font-bold text-gray-600 hover:bg-gray-50">−</button>
-                        <span className="text-sm font-bold w-6 text-center">{item.quantity}</span>
-                        <button onClick={() => updateQty(item.id, 1)} className="w-7 h-7 rounded-full border border-gray-300 text-sm font-bold text-gray-600 hover:bg-gray-50">+</button>
+                {cart.map(item => {
+                  const unavailable = itemIsOutOfStock(item)
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-4 flex gap-4 ${unavailable ? 'bg-red-50 border-l-4 border-red-400' : ''}`}
+                    >
+                      <div className={`w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 ${unavailable ? 'opacity-60 grayscale' : ''}`}>
+                        {item.image_url
+                          ? <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover rounded-xl" />
+                          : '🥩'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm leading-tight">{itemLabel(item)}</p>
+                        {unavailable ? (
+                          <p className="text-red-600 text-xs font-semibold mt-1">This item is no longer available</p>
+                        ) : (
+                          <p className="text-gray-500 text-xs mt-0.5">${item.unit_price.toFixed(2)} each</p>
+                        )}
+                        {!unavailable && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <button onClick={() => updateQty(item.id, -1)} className="w-7 h-7 rounded-full border border-gray-300 text-sm font-bold text-gray-600 hover:bg-gray-50">−</button>
+                            <span className="text-sm font-bold w-6 text-center">{item.quantity}</span>
+                            <button onClick={() => updateQty(item.id, 1)} className="w-7 h-7 rounded-full border border-gray-300 text-sm font-bold text-gray-600 hover:bg-gray-50">+</button>
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right flex flex-col items-end gap-2">
+                        {!unavailable && (
+                          <span className="font-bold text-gray-900">${item.line_total.toFixed(2)}</span>
+                        )}
+                        <button onClick={() => removeItem(item.id)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
                       </div>
                     </div>
-                    <div className="text-right flex flex-col items-end gap-2">
-                      <span className="font-bold text-gray-900">${item.line_total.toFixed(2)}</span>
-                      <button onClick={() => removeItem(item.id)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
-              {/* Notes */}
               <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-4">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Order Notes (optional)</label>
                 <textarea
@@ -139,7 +197,6 @@ export default function CartPage() {
               </div>
             </div>
 
-            {/* Summary */}
             <div className="lg:w-72">
               <div className="bg-white rounded-2xl border border-gray-100 p-5 sticky top-24">
                 <h2 className="font-bold text-gray-900 mb-4">Order Summary</h2>
@@ -157,13 +214,23 @@ export default function CartPage() {
                   <span>Total</span>
                   <span style={{ color: 'var(--orange)' }}>${subtotal.toFixed(2)}</span>
                 </div>
-                <Link
-                  href="/checkout"
-                  className="block w-full text-center text-white font-bold py-3 rounded-xl mt-4 transition-colors"
-                  style={{ background: 'var(--navy)' }}
-                >
-                  Proceed to Checkout
-                </Link>
+                {hasOOS ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="block w-full text-center text-white font-bold py-3 rounded-xl mt-4 bg-gray-300 cursor-not-allowed"
+                  >
+                    Remove unavailable items
+                  </button>
+                ) : (
+                  <Link
+                    href="/checkout"
+                    className="block w-full text-center text-white font-bold py-3 rounded-xl mt-4 transition-colors"
+                    style={{ background: 'var(--navy)' }}
+                  >
+                    Proceed to Checkout
+                  </Link>
+                )}
                 <Link href="/" className="block text-center text-sm text-gray-400 hover:text-gray-600 mt-3">
                   ← Continue Shopping
                 </Link>
