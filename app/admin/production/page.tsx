@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import ProductionOrdersPanel from '@/components/ProductionOrdersPanel'
 import { formatDeliveryDate, normalizeDeliveryDate, todayLocal } from '@/lib/dates'
@@ -23,11 +23,15 @@ export default function ProductionPage() {
   const [panelLoading, setPanelLoading] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
   const [panelRows, setPanelRows] = useState<ProductionOrderRow[]>([])
+  const loadedDateRef = useRef<string | null>(null)
 
   useEffect(() => { void fetchProduction() }, [date])
 
   async function fetchProduction() {
-    setLoading(true)
+    const isInitialForDate = loadedDateRef.current !== date
+    if (isInitialForDate) {
+      setLoading(true)
+    }
     setError('')
 
     const res = await fetch('/api/admin/orders', {
@@ -38,7 +42,7 @@ export default function ProductionPage() {
 
     if (!res.ok) {
       setError(data.error ?? t.couldNotLoadProduction)
-      setOrders([])
+      if (isInitialForDate) setOrders([])
       setLoading(false)
       return
     }
@@ -50,6 +54,7 @@ export default function ProductionPage() {
     )
 
     setOrders(filtered)
+    loadedDateRef.current = date
     setLoading(false)
   }
 

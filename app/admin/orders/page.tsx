@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import AdminLayout from '@/components/AdminLayout'
@@ -29,28 +29,44 @@ export default function OrdersPage() {
   const { t } = useLanguage()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
+  const hasLoadedOrdersRef = useRef(false)
+  const fetchInFlightRef = useRef(false)
 
   const fetchOrders = useCallback(async () => {
-    setLoading(true)
+    if (fetchInFlightRef.current) return
+    fetchInFlightRef.current = true
+
+    const isInitialLoad = !hasLoadedOrdersRef.current
+    if (isInitialLoad) {
+      setLoading(true)
+    } else {
+      setRefreshing(true)
+    }
     setError('')
 
-    const res = await fetch('/api/admin/orders', {
-      credentials: 'include',
-      cache: 'no-store',
-    })
-    const payload = await res.json()
+    try {
+      const res = await fetch('/api/admin/orders', {
+        credentials: 'include',
+        cache: 'no-store',
+      })
+      const payload = await res.json()
 
-    if (!res.ok) {
-      setError(payload.error ?? t.couldNotLoadOrders)
-      setOrders([])
-    } else {
-      setOrders((payload.orders ?? []) as Order[])
+      if (!res.ok) {
+        setError(payload.error ?? t.couldNotLoadOrders)
+        if (isInitialLoad) setOrders([])
+      } else {
+        setOrders((payload.orders ?? []) as Order[])
+        hasLoadedOrdersRef.current = true
+      }
+    } finally {
+      fetchInFlightRef.current = false
+      setLoading(false)
+      setRefreshing(false)
     }
-
-    setLoading(false)
   }, [t.couldNotLoadOrders])
 
   useEffect(() => {
@@ -59,19 +75,25 @@ export default function OrdersPage() {
 
   useEffect(() => {
     const supabase = createClientComponentClient()
-    const pollingFallback = window.setInterval(() => {
-      void fetchOrders()
-    }, 15000)
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+    const scheduleRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        void fetchOrders()
+      }, 400)
+    }
+
+    const pollingFallback = setInterval(scheduleRefresh, 15000)
 
     const channel = supabase
       .channel('orders-list-refresh')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        void fetchOrders()
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, scheduleRefresh)
       .subscribe()
 
     return () => {
-      window.clearInterval(pollingFallback)
+      if (debounceTimer) clearTimeout(debounceTimer)
+      clearInterval(pollingFallback)
       void supabase.removeChannel(channel)
     }
   }, [fetchOrders])
@@ -93,7 +115,15 @@ export default function OrdersPage() {
     <AdminLayout>
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>{t.orders}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>{t.orders}</h1>
+            {refreshing && (
+              <span
+                className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-orange-500"
+                aria-hidden
+              />
+            )}
+          </div>
           <div className="flex flex-wrap justify-end gap-3">
             <div className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-semibold text-yellow-800">
               {counts.pending} {t.pending}
