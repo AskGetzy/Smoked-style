@@ -291,7 +291,7 @@ export async function POST(req: NextRequest) {
       console.error('Order confirmation email failed', emailError)
     }
 
-    await sendNewOrderPushNotification(contact.name.trim(), total)
+    await sendNewOrderPushNotification(contact.name.trim(), total, orderNumber)
 
     return NextResponse.json({ orderId: order.id, orderNumber })
   } catch (e: unknown) {

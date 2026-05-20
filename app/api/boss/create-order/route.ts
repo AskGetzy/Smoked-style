@@ -192,7 +192,7 @@ export async function POST(req: NextRequest) {
       console.error('Boss order confirmation email failed', emailError)
     }
 
-    await sendNewOrderPushNotification(buyerName, total)
+    await sendNewOrderPushNotification(buyerName, total, orderNumber)
 
     return NextResponse.json({ orderId: order.id, orderNumber })
   } catch (e: unknown) {

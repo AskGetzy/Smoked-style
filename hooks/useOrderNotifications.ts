@@ -60,8 +60,15 @@ export function useOrderNotifications({
       ? `NEW ORDER — ${customerName(firstOrder)} — $${firstOrder.total.toFixed(2)}`
       : `${newOrders.length} new orders received!`
 
-    playNewOrderSound()
-    vibrateNewOrder()
+    if (document.visibilityState === 'visible') {
+      playNewOrderSound()
+      vibrateNewOrder()
+      onInPageAlert?.(`🚨 ${body}`, true)
+    }
+
+    // Boss PWA already receives server web push on new orders; skip client
+    // system notifications here to avoid duplicate alerts on the same device.
+    if (mode === 'boss') return
 
     void showOrderNotification({
       title: 'New order received',
@@ -70,11 +77,7 @@ export function useOrderNotifications({
       url: notifyPath,
       urgent: true,
     })
-
-    if (document.visibilityState === 'visible') {
-      onInPageAlert?.(`🚨 ${body}`, true)
-    }
-  }, [notifyPath, onInPageAlert])
+  }, [mode, notifyPath, onInPageAlert])
 
   const syncOrders = useCallback(async () => {
     const orders = await loadOrders()

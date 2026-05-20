@@ -21,6 +21,7 @@ export type PushMessage = {
   title: string
   body: string
   url?: string
+  tag?: string
 }
 
 export async function sendPushNotifications(message: PushMessage) {
@@ -40,6 +41,7 @@ export async function sendPushNotifications(message: PushMessage) {
     title: message.title,
     body: message.body,
     url: message.url ?? '/boss/orders',
+    tag: message.tag,
   })
 
   let sent = 0
