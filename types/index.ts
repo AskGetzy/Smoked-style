@@ -11,6 +11,7 @@ export interface Product {
   weight_options: number[] | null
   size_label: string | null
   stock_quantity: number
+  jerky_flavor_stock?: Record<string, number> | null
   low_stock_threshold: number
   is_in_stock: boolean
   is_featured_purim: boolean
