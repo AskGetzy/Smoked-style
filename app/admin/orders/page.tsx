@@ -1,10 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import AdminLayout from '@/components/AdminLayout'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
+import { useLanguage } from '@/lib/language-context'
+import { orderStatusLabel } from '@/lib/i18n'
 import { displayBuyerName } from '@/lib/order-buyer'
 import type { Order } from '@/types'
 
@@ -18,7 +20,13 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-800',
 }
 
+function statusTabLabel(tab: string, t: ReturnType<typeof useLanguage>['t']) {
+  if (tab === 'all') return t.all
+  return orderStatusLabel(t, tab)
+}
+
 export default function OrdersPage() {
+  const { t } = useLanguage()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -36,14 +44,14 @@ export default function OrdersPage() {
     const payload = await res.json()
 
     if (!res.ok) {
-      setError(payload.error ?? 'Could not load orders')
+      setError(payload.error ?? t.couldNotLoadOrders)
       setOrders([])
     } else {
       setOrders((payload.orders ?? []) as Order[])
     }
 
     setLoading(false)
-  }, [])
+  }, [t.couldNotLoadOrders])
 
   useEffect(() => {
     void fetchOrders()
@@ -85,13 +93,13 @@ export default function OrdersPage() {
     <AdminLayout>
       <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>Orders</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>{t.orders}</h1>
           <div className="flex flex-wrap justify-end gap-3">
             <div className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-semibold text-yellow-800">
-              {counts.pending} Pending
+              {counts.pending} {t.pending}
             </div>
             <div className="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">
-              {counts.approved} Approved
+              {counts.approved} {t.approved}
             </div>
           </div>
         </div>
@@ -99,7 +107,7 @@ export default function OrdersPage() {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search by order number or customer name..."
+          placeholder={t.searchOrdersPlaceholder}
           className="mb-4 w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:border-orange-400 focus:outline-none"
         />
 
@@ -108,12 +116,12 @@ export default function OrdersPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
+              className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                 activeTab === tab ? 'text-white' : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
               }`}
               style={activeTab === tab ? { background: 'var(--navy)' } : {}}
             >
-              {tab === 'all' ? 'All' : tab.replace('_', ' ')}
+              {statusTabLabel(tab, t)}
             </button>
           ))}
         </div>
@@ -129,7 +137,7 @@ export default function OrdersPage() {
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-gray-400">
             <div className="mb-2 text-4xl">📭</div>
-            <p>No orders found</p>
+            <p>{t.noOrdersFound}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -140,14 +148,14 @@ export default function OrdersPage() {
                     <div>
                       <div className="mb-1 flex items-center gap-2">
                         <span className="font-bold text-gray-900">{order.order_number}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>
-                          {order.status.replace('_', ' ')}
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                          {orderStatusLabel(t, order.status)}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600">{displayBuyerName(order)}</p>
                       {order.created_at && (
                         <p className="text-xs text-gray-400">
-                          Ordered: {formatOrderDate(order.created_at)}
+                          {t.orderedOn}: {formatOrderDate(order.created_at)}
                         </p>
                       )}
                       {order.delivery_date && (

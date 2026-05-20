@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import ProductionOrdersPanel from '@/components/ProductionOrdersPanel'
 import { formatDeliveryDate, normalizeDeliveryDate, todayLocal } from '@/lib/dates'
+import { useLanguage } from '@/lib/language-context'
 import {
   adminProductionItemKey,
   ordersContainingProduct,
@@ -13,6 +14,7 @@ import {
 import type { Order } from '@/types'
 
 export default function ProductionPage() {
+  const { t } = useLanguage()
   const [date, setDate] = useState(todayLocal())
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,7 +37,7 @@ export default function ProductionPage() {
     const data = await res.json()
 
     if (!res.ok) {
-      setError(data.error ?? 'Could not load production data')
+      setError(data.error ?? t.couldNotLoadProduction)
       setOrders([])
       setLoading(false)
       return
@@ -96,7 +98,7 @@ export default function ProductionPage() {
     qtyClassName: string
   }) {
     if (items.length === 0) {
-      return <p className="text-gray-400 text-sm">No orders for this date</p>
+      return <p className="text-gray-400 text-sm">{t.noOrdersForDate}</p>
     }
 
     return items.map(item => (
@@ -116,7 +118,7 @@ export default function ProductionPage() {
     <AdminLayout>
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>Production</h1>
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>{t.production}</h1>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
             className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-orange-400" />
         </div>
@@ -137,14 +139,14 @@ export default function ProductionPage() {
             <div className="bg-white rounded-xl border border-gray-100 p-4">
               <h3 className="font-bold text-green-700 mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-                Confirmed Orders ({confirmed.length} items)
+                {t.confirmedOrdersTitle} ({confirmed.length} {t.itemsCount})
               </h3>
               <ItemList items={confirmed} sourceOrders={confirmedOrders} qtyClassName="text-gray-900" />
             </div>
             <div className="bg-white rounded-xl border border-gray-100 p-4">
               <h3 className="font-bold text-yellow-700 mb-3 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />
-                Pending Orders ({pending.length} items)
+                {t.pendingOrdersTitle} ({pending.length} {t.itemsCount})
               </h3>
               <ItemList items={pending} sourceOrders={pendingOrders} qtyClassName="text-yellow-700" />
             </div>

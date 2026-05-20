@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/lib/language-context'
 import type { Customer } from '@/types'
 
 const TAG_COLORS: Record<string, string> = {
@@ -12,6 +13,7 @@ const TAG_COLORS: Record<string, string> = {
 }
 
 export default function CustomersPage() {
+  const { t } = useLanguage()
   const [customers, setCustomers] = useState<(Customer & { order_count: number; total_spent: number })[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -42,10 +44,10 @@ export default function CustomersPage() {
   return (
     <AdminLayout>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--navy)' }}>Customers</h1>
+        <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--navy)' }}>{t.customers}</h1>
 
         <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name or email..."
+          placeholder={t.searchByNameOrEmail}
           className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-4 focus:outline-none focus:border-orange-400" />
 
         {loading ? (
@@ -53,17 +55,17 @@ export default function CustomersPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <div className="text-4xl mb-2">👥</div>
-            <p>No customers yet</p>
+            <p>{t.noCustomersYet}</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100">
-                  <th className="text-left px-4 py-3 text-gray-500 font-semibold text-xs uppercase">Customer</th>
-                  <th className="text-left px-4 py-3 text-gray-500 font-semibold text-xs uppercase">Tags</th>
-                  <th className="text-right px-4 py-3 text-gray-500 font-semibold text-xs uppercase">Orders</th>
-                  <th className="text-right px-4 py-3 text-gray-500 font-semibold text-xs uppercase">Spent</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-semibold text-xs uppercase">{t.customer}</th>
+                  <th className="text-left px-4 py-3 text-gray-500 font-semibold text-xs uppercase">{t.tagsLabel}</th>
+                  <th className="text-right px-4 py-3 text-gray-500 font-semibold text-xs uppercase">{t.ordersColumn}</th>
+                  <th className="text-right px-4 py-3 text-gray-500 font-semibold text-xs uppercase">{t.spentColumn}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">

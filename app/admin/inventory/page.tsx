@@ -3,9 +3,12 @@
 import { useEffect, useState, useRef } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import { supabase } from '@/lib/supabase'
+import { useLanguage } from '@/lib/language-context'
+import { productCategoryLabel } from '@/lib/i18n'
 import type { Product } from '@/types'
 
 export default function InventoryPage() {
+  const { t } = useLanguage()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
@@ -67,15 +70,13 @@ export default function InventoryPage() {
     return acc
   }, {} as Record<string, Product[]>)
 
-  const categoryLabel = (c: string) => c.replace('_', '-').replace(/\b\w/g, l => l.toUpperCase())
-
   return (
     <AdminLayout>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--navy)' }}>Inventory</h1>
+        <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--navy)' }}>{t.inventory}</h1>
         <input
           value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search products..."
+          placeholder={t.searchProductsPlaceholder}
           className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-6 focus:outline-none focus:border-orange-400"
         />
 
@@ -86,12 +87,12 @@ export default function InventoryPage() {
         ) : Object.keys(grouped).length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <div className="text-4xl mb-2">📦</div>
-            <p>No products found. Run the seed data step first.</p>
+            <p>{t.noProductsFound}</p>
           </div>
         ) : (
           Object.entries(grouped).map(([cat, items]) => (
             <div key={cat} className="mb-8">
-              <h2 className="font-bold text-gray-700 text-sm uppercase tracking-wider mb-3">{categoryLabel(cat)}</h2>
+              <h2 className="font-bold text-gray-700 text-sm uppercase tracking-wider mb-3">{productCategoryLabel(t, cat)}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {items.map(p => {
                   const isLow = p.is_in_stock && p.stock_quantity <= p.low_stock_threshold
@@ -111,7 +112,7 @@ export default function InventoryPage() {
                         )}
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                           <span className="text-white text-sm font-semibold">
-                            {uploading === p.id ? 'Uploading...' : p.image_url ? '📷 Change Photo' : '📷 Add Photo'}
+                            {uploading === p.id ? t.uploading : p.image_url ? `📷 ${t.changePhoto}` : `📷 ${t.addPhoto}`}
                           </span>
                         </div>
                         <input
@@ -129,18 +130,18 @@ export default function InventoryPage() {
                       <div className="flex items-start justify-between mb-3">
                         <div>
                           <p className="font-semibold text-sm text-gray-900">{p.name}{p.size_label ? ` — ${p.size_label}` : ''}</p>
-                          {!p.is_in_stock && <span className="text-xs text-red-600 font-bold">OUT OF STOCK</span>}
-                          {isLow && <span className="text-xs text-yellow-700 font-bold">LOW STOCK</span>}
+                          {!p.is_in_stock && <span className="text-xs text-red-600 font-bold">{t.outOfStock.toUpperCase()}</span>}
+                          {isLow && <span className="text-xs text-yellow-700 font-bold">{t.lowStock.toUpperCase()}</span>}
                         </div>
                         <button onClick={() => toggleStock(p.id, p.is_in_stock)}
                           className={`px-2 py-1 rounded-lg text-xs font-semibold ${p.is_in_stock ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-                          {p.is_in_stock ? 'In Stock' : 'Off'}
+                          {p.is_in_stock ? t.inStock : t.off}
                         </button>
                       </div>
 
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-10">Price</span>
+                          <span className="text-xs text-gray-400 w-10">{t.priceLabel}</span>
                           <div className="relative flex-1">
                             <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
                             <input
@@ -152,7 +153,7 @@ export default function InventoryPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-10">Stock</span>
+                          <span className="text-xs text-gray-400 w-10">{t.stockLabel}</span>
                           <input
                             type="number" min="0"
                             value={p.stock_quantity}
@@ -163,7 +164,7 @@ export default function InventoryPage() {
                             disabled={saving === p.id}
                             className="text-xs px-3 py-1.5 rounded-lg text-white font-semibold disabled:opacity-60 flex-shrink-0"
                             style={{ background: 'var(--navy)' }}>
-                            {saving === p.id ? '...' : 'Save'}
+                            {saving === p.id ? '...' : t.save}
                           </button>
                         </div>
                       </div>

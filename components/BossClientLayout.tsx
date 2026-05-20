@@ -4,21 +4,24 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import LanguageToggle from '@/components/LanguageToggle'
 import OrderNotificationWatcher from '@/components/OrderNotificationWatcher'
+import { LanguageProvider, useLanguage } from '@/lib/language-context'
+import type { TranslationKey } from '@/lib/i18n'
 import { arrayBufferToBase64, urlBase64ToUint8Array } from '@/lib/push-client'
 
-const NAV = [
-  { href: '/boss/new-order', label: 'New Order', icon: '＋' },
-  { href: '/boss/orders', label: 'Orders', icon: '☰' },
-  { href: '/boss/production', label: 'Production', icon: '▣' },
-  { href: '/boss/dashboard', label: 'Dashboard', icon: '⌂' },
+const NAV: { href: string; key: TranslationKey; icon: string }[] = [
+  { href: '/boss/new-order', key: 'newOrder', icon: '＋' },
+  { href: '/boss/orders', key: 'orders', icon: '☰' },
+  { href: '/boss/production', key: 'production', icon: '▣' },
+  { href: '/boss/dashboard', key: 'dashboard', icon: '⌂' },
 ]
 
-const TITLES: Record<string, string> = {
-  '/boss/new-order': 'New Order',
-  '/boss/orders': 'Orders',
-  '/boss/production': 'Production',
-  '/boss/dashboard': 'Dashboard',
+const TITLE_KEYS: Record<string, TranslationKey> = {
+  '/boss/new-order': 'newOrder',
+  '/boss/orders': 'orders',
+  '/boss/production': 'production',
+  '/boss/dashboard': 'dashboard',
 }
 
 type BeforeInstallPromptEvent = Event & {
@@ -26,10 +29,11 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-export default function BossClientLayout({ children }: { children: React.ReactNode }) {
+function BossClientLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClientComponentClient()
+  const { t } = useLanguage()
   const [checking, setChecking] = useState(pathname !== '/boss/login')
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
 
@@ -123,13 +127,14 @@ export default function BossClientLayout({ children }: { children: React.ReactNo
   if (checking) {
     return (
       <div className="flex min-h-screen items-center justify-center text-white" style={{ background: 'var(--navy)' }}>
-        <div className="text-base font-semibold">Loading boss portal...</div>
+        <div className="text-base font-semibold">{t.loadingBossPortal}</div>
       </div>
     )
   }
 
   const orderDetailMatch = pathname.match(/^\/boss\/orders\/([^/]+)$/)
-  const title = TITLES[pathname] ?? (orderDetailMatch ? 'Order' : 'Boss Portal')
+  const titleKey = TITLE_KEYS[pathname] ?? (orderDetailMatch ? 'orders' : 'dashboard')
+  const title = t[titleKey]
 
   return (
     <div className="min-h-screen pb-24 text-gray-900" style={{ background: '#f8fafc' }}>
@@ -142,13 +147,14 @@ export default function BossClientLayout({ children }: { children: React.ReactNo
             <h1 className="text-xl font-black text-white">{title}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageToggle />
             {deferredPrompt && (
               <button
                 type="button"
                 onClick={() => void installApp()}
                 className="min-h-12 rounded-2xl bg-orange-600 px-3 text-sm font-black text-white"
               >
-                Install App
+                {t.installApp}
               </button>
             )}
             <button
@@ -156,7 +162,7 @@ export default function BossClientLayout({ children }: { children: React.ReactNo
               onClick={signOut}
               className="min-h-12 rounded-2xl bg-white/10 px-4 text-base font-bold text-white"
             >
-              Sign out
+              {t.signOut}
             </button>
           </div>
         </div>
@@ -182,12 +188,20 @@ export default function BossClientLayout({ children }: { children: React.ReactNo
                 }`}
               >
                 <span className="text-xl leading-none">{item.icon}</span>
-                <span>{item.label}</span>
+                <span>{t[item.key]}</span>
               </Link>
             )
           })}
         </div>
       </nav>
     </div>
+  )
+}
+
+export default function BossClientLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <LanguageProvider>
+      <BossClientLayoutInner>{children}</BossClientLayoutInner>
+    </LanguageProvider>
   )
 }

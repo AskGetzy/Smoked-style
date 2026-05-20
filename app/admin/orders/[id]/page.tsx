@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AdminLayout from '@/components/AdminLayout'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
+import { useLanguage } from '@/lib/language-context'
+import { orderStatusLabel } from '@/lib/i18n'
 import { displayBuyerEmail, displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 import type { Order, OrderItem } from '@/types'
 
@@ -20,6 +22,7 @@ const STATUS_COLORS: Record<string, string> = {
 type EditableOrderItem = Pick<OrderItem, 'id' | 'product_name' | 'quantity' | 'unit_price'>
 
 export default function OrderDetailPage() {
+  const { t } = useLanguage()
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [order, setOrder] = useState<Order | null>(null)
@@ -48,7 +51,7 @@ export default function OrderDetailPage() {
     const payload = await res.json()
 
     if (!res.ok) {
-      setError(payload.error ?? 'Could not load order')
+      setError(payload.error ?? t.couldNotLoadOrder)
       setOrder(null)
     } else {
       setOrder(payload.order)
@@ -105,7 +108,7 @@ export default function OrderDetailPage() {
       setOrder(payload.order)
       setIsEditing(false)
     } else {
-      setError(payload.error ?? 'Could not save order changes')
+      setError(payload.error ?? t.couldNotSaveOrder)
     }
 
     setSavingEdits(false)
@@ -138,7 +141,7 @@ export default function OrderDetailPage() {
       fetchOrder()
     } else {
       const payload = await res.json()
-      setError(payload.error ?? 'Could not reject order')
+      setError(payload.error ?? t.couldNotRejectOrder)
     }
   }
 
@@ -155,7 +158,7 @@ export default function OrderDetailPage() {
       fetchOrder()
     } else {
       const payload = await res.json()
-      setError(payload.error ?? 'Could not update order status')
+      setError(payload.error ?? t.couldNotUpdateStatus)
     }
   }
 
@@ -170,7 +173,7 @@ export default function OrderDetailPage() {
 
   if (!order) return (
     <AdminLayout>
-      <div className="p-6 text-center text-gray-400">{error || 'Order not found'}</div>
+      <div className="p-6 text-center text-gray-400">{error || t.orderNotFound}</div>
     </AdminLayout>
   )
 
@@ -183,21 +186,21 @@ export default function OrderDetailPage() {
     <AdminLayout>
       <div className="p-6 max-w-3xl">
         <div className="flex items-center gap-3 mb-6">
-          <Link href="/admin/orders" className="text-gray-400 hover:text-gray-600 text-sm">← Orders</Link>
+          <Link href="/admin/orders" className="text-gray-400 hover:text-gray-600 text-sm">← {t.backToOrders}</Link>
           <span className="text-gray-300">/</span>
           <span className="font-bold text-gray-900">{order.order_number}</span>
-          <span className={`text-xs font-semibold px-2 py-1 rounded-full capitalize ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>
-            {order.status.replace('_', ' ')}
+          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[order.status] ?? 'bg-gray-100 text-gray-600'}`}>
+            {orderStatusLabel(t, order.status)}
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Customer */}
           <div className="md:col-span-2 bg-white rounded-xl border border-gray-100 p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">Customer</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">{t.customer}</h3>
             <p className="font-bold text-gray-900">{displayBuyerName(order)}</p>
             {order.created_at && (
-              <p className="text-sm text-gray-500">Ordered: {formatOrderDate(order.created_at)}</p>
+              <p className="text-sm text-gray-500">{t.orderedOn}: {formatOrderDate(order.created_at)}</p>
             )}
             {displayBuyerEmail(order) && (
               <p className="text-sm text-gray-500">{displayBuyerEmail(order)}</p>
@@ -215,21 +218,21 @@ export default function OrderDetailPage() {
 
           {/* Actions */}
           <div className="bg-white rounded-xl border border-gray-100 p-4 flex flex-col gap-2">
-            <h3 className="font-semibold text-gray-900 mb-1">Actions</h3>
+            <h3 className="font-semibold text-gray-900 mb-1">{t.actions}</h3>
             {order.status === 'pending' && (
               <>
                 <button onClick={startEditing}
                   className="w-full py-2 rounded-xl text-sm font-semibold text-white"
                   style={{ background: 'var(--navy)' }}>
-                  Edit Order
+                  {t.editOrder}
                 </button>
                 <button onClick={() => setShowApproveModal(true)}
                   className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700">
-                  ✓ Approve & Charge
+                  ✓ {t.approveAndCharge}
                 </button>
                 <button onClick={() => setShowRejectModal(true)}
                   className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600">
-                  ✕ Reject
+                  ✕ {t.reject}
                 </button>
               </>
             )}
@@ -237,18 +240,18 @@ export default function OrderDetailPage() {
               <>
                 {order.order_type === 'pickup' ? (
                   <button onClick={() => updateOrderStatus('ready_for_pickup')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600">
-                    Ready for Pickup
+                    {t.readyForPickup}
                   </button>
                 ) : (
                   <button onClick={() => updateOrderStatus('out_for_delivery')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700">
-                    🚗 Mark Out for Delivery
+                    🚗 {t.markOutForDelivery}
                   </button>
                 )}
               </>
             )}
             {(order.status === 'out_for_delivery' || order.status === 'ready_for_pickup') && (
               <button onClick={() => updateOrderStatus('delivered')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700">
-                ✓ Mark Delivered
+                ✓ {t.markDelivered}
               </button>
             )}
           </div>
@@ -264,13 +267,13 @@ export default function OrderDetailPage() {
           <div className="bg-white rounded-xl border border-orange-100 p-4 mb-4">
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
-                <h3 className="font-semibold text-gray-900">Edit Pending Order</h3>
+                <h3 className="font-semibold text-gray-900">{t.editPendingOrder}</h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  Saving sends the customer an email with the changes and updated total. Set quantity to 0 to remove an item.
+                  {t.editPendingOrderHint}
                 </p>
               </div>
               <button onClick={() => setIsEditing(false)} className="text-sm text-gray-400 hover:text-gray-600">
-                Cancel
+                {t.cancel}
               </button>
             </div>
 
@@ -278,23 +281,23 @@ export default function OrderDetailPage() {
               {editItems.map((item) => (
                 <div key={item.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border border-gray-100 rounded-xl p-3">
                   <div className="md:col-span-6">
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Item</label>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">{t.item}</label>
                     <p className="text-sm font-medium text-gray-900">{item.product_name}</p>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Qty</label>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">{t.qty}</label>
                     <input type="number" min="0" step="1" value={item.quantity}
                       onChange={e => updateEditItem(item.id, 'quantity', e.target.value)}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400" />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Unit Price</label>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">{t.unitPrice}</label>
                     <input type="number" min="0" step="0.01" value={item.unit_price}
                       onChange={e => updateEditItem(item.id, 'unit_price', e.target.value)}
                       className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400" />
                   </div>
                   <div className="md:col-span-2 text-right">
-                    <label className="block text-xs font-semibold text-gray-500 mb-1">Line Total</label>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">{t.lineTotal}</label>
                     <p className="font-semibold text-gray-900">${(item.quantity * item.unit_price).toFixed(2)}</p>
                   </div>
                 </div>
@@ -303,19 +306,19 @@ export default function OrderDetailPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Delivery Fee</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">{t.deliveryFee}</label>
                 <input type="number" min="0" step="0.01" value={editDeliveryFee}
                   onChange={e => setEditDeliveryFee(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">Adjustment</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">{t.adjustment}</label>
                 <input type="number" step="0.01" value={editAdjustment}
                   onChange={e => setEditAdjustment(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1">New Total</label>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">{t.newTotal}</label>
                 <div className="rounded-lg bg-orange-50 px-3 py-2 font-bold" style={{ color: 'var(--orange)' }}>
                   ${editedTotal.toFixed(2)}
                 </div>
@@ -323,21 +326,21 @@ export default function OrderDetailPage() {
             </div>
 
             <div className="mt-3">
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Adjustment Note</label>
+              <label className="block text-xs font-semibold text-gray-500 mb-1">{t.adjustmentNote}</label>
               <input value={editAdjustmentNote} onChange={e => setEditAdjustmentNote(e.target.value)}
-                placeholder="Example: adjusted weight after review"
+                placeholder={t.adjustmentNotePlaceholder}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-400" />
             </div>
 
             <div className="flex gap-3 mt-4">
               <button onClick={() => setIsEditing(false)}
                 className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-semibold">
-                Cancel
+                {t.cancel}
               </button>
               <button onClick={saveOrderEdits} disabled={savingEdits}
                 className="flex-1 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-60"
                 style={{ background: 'var(--navy)' }}>
-                {savingEdits ? 'Saving...' : 'Save & Email Customer'}
+                {savingEdits ? t.savingEllipsis : t.saveAndEmailCustomer}
               </button>
             </div>
           </div>
@@ -345,7 +348,7 @@ export default function OrderDetailPage() {
 
         {/* Items */}
         <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4">
-          <h3 className="font-semibold text-gray-900 mb-3">Items</h3>
+          <h3 className="font-semibold text-gray-900 mb-3">{t.items}</h3>
           <div className="divide-y divide-gray-100">
             {items.map((item: any) => (
               <div key={item.id} className="py-3 flex items-center justify-between">
@@ -364,13 +367,13 @@ export default function OrderDetailPage() {
           </div>
           {order.order_notes && (
             <div className="mt-3 pt-3 border-t border-gray-100">
-              <p className="text-xs text-gray-500 font-semibold">Notes:</p>
+              <p className="text-xs text-gray-500 font-semibold">{t.notesLabel}:</p>
               <p className="text-sm text-gray-700">{order.order_notes}</p>
             </div>
           )}
           {order.gift_message && (
             <div className="mt-2">
-              <p className="text-xs text-gray-500 font-semibold">Gift Message:</p>
+              <p className="text-xs text-gray-500 font-semibold">{t.giftMessage}:</p>
               <p className="text-sm text-gray-700 italic">"{order.gift_message}"</p>
             </div>
           )}
@@ -379,18 +382,18 @@ export default function OrderDetailPage() {
         {/* Totals */}
         <div className="bg-white rounded-xl border border-gray-100 p-4">
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-gray-500">Subtotal</span><span>${order.subtotal.toFixed(2)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-500">Delivery</span><span>${order.delivery_fee.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">{t.subtotal}</span><span>${order.subtotal.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-500">{t.delivery}</span><span>${order.delivery_fee.toFixed(2)}</span></div>
             {order.custom_adjustment !== 0 && (
               <div className="flex justify-between">
-                <span className="text-gray-500">{order.custom_adjustment_note ?? 'Adjustment'}</span>
+                <span className="text-gray-500">{order.custom_adjustment_note ?? t.adjustment}</span>
                 <span className={order.custom_adjustment > 0 ? 'text-red-600' : 'text-green-600'}>
                   {order.custom_adjustment > 0 ? '+' : ''}${order.custom_adjustment.toFixed(2)}
                 </span>
               </div>
             )}
             <div className="flex justify-between font-bold pt-2 border-t border-gray-100 text-base">
-              <span>Total</span>
+              <span>{t.total}</span>
               <span style={{ color: 'var(--orange)' }}>${order.total.toFixed(2)}</span>
             </div>
           </div>
@@ -401,15 +404,15 @@ export default function OrderDetailPage() {
       {showApproveModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="font-bold text-lg mb-2">Approve Order?</h3>
+            <h3 className="font-bold text-lg mb-2">{t.approveOrderTitle}</h3>
             <p className="text-gray-500 text-sm mb-4">
-              This will charge the customer's card <strong>${order.total.toFixed(2)}</strong> and mark the order as approved.
+              {t.approveOrderBody} <strong>${order.total.toFixed(2)}</strong> {t.approveOrderBodySuffix}
             </p>
             <div className="flex gap-3">
-              <button onClick={() => setShowApproveModal(false)} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-semibold">Cancel</button>
+              <button onClick={() => setShowApproveModal(false)} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-semibold">{t.cancel}</button>
               <button onClick={approveOrder} disabled={approving}
                 className="flex-1 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold disabled:opacity-60">
-                {approving ? 'Charging...' : 'Approve & Charge'}
+                {approving ? t.charging : t.approveAndCharge}
               </button>
             </div>
           </div>
@@ -420,14 +423,14 @@ export default function OrderDetailPage() {
       {showRejectModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="font-bold text-lg mb-2">Reject Order?</h3>
+            <h3 className="font-bold text-lg mb-2">{t.rejectOrderTitle}</h3>
             <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)}
-              placeholder="Reason (optional)" rows={3}
+              placeholder={t.rejectReasonOptional} rows={3}
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm mb-4 focus:outline-none resize-none" />
             <div className="flex gap-3">
-              <button onClick={() => setShowRejectModal(false)} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-semibold">Cancel</button>
+              <button onClick={() => setShowRejectModal(false)} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-semibold">{t.cancel}</button>
               <button onClick={rejectOrder} className="flex-1 py-2 bg-red-500 text-white rounded-xl text-sm font-semibold">
-                Reject Order
+                {t.rejectOrderButton}
               </button>
             </div>
           </div>
