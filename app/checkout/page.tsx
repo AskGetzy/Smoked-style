@@ -6,7 +6,7 @@ import { Elements } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import Header from '@/components/Header'
 import CheckoutPaymentForm from '@/components/CheckoutPaymentForm'
-import { createBrowserSupabaseClient } from '@/lib/supabase-client'
+import { useSupabaseUser } from '@/lib/use-supabase-user'
 import { toLocalDateString } from '@/lib/dates'
 import type { CartItem, DeliveryArea } from '@/types'
 
@@ -22,11 +22,10 @@ type PaymentInit = {
 }
 
 export default function CheckoutPage() {
-  const supabase = createBrowserSupabaseClient()
+  const { user, authReady, supabase } = useSupabaseUser()
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [cart, setCart] = useState<CartItem[]>([])
-  const [user, setUser] = useState<any>(null)
   const [areas, setAreas] = useState<DeliveryArea[]>([])
   const [error, setError] = useState('')
   const [preparingPayment, setPreparingPayment] = useState(false)
@@ -47,31 +46,17 @@ export default function CheckoutPage() {
     if (stored) setCart(JSON.parse(stored))
     setNotes(localStorage.getItem('smoked-notes') ?? '')
     setGiftMessage(localStorage.getItem('smoked-gift') ?? '')
-    supabase.auth.getSession().then(({ data }) => {
-      const u = data.session?.user
-      setUser(u)
-      if (u) {
-        setContact({
-          name: u.user_metadata?.full_name ?? '',
-          email: u.email ?? '',
-          phone: '',
-        })
-      }
-    })
-    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
-      const u = session?.user ?? null
-      setUser(u)
-      if (u) {
-        setContact({
-          name: u.user_metadata?.full_name ?? '',
-          email: u.email ?? '',
-          phone: '',
-        })
-      }
-    })
     fetchAreas()
-    return () => listener.subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    if (!user) return
+    setContact({
+      name: user.user_metadata?.full_name ?? '',
+      email: user.email ?? '',
+      phone: '',
+    })
+  }, [user])
 
   async function signInWithGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
@@ -254,8 +239,9 @@ export default function CheckoutPage() {
         cartCount={cartCount}
         cartTotal={displayTotal}
         user={user}
+        authReady={authReady}
         onSignIn={signInWithGoogle}
-        onSignOut={() => supabase.auth.signOut()}
+        onSignOut={() => void supabase.auth.signOut()}
       />
 
       <div className="max-w-2xl mx-auto px-4 py-8">

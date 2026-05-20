@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import type { CartItem } from '@/types'
-import { createBrowserSupabaseClient } from '@/lib/supabase-client'
+import { useSupabaseUser } from '@/lib/use-supabase-user'
 
 export default function CartPage() {
-  const supabase = createBrowserSupabaseClient()
+  const { user, authReady, supabase } = useSupabaseUser()
   const [cart, setCart] = useState<CartItem[]>([])
   const [notes, setNotes] = useState('')
   const [giftMessage, setGiftMessage] = useState('')
-  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem('smoked-cart')
@@ -20,11 +19,6 @@ export default function CartPage() {
     if (n) setNotes(n)
     const g = localStorage.getItem('smoked-gift')
     if (g) setGiftMessage(g)
-    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null))
-    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null)
-    })
-    return () => listener.subscription.unsubscribe()
   }, [])
 
   async function signInWithGoogle() {
@@ -80,8 +74,9 @@ export default function CartPage() {
         cartCount={cartCount}
         cartTotal={subtotal}
         user={user}
+        authReady={authReady}
         onSignIn={signInWithGoogle}
-        onSignOut={() => supabase.auth.signOut()}
+        onSignOut={() => void supabase.auth.signOut()}
       />
 
       <div className="max-w-5xl mx-auto px-4 py-8">

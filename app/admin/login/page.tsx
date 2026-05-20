@@ -1,16 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserSupabaseClient } from '@/lib/supabase-client'
+import SignOutButton from '@/components/SignOutButton'
 
 export default function AdminLoginPage() {
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserSupabaseClient()
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [signedInEmail, setSignedInEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSignedInEmail(data.session?.user?.email ?? null)
+    })
+  }, [supabase])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -26,8 +34,19 @@ export default function AdminLoginPage() {
     }
   }
 
+  async function signOut() {
+    await supabase.auth.signOut()
+    setSignedInEmail(null)
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--navy)' }}>
+      {signedInEmail && (
+        <div className="fixed top-4 right-4 flex flex-col items-end gap-2">
+          <span className="text-xs text-white/70">{signedInEmail}</span>
+          <SignOutButton onClick={signOut} />
+        </div>
+      )}
       <div className="bg-white rounded-2xl p-8 max-w-sm w-full">
         <div className="text-center mb-6">
           <div className="text-3xl mb-2">🔐</div>

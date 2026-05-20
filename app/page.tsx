@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { createBrowserSupabaseClient } from '@/lib/supabase-client'
+import { useSupabaseUser } from '@/lib/use-supabase-user'
 import type { Product, CartItem } from '@/types'
 import Header from '@/components/Header'
 import ProductCard from '@/components/ProductCard'
@@ -18,13 +18,12 @@ const CATEGORIES = [
 ]
 
 export default function CatalogPage() {
-  const supabase = createBrowserSupabaseClient()
+  const { user, authReady, supabase } = useSupabaseUser()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('all')
   const [cart, setCart] = useState<CartItem[]>([])
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [user, setUser] = useState<any>(null)
   const [showSignInModal, setShowSignInModal] = useState(false)
   const [pendingProduct, setPendingProduct] = useState<Product | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -34,18 +33,6 @@ export default function CatalogPage() {
     const stored = localStorage.getItem('smoked-cart')
     if (stored) setCart(JSON.parse(stored))
     fetchProducts()
-
-    async function checkCurrentSession() {
-      const { data: { session } } = await supabase.auth.getSession()
-      console.log("Current session:", session)
-      setUser(session?.user ?? null)
-    }
-
-    checkCurrentSession()
-    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null)
-    })
-    return () => listener.subscription.unsubscribe()
   }, [])
 
   async function fetchProducts() {
@@ -164,8 +151,9 @@ export default function CatalogPage() {
         cartCount={cartCount}
         cartTotal={cartTotal}
         user={user}
+        authReady={authReady}
         onSignIn={signInWithGoogle}
-        onSignOut={() => supabase.auth.signOut()}
+        onSignOut={() => void supabase.auth.signOut()}
       />
 
       {/* Toast */}

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import LanguageToggle from '@/components/LanguageToggle'
+import SignOutButton from '@/components/SignOutButton'
 import OrderNotificationWatcher from '@/components/OrderNotificationWatcher'
 import { LanguageProvider, useLanguage } from '@/lib/language-context'
 import type { TranslationKey } from '@/lib/i18n'
@@ -140,30 +141,28 @@ function BossClientLayoutInner({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen pb-24 text-gray-900" style={{ background: '#f8fafc' }}>
       <OrderNotificationWatcher mode="boss" />
 
-      <header className="sticky top-0 z-40 border-b border-white/10 px-4 py-3" style={{ background: 'var(--navy)' }}>
-        <div className="flex items-center justify-between gap-3">
-          <div>
+      <header className="sticky top-0 z-40 border-b border-white/10 px-3 py-3 sm:px-4" style={{ background: 'var(--navy)' }}>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <div className="text-xs font-black tracking-wider text-white/50">SMOKED STYLE</div>
-            <h1 className="text-xl font-black text-white">{title}</h1>
+            <h1 className="truncate text-lg font-black text-white sm:text-xl">{title}</h1>
           </div>
-          <div className="flex items-center gap-2">
-            <LanguageToggle />
+          <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
+            <LanguageToggle className="shrink-0 scale-90 sm:scale-100" />
             {deferredPrompt && (
               <button
                 type="button"
                 onClick={() => void installApp()}
-                className="min-h-12 rounded-2xl bg-orange-600 px-3 text-sm font-black text-white"
+                className="shrink-0 min-h-10 rounded-2xl bg-orange-600 px-3 text-xs font-black text-white sm:min-h-12 sm:text-sm"
               >
                 {t.installApp}
               </button>
             )}
-            <button
-              type="button"
+            <SignOutButton
               onClick={signOut}
-              className="min-h-12 rounded-2xl bg-white/10 px-4 text-base font-bold text-white"
-            >
-              {t.signOut}
-            </button>
+              label={t.signOut}
+              className="shrink-0 !min-h-10 !py-2 text-xs sm:!min-h-12 sm:text-sm"
+            />
           </div>
         </div>
       </header>

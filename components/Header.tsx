@@ -1,39 +1,59 @@
 'use client'
 
 import Link from 'next/link'
+import type { User } from '@supabase/supabase-js'
+import SignOutButton from '@/components/SignOutButton'
 
 interface HeaderProps {
   cartCount: number
   cartTotal: number
-  user: any
+  user: User | null
+  authReady?: boolean
   onSignIn?: () => void
   onSignOut: () => void
 }
 
-export default function Header({ cartCount, cartTotal, user, onSignIn, onSignOut }: HeaderProps) {
+export default function Header({
+  cartCount,
+  cartTotal,
+  user,
+  authReady = true,
+  onSignIn,
+  onSignOut,
+}: HeaderProps) {
+  const email = user?.email ?? ''
+
   return (
     <header className="sticky top-0 z-40 shadow-md" style={{ background: 'var(--navy)' }}>
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4">
+        <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2">
           <span className="text-xl font-black tracking-wide text-white">
             SMOKED <span style={{ color: 'var(--orange)' }}>STYLE</span>
           </span>
         </Link>
 
-        <div className="flex items-center gap-3">
-          {user ? (
-            <button
-              type="button"
-              onClick={onSignOut}
-              className="rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-            >
-              Sign Out
-            </button>
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          {!authReady ? (
+            <span className="hidden h-9 w-20 animate-pulse rounded-lg bg-white/10 sm:inline-block" aria-hidden />
+          ) : user ? (
+            <div className="flex min-w-0 items-center gap-2">
+              <span
+                className="hidden max-w-[140px] truncate text-xs font-medium text-white/80 sm:inline md:max-w-[200px]"
+                title={email}
+              >
+                {email}
+              </span>
+              <SignOutButton
+                onClick={onSignOut}
+                className="!px-3 !py-2 text-xs sm:text-sm"
+                variant="navy"
+              />
+            </div>
           ) : onSignIn ? (
             <button
               type="button"
               onClick={onSignIn}
-              className="rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+              className="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
             >
               Sign In
             </button>
@@ -41,7 +61,7 @@ export default function Header({ cartCount, cartTotal, user, onSignIn, onSignOut
 
           <Link
             href="/cart"
-            className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors"
+            className="flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-white transition-colors sm:px-4"
             style={{ background: 'rgba(255,255,255,0.1)' }}
           >
             <CartIcon />
