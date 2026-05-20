@@ -410,10 +410,11 @@ export default function CheckoutPage() {
               </div>
               <div className="mt-4 space-y-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <p>
-                  ⚠️ Orders placed on Friday (Erev Shabbos) or Erev Yom Tov may have limited delivery availability.
+                  ⚠️ Friday (Erev Shabbos) and Erev Yom Tov dates may have limited delivery availability.
                 </p>
                 <p>
-                  ⚠️ Orders placed after 11:00 AM — please call or WhatsApp us to confirm we can accommodate:{' '}
+                  ⚠️ For those dates only: if you place your order after 11:00 AM, please call or WhatsApp us to
+                  confirm we can accommodate:{' '}
                   <a href="tel:7188109472" className="font-bold underline">
                     (718) 810-9472
                   </a>
