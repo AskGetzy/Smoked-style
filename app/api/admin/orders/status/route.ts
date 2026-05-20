@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
     }
 
     const emailOrder = { ...order, status, delivered_at: update.delivered_at ?? order.delivered_at }
-    if (status === 'delivered') {
+    // Pickup orders: email on received, approved, and ready for pickup only — not when picked up.
+    if (status === 'delivered' && order.order_type === 'delivery') {
       try {
         console.log('[email] About to send order delivered', {
           orderId,
