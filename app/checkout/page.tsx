@@ -356,15 +356,16 @@ export default function CheckoutPage() {
 
           {step === 2 && (
             <div>
-              <h2 className="text-lg font-bold mb-4">Choose Delivery Date</h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Select your preferred date. Orders placed by Thursday ship the following week.
+              <h2 className="text-lg font-bold mb-2">Choose Delivery Date</h2>
+              <p className="mb-4 text-sm font-semibold text-gray-800">
+                Select your preferred delivery or pickup date.
               </p>
               <div className="grid grid-cols-4 gap-2">
                 {getCalendarDays().map((d) => {
                   const isSat = d.getDay() === 6
                   const isFri = d.getDay() === 5
                   const iso = toLocalDateString(d)
+                  const isSelected = deliveryDate === iso
                   const label = d.toLocaleDateString('en-US', {
                     weekday: 'short',
                     month: 'short',
@@ -373,28 +374,50 @@ export default function CheckoutPage() {
                   return (
                     <button
                       key={iso}
+                      type="button"
                       disabled={isSat}
                       onClick={() => !isSat && setDeliveryDate(iso)}
-                      className={`p-2 rounded-xl text-xs font-medium border-2 transition-all ${
+                      className={`relative p-2 rounded-xl text-xs font-medium border-2 transition-all ${
                         isSat
                           ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
-                          : deliveryDate === iso
-                            ? 'border-orange-500 text-orange-600 bg-orange-50'
+                          : isSelected
+                            ? 'border-orange-500 text-orange-700 bg-orange-50 shadow-sm'
                             : isFri
-                              ? 'border-yellow-300 text-yellow-700 bg-yellow-50'
+                              ? 'border-amber-300 bg-amber-50 text-amber-900 hover:border-amber-400'
                               : 'border-gray-200 text-gray-700 hover:border-gray-300'
                       }`}
                     >
+                      {isFri && !isSat && (
+                        <span
+                          className="absolute right-1 top-1 text-[10px] font-bold leading-none text-amber-600"
+                          aria-hidden
+                        >
+                          *
+                        </span>
+                      )}
                       {label.split(', ').map((l, i) => (
                         <div key={i}>{l}</div>
                       ))}
                       {isSat && <div className="text-gray-300">Closed</div>}
                       {isFri && !isSat && (
-                        <div className="text-yellow-600">⚠ Erev Shabbos</div>
+                        <div className={`mt-0.5 text-[10px] font-semibold ${isSelected ? 'text-orange-600' : 'text-amber-700'}`}>
+                          ⚠ Limited
+                        </div>
                       )}
                     </button>
                   )
                 })}
+              </div>
+              <div className="mt-4 space-y-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p>
+                  ⚠️ Orders placed on Friday (Erev Shabbos) or Erev Yom Tov may have limited delivery availability.
+                </p>
+                <p>
+                  ⚠️ Orders placed after 11:00 AM — please call or WhatsApp us to confirm we can accommodate:{' '}
+                  <a href="tel:7188109472" className="font-bold underline">
+                    (718) 810-9472
+                  </a>
+                </p>
               </div>
             </div>
           )}
