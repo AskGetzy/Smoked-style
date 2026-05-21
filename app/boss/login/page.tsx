@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
-export default function BossLoginPage() {
+function BossLoginForm() {
   const supabase = createClientComponentClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirectTo')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -33,8 +35,12 @@ export default function BossLoginPage() {
       return
     }
 
+    const destination =
+      redirectTo?.startsWith('/boss') && !redirectTo.startsWith('/boss/login')
+        ? redirectTo
+        : '/boss/new-order'
     router.refresh()
-    router.push('/boss/new-order')
+    router.push(destination)
   }
 
   return (
@@ -76,5 +82,19 @@ export default function BossLoginPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function BossLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center p-5" style={{ background: 'var(--navy)' }}>
+          <div className="rounded-3xl bg-white p-7 text-base font-semibold text-gray-500">Loading...</div>
+        </div>
+      }
+    >
+      <BossLoginForm />
+    </Suspense>
   )
 }

@@ -1,13 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 import SignOutButton from '@/components/SignOutButton'
 
-export default function AdminLoginPage() {
+function AdminLoginForm() {
   const supabase = createBrowserSupabaseClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirectTo')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -29,8 +31,12 @@ export default function AdminLoginPage() {
       setError('Invalid email or password')
       setLoading(false)
     } else {
+      const destination =
+        redirectTo?.startsWith('/admin') && !redirectTo.startsWith('/admin/login')
+          ? redirectTo
+          : '/admin/orders'
       router.refresh()
-      router.push('/admin/orders')
+      router.push(destination)
     }
   }
 
@@ -75,5 +81,19 @@ export default function AdminLoginPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center p-4" style={{ background: 'var(--navy)' }}>
+          <div className="rounded-2xl bg-white p-8 text-sm font-semibold text-gray-500">Loading...</div>
+        </div>
+      }
+    >
+      <AdminLoginForm />
+    </Suspense>
   )
 }
