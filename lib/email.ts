@@ -35,6 +35,14 @@ const CONTACT_PHONE = '(718) 810-9472'
 const CONTACT_EMAIL = 'Smokedstyle1@gmail.com'
 const RESEND_TEST_FROM = 'Smoked Style <onboarding@resend.dev>'
 
+function emailFromAddress() {
+  return process.env.RESEND_FROM_EMAIL?.trim() || RESEND_TEST_FROM
+}
+
+function adminNotificationEmail() {
+  return process.env.ADMIN_NOTIFICATION_EMAIL?.trim() || CONTACT_EMAIL
+}
+
 let resend: Resend | null = null
 
 function getResend() {
@@ -196,6 +204,28 @@ function orderRecipient(order: EmailOrder) {
   return order.customers?.email || null
 }
 
+async function sendEmailToAddress(to: string, subject: string, html: string) {
+  const client = getResend()
+  if (!client) return null
+
+  console.log('[email] Sending email with Resend', { to, subject, from: emailFromAddress() })
+
+  const result = await client.emails.send({
+    from: emailFromAddress(),
+    to,
+    subject,
+    html,
+  })
+
+  if (result.error) {
+    console.error('[email] Resend returned an error', { to, subject, message: result.error.message })
+    throw new Error(`Resend email failed: ${result.error.message}`)
+  }
+
+  console.log('[email] Resend email sent', { to, subject, id: result.data?.id })
+  return result
+}
+
 async function sendEmail(order: EmailOrder, subject: string, html: string) {
   const to = orderRecipient(order)
   if (!to) {
@@ -213,29 +243,7 @@ async function sendEmail(order: EmailOrder, subject: string, html: string) {
     subject,
   })
 
-  const result = await client.emails.send({
-    from: RESEND_TEST_FROM,
-    to,
-    subject,
-    html,
-  })
-
-  if (result.error) {
-    console.error('[email] Resend returned an error', {
-      orderNumber: order.order_number,
-      subject,
-      message: result.error.message,
-    })
-    throw new Error(`Resend email failed: ${result.error.message}`)
-  }
-
-  console.log('[email] Resend email sent', {
-    orderNumber: order.order_number,
-    subject,
-    id: result.data?.id,
-  })
-
-  return result
+  return sendEmailToAddress(to, subject, html)
 }
 
 export async function sendOrderConfirmation(order: EmailOrder) {
@@ -310,6 +318,42 @@ export async function sendOrderDelivered(order: EmailOrder) {
       </div>
     `,
   }))
+}
+
+export async function sendPaymentFailedAdmin(orderNumber: string, customerName: string) {
+  const subject = `Payment failed for order #${orderNumber} — ${customerName} — please follow up`
+  const html = `
+    <p style="font-family:Arial,sans-serif;font-size:16px;color:#111827;">
+      Payment failed for order <strong>#${escapeHtml(orderNumber)}</strong> — ${escapeHtml(customerName)} — please follow up.
+    </p>
+  `
+  return sendEmailToAddress(adminNotificationEmail(), subject, html)
+}
+
+export async function sendPaymentFailedCustomer(order: EmailOrder) {
+  const to = orderRecipient(order)
+  if (!to) {
+    console.warn(`No customer email for payment failed notice on order ${order.order_number}`)
+    return null
+  }
+
+  const subject = `Your payment failed for order #${order.order_number}`
+  return sendEmailToAddress(
+    to,
+    subject,
+    layout({
+      preview: `Payment failed for Smoked Style order #${order.order_number}`,
+      heading: 'Your payment did not go through',
+      intro: `Your payment failed for order #${order.order_number}. Please contact us at ${CONTACT_PHONE} and we will help you complete your order.`,
+      order,
+      extra: `
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:14px;padding:16px;margin:18px 0;color:#991b1b;line-height:1.5;">
+          <p style="margin:0 0 6px;"><strong>Call or WhatsApp:</strong> ${CONTACT_PHONE}</p>
+          <p style="margin:0;"><strong>Email:</strong> ${CONTACT_EMAIL}</p>
+        </div>
+      `,
+    }),
+  )
 }
 
 export async function sendOrderReadyForPickup(order: EmailOrder) {

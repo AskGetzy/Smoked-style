@@ -62,7 +62,14 @@ export interface Order {
   id: string
   order_number: string
   customer_id: string
-  status: 'pending' | 'approved' | 'ready_for_pickup' | 'out_for_delivery' | 'delivered' | 'cancelled'
+  status:
+    | 'pending'
+    | 'approved'
+    | 'ready_for_pickup'
+    | 'out_for_delivery'
+    | 'delivered'
+    | 'cancelled'
+    | 'payment_failed'
   order_type: 'delivery' | 'pickup'
   delivery_area_id: string | null
   delivery_address: string | null
@@ -84,6 +91,8 @@ export interface Order {
   created_at: string
   approved_at: string | null
   delivered_at: string | null
+  payment_failed_at: string | null
+  refunded_at: string | null
   customers?: Customer
   order_items?: OrderItem[]
   delivery_areas?: { name: string } | null
