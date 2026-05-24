@@ -20,6 +20,8 @@ import type { DeliveryArea, Order } from '@/types'
 type Props = {
   open: boolean
   onClose: () => void
+  /** Pre-fill delivery date when opening (e.g. boss production day). */
+  defaultDeliveryDate?: string
 }
 
 type Step = 'filters' | 'preview'
@@ -59,7 +61,7 @@ const ORDER_TYPE_OPTIONS: { value: BulkPrintOrderType; label: string }[] = [
   { value: 'pickup', label: 'Pickup only' },
 ]
 
-export default function BulkPrintModal({ open, onClose }: Props) {
+export default function BulkPrintModal({ open, onClose, defaultDeliveryDate }: Props) {
   const [step, setStep] = useState<Step>('filters')
   const [scope, setScope] = useState<BulkPrintScope>('date')
   const [deliveryDate, setDeliveryDate] = useState('')
@@ -118,7 +120,11 @@ export default function BulkPrintModal({ open, onClose }: Props) {
     if (!open) return
     void loadAreas()
     resetModal()
-  }, [open, loadAreas, resetModal])
+    if (defaultDeliveryDate) {
+      setDeliveryDate(defaultDeliveryDate)
+      setScope('date')
+    }
+  }, [open, loadAreas, resetModal, defaultDeliveryDate])
 
   useEffect(() => {
     if (!open) return

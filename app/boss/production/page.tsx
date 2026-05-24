@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { Order } from '@/types'
+import BulkPrintModal from '@/components/BulkPrintModal'
 import ProductionOrdersPanel from '@/components/ProductionOrdersPanel'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { addLocalDays, formatDeliveryDate, normalizeDeliveryDate, todayLocal } from '@/lib/dates'
@@ -39,6 +40,7 @@ export default function BossProductionPage() {
   const [panelLoading, setPanelLoading] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
   const [panelRows, setPanelRows] = useState<ProductionOrderRow[]>([])
+  const [bulkPrintOpen, setBulkPrintOpen] = useState(false)
 
   useEffect(() => { void loadOrders() }, [])
 
@@ -110,8 +112,30 @@ export default function BossProductionPage() {
           <div className="text-center text-lg font-black">{dateLabel}</div>
           <button onClick={() => setDate(addLocalDays(date, 1))} className="min-h-12 rounded-2xl bg-gray-100 px-4 text-xl font-black">›</button>
         </div>
-        <button onClick={() => window.print()} className="min-h-12 w-full rounded-2xl text-base font-black text-white" style={{ background: 'var(--navy)' }}>Print</button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => setBulkPrintOpen(true)}
+            className="min-h-12 flex-1 rounded-2xl border border-gray-200 bg-white px-4 text-base font-black text-gray-800 shadow-sm"
+          >
+            Bulk Print Labels
+          </button>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="min-h-12 flex-1 rounded-2xl text-base font-black text-white"
+            style={{ background: 'var(--navy)' }}
+          >
+            Print
+          </button>
+        </div>
       </div>
+
+      <BulkPrintModal
+        open={bulkPrintOpen}
+        onClose={() => setBulkPrintOpen(false)}
+        defaultDeliveryDate={date}
+      />
 
       {loading ? (
         <div className="flex min-h-[200px] items-center justify-center rounded-3xl bg-white">
