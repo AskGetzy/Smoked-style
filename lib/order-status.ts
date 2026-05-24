@@ -6,29 +6,33 @@ export type FulfillmentStatus =
   | 'out_for_delivery'
   | 'delivered'
 
-/** One step back in the fulfillment flow (payment stays captured). */
-export function getRevertStatus(
-  status: Order['status'],
-  orderType: Order['order_type'],
-): Order['status'] | null {
+type OrderStatusContext = Pick<Order, 'status' | 'order_type' | 'approved_at'>
+
+/** One step back in the fulfillment flow, or restore a cancelled order. */
+export function getRevertStatus(order: OrderStatusContext): Order['status'] | null {
+  const { status, order_type, approved_at } = order
+
   switch (status) {
     case 'delivered':
-      return orderType === 'pickup' ? 'ready_for_pickup' : 'out_for_delivery'
+      return order_type === 'pickup' ? 'ready_for_pickup' : 'out_for_delivery'
     case 'out_for_delivery':
     case 'ready_for_pickup':
       return 'approved'
+    case 'cancelled':
+      return approved_at ? 'approved' : 'pending'
     default:
       return null
   }
 }
 
 /** Manual status targets from the order detail screen (approve/reject stay separate). */
-export function getSettableStatuses(
-  status: Order['status'],
-  orderType: Order['order_type'],
-): FulfillmentStatus[] {
-  const pickup = orderType === 'pickup'
+export function getSettableStatuses(order: OrderStatusContext): Order['status'][] {
+  const { status, order_type, approved_at } = order
+  const pickup = order_type === 'pickup'
+
   switch (status) {
+    case 'cancelled':
+      return approved_at ? ['approved', 'pending'] : ['pending']
     case 'approved':
       return pickup ? ['ready_for_pickup', 'delivered'] : ['out_for_delivery', 'delivered']
     case 'ready_for_pickup':
@@ -42,13 +46,16 @@ export function getSettableStatuses(
   }
 }
 
-export function canSetOrderStatus(
-  from: Order['status'],
-  to: Order['status'],
-  orderType: Order['order_type'],
-): boolean {
-  if (from === to) return true
-  return getSettableStatuses(from, orderType).includes(to as FulfillmentStatus)
+export function canSetOrderStatus(order: OrderStatusContext, to: Order['status']): boolean {
+  if (order.status === to) return true
+
+  if (order.status === 'cancelled') {
+    if (to === 'pending') return !order.approved_at
+    if (to === 'approved') return Boolean(order.approved_at)
+    return false
+  }
+
+  return getSettableStatuses(order).includes(to)
 }
 
 export function statusRequiresPickupOnly(status: Order['status']): boolean {

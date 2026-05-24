@@ -220,9 +220,7 @@ export default function OrderDetailPage() {
                 </button>
               </>
             )}
-            {order.status !== 'pending' &&
-              order.status !== 'cancelled' &&
-              order.status !== 'payment_failed' && (
+            {order.status !== 'pending' && order.status !== 'payment_failed' && (
               <OrderStatusActions order={order} onUpdated={fetchOrder} />
             )}
           </div>

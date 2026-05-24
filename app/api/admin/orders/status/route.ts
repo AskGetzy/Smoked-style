@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     let status: Order['status']
     if (revert) {
-      const previous = getRevertStatus(order.status, order.order_type)
+      const previous = getRevertStatus(order)
       if (!previous) {
         return NextResponse.json(
           { error: `Cannot revert order from ${order.status}` },
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       status = requestedStatus as Order['status']
     }
 
-    const allowedByRules = canSetOrderStatus(order.status, status, order.order_type)
+    const allowedByRules = canSetOrderStatus(order, status)
     const allowedLegacy = LEGACY_FORWARD[order.status]?.includes(status) ?? false
 
     if (!allowedByRules && !allowedLegacy) {
@@ -78,8 +78,11 @@ export async function POST(req: NextRequest) {
     const update: Record<string, string | null> = { status }
     if (status === 'delivered') {
       update.delivered_at = new Date().toISOString()
-    } else if (order.status === 'delivered') {
+    } else if (order.status === 'delivered' || status === 'pending' || status === 'approved') {
       update.delivered_at = null
+    }
+    if (status === 'pending') {
+      update.approved_at = null
     }
 
     const { error: updateError } = await supabase

@@ -24,15 +24,20 @@ export default function OrderStatusActions({
   const { t } = useLanguage()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const settable = getSettableStatuses(order.status, order.order_type)
-  const revertTarget = getRevertStatus(order.status, order.order_type)
+  const statusCtx = {
+    status: order.status,
+    order_type: order.order_type,
+    approved_at: order.approved_at,
+  }
+  const settable = getSettableStatuses(statusCtx)
+  const revertTarget = getRevertStatus(statusCtx)
   const [selectedStatus, setSelectedStatus] = useState<string>('')
 
   useEffect(() => {
-    const options = getSettableStatuses(order.status, order.order_type)
+    const options = getSettableStatuses(statusCtx)
     setSelectedStatus(options[0] ?? '')
     setError('')
-  }, [order.status, order.order_type])
+  }, [order.status, order.order_type, order.approved_at])
 
   async function postStatus(body: { status?: string; revert?: boolean }) {
     setBusy(true)
@@ -117,7 +122,9 @@ export default function OrderStatusActions({
             onClick={() => postStatus({ revert: true })}
             className="min-h-12 w-full rounded-2xl border-2 border-gray-300 bg-white text-base font-black text-gray-800 disabled:opacity-60"
           >
-            Revert to {orderStatusLabel(t, revertTarget)}
+            {order.status === 'cancelled'
+              ? `Restore to ${orderStatusLabel(t, revertTarget)}`
+              : `Revert to ${orderStatusLabel(t, revertTarget)}`}
           </button>
         )}
 
@@ -150,7 +157,9 @@ export default function OrderStatusActions({
           onClick={() => postStatus({ revert: true })}
           className="w-full py-2 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
         >
-          ← {t.revertStatus}: {orderStatusLabel(t, revertTarget)}
+          {order.status === 'cancelled'
+            ? `Restore to ${orderStatusLabel(t, revertTarget)}`
+            : `← ${t.revertStatus}: ${orderStatusLabel(t, revertTarget)}`}
         </button>
       )}
       {error && <p className="text-sm font-semibold text-red-600">{error}</p>}

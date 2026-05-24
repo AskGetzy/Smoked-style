@@ -60,8 +60,7 @@ export default function BossOrderDetailPage() {
 
   const items = order.order_items ?? []
   const isPending = order.status === 'pending'
-  const canEditStatus =
-    !isPending && order.status !== 'cancelled' && order.status !== 'payment_failed'
+  const canEditStatus = !isPending && order.status !== 'payment_failed'
   const showBottomBar = isPending || canEditStatus
 
   return (
@@ -144,7 +143,11 @@ export default function BossOrderDetailPage() {
         <div className="fixed bottom-24 left-0 right-0 z-40 max-h-[55vh] overflow-y-auto border-t border-gray-100 bg-white/95 p-4 shadow-2xl backdrop-blur">
           <div className="mx-auto max-w-lg space-y-3">
             <h2 className="text-lg font-black text-gray-900">
-              {isPending ? 'Approve or reject' : 'Order status'}
+              {isPending
+                ? 'Approve or reject'
+                : order.status === 'cancelled'
+                  ? 'Restore cancelled order'
+                  : 'Order status'}
             </h2>
 
             {isPending ? (
