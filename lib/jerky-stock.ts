@@ -37,9 +37,20 @@ export function getJerkyFlavors(product: Product): string[] {
   return [...JERKY_FLAVOR_NAMES]
 }
 
+function hasJerkyFlavorStockData(product: Product): boolean {
+  return Object.keys(parseJerkyFlavorStock(product.jerky_flavor_stock)).length > 0
+}
+
+/** When per-flavor stock is not configured, use product-level stock_quantity. */
+function legacyJerkyStock(product: Product): number {
+  const qty = Number(product.stock_quantity)
+  return Number.isFinite(qty) && qty > 0 ? qty : 0
+}
+
 export function getJerkyFlavorStock(product: Product, flavor: string): number {
   const stock = parseJerkyFlavorStock(product.jerky_flavor_stock)
   if (flavor in stock) return Math.max(0, stock[flavor])
+  if (!hasJerkyFlavorStockData(product)) return legacyJerkyStock(product)
   return 0
 }
 
@@ -64,9 +75,12 @@ export function isJerkyFlavorLowStock(product: Product, flavor: string): boolean
 /** True when every flavor is at or below zero. */
 export function isJerkyProductOutOfStock(product: Product): boolean {
   if (!product.is_in_stock) return true
+  if (!hasJerkyFlavorStockData(product)) {
+    return legacyJerkyStock(product) <= 0
+  }
   const flavors = getJerkyFlavors(product)
   if (flavors.length === 0) {
-    return Number(product.stock_quantity) <= 0
+    return legacyJerkyStock(product) <= 0
   }
   return flavors.every(flavor => getJerkyFlavorStock(product, flavor) <= 0)
 }

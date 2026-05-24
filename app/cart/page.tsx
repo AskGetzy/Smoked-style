@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import type { CartItem, Product } from '@/types'
 import { useSupabaseUser } from '@/lib/use-supabase-user'
+import { isJerkyFlavorAvailable } from '@/lib/jerky-stock'
 import { getMaxLineQuantity, isOutOfStock } from '@/lib/product-stock'
 
 export default function CartPage() {
@@ -42,16 +43,18 @@ export default function CartPage() {
     async function loadProducts() {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, category, price, sold_as, flavors, weight_options, pack_size, size_label, stock_quantity, jerky_flavor_stock, jerky_flavor_thresholds, low_stock_threshold, is_in_stock, image_url')
+        .select('*')
         .in('id', productIds)
 
       if (cancelled) return
 
+      if (error) {
+        console.error('[cart] Failed to load products for stock check', error)
+      }
+
       const map = new Map<string, Product>()
-      if (!error) {
-        for (const p of data ?? []) {
-          map.set(p.id, p as Product)
-        }
+      for (const p of data ?? []) {
+        map.set(p.id, p as Product)
       }
       setProductsById(map)
       setProductsLoaded(true)
@@ -119,6 +122,9 @@ export default function CartPage() {
     if (!productsLoaded) return false
     const product = getCartProduct(item)
     if (!product) return true
+    if (product.category === 'jerky' && item.selected_flavor) {
+      return !isJerkyFlavorAvailable(product, item.selected_flavor)
+    }
     return isOutOfStock(product)
   }
 
