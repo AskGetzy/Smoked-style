@@ -233,7 +233,7 @@ export default function BulkPrintModal({ open, onClose, defaultDeliveryDate }: P
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
       <div
-        className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-2xl ${
+        className={`flex h-[min(92dvh,92vh)] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:max-h-[92vh] sm:rounded-2xl ${
           step === 'preview' ? 'max-w-2xl' : 'max-w-lg'
         }`}
         role="dialog"
@@ -260,8 +260,8 @@ export default function BulkPrintModal({ open, onClose, defaultDeliveryDate }: P
         </div>
 
         {step === 'filters' ? (
-          <>
-            <div className="space-y-5 overflow-y-auto px-5 py-4">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-4">
               <fieldset className="space-y-2">
                 <legend className="text-sm font-bold text-gray-700">Print scope</legend>
                 {SCOPE_OPTIONS.map(option => (
@@ -373,7 +373,7 @@ export default function BulkPrintModal({ open, onClose, defaultDeliveryDate }: P
               )}
             </div>
 
-            <div className="shrink-0 border-t border-gray-100 bg-gray-50 px-5 py-4">
+            <div className="shrink-0 border-t border-gray-200 bg-gray-50 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button
                 type="button"
                 disabled={previewLoading || Boolean(validationError)}
@@ -384,9 +384,9 @@ export default function BulkPrintModal({ open, onClose, defaultDeliveryDate }: P
                 {previewLoading ? 'Loading…' : 'Preview labels'}
               </button>
             </div>
-          </>
+          </div>
         ) : (
-          <>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-50 px-5 py-2">
               <button
                 type="button"
@@ -409,7 +409,7 @@ export default function BulkPrintModal({ open, onClose, defaultDeliveryDate }: P
               </label>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
               <div className="flex flex-col gap-4">
                 {previewOrders.map(order => (
                   <BulkLabelPreviewCard
@@ -432,7 +432,7 @@ export default function BulkPrintModal({ open, onClose, defaultDeliveryDate }: P
               )}
             </div>
 
-            <div className="shrink-0 space-y-2 border-t border-gray-100 bg-gray-50 px-5 py-4">
+            <div className="shrink-0 space-y-2 border-t border-gray-200 bg-gray-50 px-5 py-4 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button
                 type="button"
                 disabled={generating || selectedOrders.length === 0}
@@ -440,7 +440,7 @@ export default function BulkPrintModal({ open, onClose, defaultDeliveryDate }: P
                 className="h-12 w-full rounded-xl text-sm font-bold text-white disabled:opacity-50"
                 style={{ background: 'var(--navy)' }}
               >
-                {generating ? 'Generating…' : 'Download ZPL'}
+                {generating ? 'Generating…' : 'Print Labels'}
               </button>
               <button
                 type="button"
@@ -450,8 +450,11 @@ export default function BulkPrintModal({ open, onClose, defaultDeliveryDate }: P
               >
                 Print Packing Slips
               </button>
+              <p className="text-center text-xs text-gray-500">
+                Labels download as a .zpl file for your Zebra printer.
+              </p>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
