@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireOwner } from '@/lib/admin-auth'
 import { inDateRange, monthKey, parseDateRangeFromSearchParams } from '@/lib/bookkeeping'
+import { parsePayrollExtras } from '@/lib/payroll-extras'
 
 export async function GET(req: NextRequest) {
   const owner = await requireOwner(req)
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
     const hours_worked = body.hours_worked != null ? Number(body.hours_worked) : null
     const amount_paid = Number(body.amount_paid)
     const notes = body.notes ? String(body.notes).trim() : null
+    const extras = parsePayrollExtras(body.extras)
 
     if (!staff_member_id || !period_start || !period_end || !Number.isFinite(amount_paid)) {
       return NextResponse.json({ error: 'Staff, period, and amount are required' }, { status: 400 })
@@ -82,7 +84,15 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await owner.supabase
       .from('payroll_entries')
-      .insert({ staff_member_id, period_start, period_end, hours_worked, amount_paid, notes })
+      .insert({
+        staff_member_id,
+        period_start,
+        period_end,
+        hours_worked,
+        amount_paid,
+        notes,
+        extras,
+      })
       .select('*, staff_members(full_name, role, pay_type, rate)')
       .single()
 
