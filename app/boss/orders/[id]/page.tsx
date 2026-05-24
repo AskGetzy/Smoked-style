@@ -7,6 +7,7 @@ import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
 import OrderStatusActions from '@/components/OrderStatusActions'
+import PendingOrderItemsEditor from '@/components/PendingOrderItemsEditor'
 import { displayBuyerEmail, displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 
 export default function BossOrderDetailPage() {
@@ -58,140 +59,146 @@ export default function BossOrderDetailPage() {
   if (loading) return <div className="p-4 text-base">Loading...</div>
   if (!order) return <div className="p-4 text-base">Order not found</div>
 
-  const items = order.order_items ?? []
   const isPending = order.status === 'pending'
   const canEditStatus = !isPending && order.status !== 'payment_failed'
-  const showBottomBar = isPending || canEditStatus
 
   return (
-    <div className={`space-y-4 p-4 text-base ${showBottomBar ? 'pb-72' : 'pb-6'}`}>
+    <div className={`space-y-3 p-4 text-base ${isPending ? 'pb-28' : 'pb-6'}`}>
       <Link
         href="/boss/orders"
-        className="flex min-h-12 items-center gap-2 rounded-2xl bg-white px-4 text-base font-black text-gray-700 shadow-sm"
+        className="flex min-h-10 items-center gap-2 rounded-xl bg-white px-3 text-sm font-black text-gray-700 shadow-sm"
       >
-        ← Back to orders
+        ← Back
       </Link>
 
-      <section className="rounded-3xl bg-white p-4 shadow-sm">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <div className="text-xl font-black tracking-wide text-orange-600">{order.order_number}</div>
-          <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-black capitalize">
+      <section className="rounded-2xl bg-white p-3 shadow-sm">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <div className="text-lg font-black tracking-wide text-orange-600">{order.order_number}</div>
+          <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-black capitalize">
             {order.status.replace(/_/g, ' ')}
           </span>
         </div>
-        <div className="text-2xl font-black">{displayBuyerName(order)}</div>
+        <div className="text-xl font-black">{displayBuyerName(order)}</div>
         {order.created_at && (
-          <div className="text-sm text-gray-500">Ordered: {formatOrderDate(order.created_at)}</div>
+          <div className="text-xs text-gray-500">Ordered: {formatOrderDate(order.created_at)}</div>
         )}
         {displayBuyerPhone(order) && (
           <a
-            className="block min-h-12 py-2 text-lg font-black text-green-700"
+            className="inline-block py-1 text-base font-bold text-green-700"
             href={`https://wa.me/${String(displayBuyerPhone(order)).replace(/\D/g, '')}`}
           >
             {displayBuyerPhone(order)}
           </a>
         )}
         {displayBuyerEmail(order) && (
-          <div className="text-base text-gray-500">{displayBuyerEmail(order)}</div>
+          <div className="text-sm text-gray-500">{displayBuyerEmail(order)}</div>
         )}
         {order.recipient_name && (
-          <div className="mt-2 text-base text-gray-600">
+          <div className="mt-1 text-sm text-gray-600">
             Recipient: <span className="font-bold">{order.recipient_name}</span>
           </div>
         )}
-      </section>
 
-      <section className="rounded-3xl bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-lg font-black">Items</h2>
-        {items.map(item => (
-          <div key={item.id} className="flex justify-between border-b py-3 last:border-0">
-            <div>
-              <strong>{item.quantity}x {item.product_name}</strong>
-              <div className="text-sm text-gray-500">
-                {[item.selected_flavor, item.selected_weight && `${item.selected_weight} lb`, item.selected_size]
-                  .filter(Boolean)
-                  .join(' • ')}
-              </div>
-            </div>
-            <div className="font-black">${Number(item.line_total).toFixed(2)}</div>
+        {canEditStatus && (
+          <div className="mt-3 border-t border-gray-100 pt-3">
+            <OrderStatusActions order={order} onUpdated={loadOrder} useBossAuth compact />
           </div>
-        ))}
+        )}
       </section>
 
-      <section className="rounded-3xl bg-white p-4 shadow-sm">
-        <div className="flex justify-between text-lg">
+      {isPending ? (
+        <PendingOrderItemsEditor order={order} onUpdated={loadOrder} useBossAuth />
+      ) : (
+        <section className="rounded-2xl bg-white p-3 shadow-sm">
+          <h2 className="mb-2 text-base font-black">Items</h2>
+          {(order.order_items ?? []).map(item => (
+            <div key={item.id} className="flex justify-between border-b border-gray-50 py-2 last:border-0">
+              <div className="min-w-0 pr-2">
+                <strong className="text-sm">
+                  {item.quantity}x {item.product_name}
+                </strong>
+                <div className="text-xs text-gray-500">
+                  {[item.selected_flavor, item.selected_weight && `${item.selected_weight} lb`, item.selected_size]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
+              </div>
+              <div className="shrink-0 text-sm font-black">${Number(item.line_total).toFixed(2)}</div>
+            </div>
+          ))}
+        </section>
+      )}
+
+      <section className="rounded-2xl bg-white p-3 text-sm shadow-sm">
+        <div className="flex justify-between">
           <span>Delivery fee</span>
           <strong>${order.delivery_fee.toFixed(2)}</strong>
         </div>
-        <div className="mt-2 flex justify-between text-2xl font-black">
+        <div className="mt-1 flex justify-between text-lg font-black">
           <span>Total</span>
           <span>${order.total.toFixed(2)}</span>
         </div>
         {order.delivery_date && (
-          <div className="mt-3 text-base font-bold">Date: {formatDeliveryDate(order.delivery_date)}</div>
+          <div className="mt-2 font-bold">Date: {formatDeliveryDate(order.delivery_date)}</div>
         )}
-        {order.delivery_address && <div className="mt-1 text-base text-gray-600">{order.delivery_address}</div>}
-        {order.order_notes && <div className="mt-3 rounded-2xl bg-gray-50 p-3 text-base">{order.order_notes}</div>}
-        {order.gift_message && <div className="mt-3 rounded-2xl bg-orange-50 p-3 text-base">{order.gift_message}</div>}
+        {order.delivery_address && <div className="mt-1 text-gray-600">{order.delivery_address}</div>}
+        {order.order_notes && <div className="mt-2 rounded-xl bg-gray-50 p-2">{order.order_notes}</div>}
+        {order.gift_message && <div className="mt-2 rounded-xl bg-orange-50 p-2">{order.gift_message}</div>}
       </section>
 
-      {error && !showBottomBar && (
-        <div className="rounded-2xl bg-red-50 p-3 font-bold text-red-700">{error}</div>
+      {error && !isPending && (
+        <div className="rounded-xl bg-red-50 p-2 text-sm font-bold text-red-700">{error}</div>
       )}
 
-      {showBottomBar && (
-        <div className="fixed bottom-24 left-0 right-0 z-40 max-h-[55vh] overflow-y-auto border-t border-gray-100 bg-white/95 p-4 shadow-2xl backdrop-blur">
-          <div className="mx-auto max-w-lg space-y-3">
-            <h2 className="text-lg font-black text-gray-900">
-              {isPending
-                ? 'Approve or reject'
-                : order.status === 'cancelled'
-                  ? 'Restore cancelled order'
-                  : 'Order status'}
-            </h2>
-
-            {isPending ? (
+      {isPending && (
+        <div className="fixed bottom-24 left-0 right-0 z-40 border-t border-gray-100 bg-white/95 px-3 py-2 shadow-lg backdrop-blur">
+          <div className="mx-auto max-w-lg space-y-2">
+            {showReason ? (
               <>
+                <input
+                  value={reason}
+                  onChange={e => setReason(e.target.value)}
+                  placeholder="Rejection reason"
+                  className="h-10 w-full rounded-xl border px-3 text-sm"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowReason(false)}
+                    className="h-11 flex-1 rounded-xl border text-sm font-bold"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={reject}
+                    disabled={busy}
+                    className="h-11 flex-1 rounded-xl bg-red-600 text-sm font-black text-white disabled:opacity-60"
+                  >
+                    Confirm reject
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={approve}
                   disabled={busy}
-                  className="min-h-14 w-full rounded-2xl bg-green-600 text-lg font-black text-white disabled:opacity-60"
+                  className="h-11 flex-1 rounded-xl bg-green-600 text-sm font-black text-white disabled:opacity-60"
                 >
                   Approve
                 </button>
-                {showReason ? (
-                  <div className="space-y-3">
-                    <input
-                      value={reason}
-                      onChange={e => setReason(e.target.value)}
-                      placeholder="Reason"
-                      className="h-12 w-full rounded-2xl border px-4 text-base"
-                    />
-                    <button
-                      type="button"
-                      onClick={reject}
-                      disabled={busy}
-                      className="min-h-14 w-full rounded-2xl bg-red-600 text-lg font-black text-white disabled:opacity-60"
-                    >
-                      Confirm Reject
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowReason(true)}
-                    className="min-h-14 w-full rounded-2xl bg-red-600 text-lg font-black text-white"
-                  >
-                    Reject
-                  </button>
-                )}
-              </>
-            ) : (
-              <OrderStatusActions order={order} onUpdated={loadOrder} useBossAuth />
+                <button
+                  type="button"
+                  onClick={() => setShowReason(true)}
+                  className="h-11 rounded-xl bg-red-600 px-5 text-sm font-black text-white"
+                >
+                  Reject
+                </button>
+              </div>
             )}
-
-            {error && <div className="rounded-2xl bg-red-50 p-3 font-bold text-red-700">{error}</div>}
+            {error && <p className="text-center text-xs font-bold text-red-600">{error}</p>}
           </div>
         </div>
       )}

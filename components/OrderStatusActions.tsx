@@ -12,6 +12,8 @@ type Props = {
   onUpdated: () => void
   /** Boss uses bearer auth via fetchWithAuth; admin uses cookie session fetch. */
   useBossAuth?: boolean
+  /** Tighter layout for boss mobile order detail. */
+  compact?: boolean
   className?: string
 }
 
@@ -19,6 +21,7 @@ export default function OrderStatusActions({
   order,
   onUpdated,
   useBossAuth = false,
+  compact = false,
   className = '',
 }: Props) {
   const { t } = useLanguage()
@@ -76,13 +79,58 @@ export default function OrderStatusActions({
   }
 
   if (useBossAuth) {
+    if (compact) {
+      return (
+        <div className={`space-y-2 ${className}`}>
+          {settable.length > 0 && (
+            <div className="flex gap-2">
+              <select
+                id="boss-order-status"
+                value={selectedStatus}
+                disabled={busy}
+                onChange={e => setSelectedStatus(e.target.value)}
+                aria-label="Change order status"
+                className="h-10 min-w-0 flex-1 rounded-xl border border-gray-200 bg-white px-3 text-sm font-semibold focus:border-orange-400 focus:outline-none"
+              >
+                {settable.map(status => (
+                  <option key={status} value={status}>
+                    {orderStatusLabel(t, status)}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={busy || !selectedStatus || selectedStatus === order.status}
+                onClick={() => postStatus({ status: selectedStatus })}
+                className="h-10 shrink-0 rounded-xl px-4 text-sm font-black text-white disabled:opacity-60"
+                style={{ background: 'var(--navy)' }}
+              >
+                {busy ? '…' : 'Update'}
+              </button>
+            </div>
+          )}
+          {revertTarget && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => postStatus({ revert: true })}
+              className="h-9 w-full rounded-xl border border-gray-200 text-xs font-bold text-gray-700 disabled:opacity-60"
+            >
+              {order.status === 'cancelled'
+                ? `Restore → ${orderStatusLabel(t, revertTarget)}`
+                : `Revert → ${orderStatusLabel(t, revertTarget)}`}
+            </button>
+          )}
+          {error && <p className="text-xs font-bold text-red-600">{error}</p>}
+        </div>
+      )
+    }
+
     return (
       <div className={`flex flex-col gap-3 ${className}`}>
         <div className="rounded-2xl bg-gray-50 px-3 py-2 text-sm text-gray-600">
           Current:{' '}
-          <span className="font-black text-gray-900 capitalize">
-            {orderStatusLabel(t, order.status)}
-          </span>
+          <span className="font-black capitalize text-gray-900">{orderStatusLabel(t, order.status)}</span>
         </div>
 
         {settable.length > 0 && (

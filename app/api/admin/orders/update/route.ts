@@ -10,6 +10,16 @@ type EditableItem = {
   unit_price: number
 }
 
+type NewOrderItem = {
+  product_id: string
+  product_name: string
+  quantity: number
+  unit_price: number
+  selected_flavor?: string | null
+  selected_weight?: number | null
+  selected_size?: string | null
+}
+
 function currency(value: number) {
   return `$${value.toFixed(2)}`
 }
@@ -23,6 +33,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const orderId = String(body.orderId || '')
     const items = (Array.isArray(body.items) ? body.items : []) as EditableItem[]
+    const newItems = (Array.isArray(body.newItems) ? body.newItems : []) as NewOrderItem[]
     const deliveryFee = Number(body.deliveryFee ?? 0)
     const customAdjustment = Number(body.customAdjustment ?? 0)
     const customAdjustmentNote = String(body.customAdjustmentNote || '').trim() || null
@@ -39,8 +50,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Adjustment must be a valid number' }, { status: 400 })
     }
 
-    if (items.length === 0) {
+    if (items.length === 0 && newItems.length === 0) {
       return NextResponse.json({ error: 'At least one item is required' }, { status: 400 })
+    }
+
+    for (const item of newItems) {
+      if (!item.product_id || !item.product_name?.trim()) {
+        return NextResponse.json({ error: 'New items require a product' }, { status: 400 })
+      }
+      if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
+        return NextResponse.json({ error: 'New item quantities must be greater than 0' }, { status: 400 })
+      }
+      if (!Number.isFinite(item.unit_price) || item.unit_price < 0) {
+        return NextResponse.json({ error: 'New item prices must be 0 or greater' }, { status: 400 })
+      }
     }
 
     for (const item of items) {
@@ -70,7 +93,7 @@ export async function POST(req: NextRequest) {
     const existingById = new Map(existingItems.map((item: any) => [item.id, item]))
     const keptItems = items.filter((item) => item.quantity > 0)
 
-    if (keptItems.length === 0) {
+    if (keptItems.length === 0 && newItems.length === 0) {
       return NextResponse.json({ error: 'An order must have at least one item' }, { status: 400 })
     }
 
@@ -80,7 +103,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const subtotal = keptItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0)
+    const newItemsSubtotal = newItems.reduce(
+      (sum, item) => sum + item.quantity * item.unit_price,
+      0,
+    )
+    const subtotal =
+      keptItems.reduce((sum, item) => sum + item.quantity * item.unit_price, 0) + newItemsSubtotal
     const total = subtotal + deliveryFee + customAdjustment
 
     if (total < 0) {
@@ -122,6 +150,23 @@ export async function POST(req: NextRequest) {
         })
         .eq('id', item.id)
 
+      if (error) throw new Error(error.message)
+    }
+
+    for (const item of newItems) {
+      const lineTotal = item.quantity * item.unit_price
+      changes.push(`Added ${item.product_name} (qty ${item.quantity})`)
+      const { error } = await supabase.from('order_items').insert({
+        order_id: orderId,
+        product_id: item.product_id,
+        product_name: item.product_name.trim(),
+        quantity: item.quantity,
+        selected_flavor: item.selected_flavor ?? null,
+        selected_weight: item.selected_weight ?? null,
+        selected_size: item.selected_size ?? null,
+        unit_price: item.unit_price,
+        line_total: lineTotal,
+      })
       if (error) throw new Error(error.message)
     }
 
