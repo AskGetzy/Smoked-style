@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
+import { normalizeDeliveryDate } from '@/lib/dates'
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,8 +34,9 @@ export async function GET(req: NextRequest) {
     const statusesParam = req.nextUrl.searchParams.get('statuses')
     const orderType = req.nextUrl.searchParams.get('order_type') || 'all'
 
-    if (deliveryDate) {
-      query = query.eq('delivery_date', deliveryDate)
+    const normalizedDeliveryDate = deliveryDate ? normalizeDeliveryDate(deliveryDate) : null
+    if (normalizedDeliveryDate) {
+      query = query.eq('delivery_date', normalizedDeliveryDate)
     }
     if (statusesParam) {
       const statuses = statusesParam.split(',').map(s => s.trim()).filter(Boolean)
@@ -59,12 +61,23 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query
       .order('delivery_date', { ascending: true, nullsFirst: false })
       .order('created_at', { ascending: true })
+      .limit(500)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ orders: data ?? [], count: (data ?? []).length })
+    const orders = data ?? []
+    console.log('[admin/orders] Bulk list query', {
+      delivery_date: normalizedDeliveryDate,
+      delivery_area_id: deliveryAreaId,
+      statuses: statusesParam,
+      order_type: orderType,
+      count: orders.length,
+      order_numbers: orders.map((o: { order_number: string }) => o.order_number),
+    })
+
+    return NextResponse.json({ orders, count: orders.length })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Could not load orders'
     return NextResponse.json({ error: message }, { status: 500 })

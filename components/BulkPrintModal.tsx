@@ -30,10 +30,18 @@ async function fetchDeliveryAreas(): Promise<DeliveryArea[]> {
 
 async function fetchFilteredOrders(filters: BulkPrintFilters): Promise<Order[]> {
   const params = buildBulkPrintSearchParams(filters)
-  const res = await fetchWithAuth(`/api/admin/orders?${params.toString()}`)
+  const url = `/api/admin/orders?${params.toString()}`
+  console.log('[bulk-print] Fetching orders', { url, filters })
+  const res = await fetchWithAuth(url)
   const json = await res.json()
   if (!res.ok) throw new Error(json.error ?? 'Could not load orders')
-  return (json.orders ?? []) as Order[]
+  const orders = (json.orders ?? []) as Order[]
+  console.log('[bulk-print] Fetched orders', {
+    count: orders.length,
+    apiCount: json.count,
+    orderNumbers: orders.map(o => o.order_number),
+  })
+  return orders
 }
 
 const SCOPE_OPTIONS: { value: BulkPrintScope; label: string }[] = [
@@ -142,6 +150,11 @@ export default function BulkPrintModal({ open, onClose }: Props) {
 
       if (kind === 'labels') {
         const zpl = buildBulkLabelsZpl(orders)
+        console.log('[bulk-print] Downloading ZPL file', {
+          orders: orders.length,
+          zplLength: zpl.length,
+          labelStarts: (zpl.match(/\^XA/g) ?? []).length,
+        })
         downloadTextFile(bulkLabelsFilename(filters, selectedAreaName), zpl, 'application/octet-stream')
       } else {
         openBulkPackingSlips(orders)
@@ -266,7 +279,9 @@ export default function BulkPrintModal({ open, onClose }: Props) {
                 onChange={() => setIncludePending(false)}
                 className="h-4 w-4 accent-orange-500"
               />
-              <span className="text-sm font-semibold text-gray-800">Approved only</span>
+              <span className="text-sm font-semibold text-gray-800">
+                Approved, ready for pickup, and out for delivery
+              </span>
             </label>
             <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-gray-200 px-3 py-2">
               <input

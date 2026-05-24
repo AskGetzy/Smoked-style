@@ -22,8 +22,17 @@ export type BulkPrintQuery = {
   order_type: BulkPrintOrderType
 }
 
+/** Statuses that should receive shipping/pickup labels when bulk printing. */
+export const BULK_LABEL_PRINT_STATUSES = [
+  'approved',
+  'ready_for_pickup',
+  'out_for_delivery',
+] as const
+
 export function bulkPrintStatuses(includePending: boolean) {
-  return includePending ? 'approved,pending' : 'approved'
+  const statuses: string[] = [...BULK_LABEL_PRINT_STATUSES]
+  if (includePending) statuses.push('pending')
+  return statuses.join(',')
 }
 
 export function filtersToQuery(filters: BulkPrintFilters): BulkPrintQuery {
@@ -33,7 +42,8 @@ export function filtersToQuery(filters: BulkPrintFilters): BulkPrintQuery {
   }
 
   if (filters.scope === 'date' || filters.scope === 'both') {
-    if (filters.deliveryDate) query.delivery_date = filters.deliveryDate
+    const normalizedDate = normalizeDeliveryDate(filters.deliveryDate)
+    if (normalizedDate) query.delivery_date = normalizedDate
   }
 
   if (filters.scope === 'area' || filters.scope === 'both') {
@@ -101,7 +111,14 @@ export function orderToZplOrder(order: Order): ZplOrder {
 }
 
 export function buildBulkLabelsZpl(orders: Order[]) {
-  return orders.map(order => buildOrderLabelZpl(orderToZplOrder(order))).join('\x0C')
+  const labelBlocks = orders.map(order => buildOrderLabelZpl(orderToZplOrder(order)))
+  console.log('[bulk-print] Generating ZPL labels', {
+    orderCount: orders.length,
+    labelBlockCount: labelBlocks.length,
+    orderNumbers: orders.map(o => o.order_number),
+  })
+  // Each block is already ^XA … ^XZ; separate with newlines for multi-label .zpl files.
+  return labelBlocks.join('\n')
 }
 
 export function bulkLabelsFilename(
