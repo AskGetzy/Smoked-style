@@ -1,48 +1,20 @@
-import { notFound } from 'next/navigation'
 import OrderStatusDetailView from '@/components/order-status/OrderStatusDetailView'
 import { OrderStatusPageShell } from '@/components/order-status/OrderStatusShell'
-import type { PublicOrderDetail, PublicOrderItem } from '@/lib/order-tracking'
-import { createServerClient } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
+export const fetchCache = 'force-no-store'
 
 type Props = {
   params: { orderNumber: string }
 }
 
-export default async function OrderStatusDetailPage({ params }: Props) {
+export default function OrderStatusDetailPage({ params }: Props) {
   const orderNumber = decodeURIComponent(params.orderNumber)
-  const supabase = createServerClient()
-
-  const { data: order, error } = await supabase
-    .from('orders')
-    .select(
-      'order_number, status, order_type, delivery_date, delivery_address, gift_message, order_items(product_name, quantity, selected_flavor, selected_weight, selected_size), delivery_areas(name)',
-    )
-    .eq('order_number', orderNumber)
-    .maybeSingle()
-
-  if (error || !order) {
-    notFound()
-  }
-
-  const items = (order.order_items ?? []) as PublicOrderItem[]
-  const initialOrder: PublicOrderDetail = {
-    order_number: order.order_number,
-    status: order.status,
-    order_type: order.order_type,
-    delivery_date: order.delivery_date,
-    delivery_address: order.delivery_address,
-    delivery_area_name:
-      (order.delivery_areas as { name?: string } | null)?.name ?? null,
-    gift_message: order.gift_message,
-    order_items: items,
-  }
 
   return (
     <OrderStatusPageShell backHref="/order-status">
-      <OrderStatusDetailView initialOrder={initialOrder} />
+      <OrderStatusDetailView orderNumber={orderNumber} />
     </OrderStatusPageShell>
   )
 }
