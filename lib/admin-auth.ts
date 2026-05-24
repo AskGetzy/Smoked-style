@@ -54,3 +54,17 @@ export async function requireAdmin(req?: NextRequest) {
 
   return { ok: true as const, supabase, adminUser, email: normalizedEmail }
 }
+
+export async function requireOwner(req?: NextRequest) {
+  const admin = await requireAdmin(req)
+  if (!admin.ok) return admin
+
+  if (admin.adminUser.role !== 'owner') {
+    return {
+      ok: false as const,
+      response: NextResponse.json({ error: 'Owner access required' }, { status: 403 }),
+    }
+  }
+
+  return admin
+}

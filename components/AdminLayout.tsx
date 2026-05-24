@@ -10,12 +10,14 @@ import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 import { useLanguage } from '@/lib/language-context'
 import type { TranslationKey } from '@/lib/i18n'
 
-const NAV: { href: string; key: TranslationKey; icon: string }[] = [
+const BASE_NAV: { href: string; key: TranslationKey; icon: string }[] = [
   { href: '/admin/orders', key: 'orders', icon: '📦' },
   { href: '/admin/production', key: 'production', icon: '🏭' },
   { href: '/admin/inventory', key: 'inventory', icon: '📊' },
   { href: '/admin/customers', key: 'customers', icon: '👥' },
 ]
+
+const OWNER_NAV = { href: '/admin/bookkeeping', key: 'bookkeeping' as TranslationKey, icon: '📒' }
 
 /** Persists across per-page AdminLayout remounts so nav does not flash on route change. */
 let adminSessionVerified = false
@@ -27,6 +29,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { t } = useLanguage()
   const [checking, setChecking] = useState(!adminSessionVerified)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [isOwner, setIsOwner] = useState(false)
 
   useEffect(() => {
     if (adminSessionVerified) {
@@ -35,7 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
 
     let cancelled = false
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (cancelled) return
       if (!data.session) {
         adminSessionVerified = false
@@ -44,6 +47,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
       adminSessionVerified = true
       setUserEmail(data.session.user.email ?? null)
+      try {
+        const res = await fetch('/api/admin/me', { credentials: 'include' })
+        const me = await res.json()
+        if (res.ok) setIsOwner(Boolean(me.isOwner))
+      } catch {
+        setIsOwner(false)
+      }
       setChecking(false)
     })
     return () => {
@@ -75,7 +85,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </div>
         <nav className="flex-1 space-y-1 p-3">
-          {NAV.map(item => (
+          {[...BASE_NAV, ...(isOwner ? [OWNER_NAV] : [])].map(item => (
             <Link
               key={item.href}
               href={item.href}
