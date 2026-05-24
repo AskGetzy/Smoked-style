@@ -113,6 +113,27 @@ function renderItems(items: EmailOrderItem[] = []) {
   }).join('')
 }
 
+function renderOrderTrackingButton(orderNumber: string) {
+  const trackUrl = getOrderTrackingUrl(orderNumber)
+  return `
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:20px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" cellspacing="0" cellpadding="0">
+            <tr>
+              <td align="center" style="border-radius:12px;background:#f97316;">
+                <a href="${escapeHtml(trackUrl)}" style="display:inline-block;padding:14px 28px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:12px;">
+                  Track your order status
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `
+}
+
 function deliveryDetails(order: EmailOrder) {
   const isDelivery = order.order_type === 'delivery'
   return `
@@ -254,25 +275,18 @@ export async function sendOrderConfirmation(order: EmailOrder) {
     heading: 'We received your order',
     intro: 'Thank you for ordering from Smoked Style. Your order is pending approval. We will review it shortly, and your card will only be charged after the order is approved.',
     order,
+    extra: renderOrderTrackingButton(order.order_number),
   }))
 }
 
 export async function sendOrderApproval(order: EmailOrder) {
-  const trackUrl = getOrderTrackingUrl(order.order_number)
   const subject = `Your Smoked Style Order #${order.order_number} is Confirmed!`
   return sendEmail(order, subject, layout({
     preview: `Your Smoked Style order #${order.order_number} is confirmed`,
     heading: 'Your order is confirmed',
     intro: `Your order has been approved and your card has been charged ${formatCurrency(order.total)}.`,
     order,
-    extra: `
-      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:16px;margin:18px 0;color:#1e3a8a;line-height:1.55;">
-        <p style="margin:0 0 8px;font-weight:700;">Track your order status</p>
-        <p style="margin:0;">
-          <a href="${escapeHtml(trackUrl)}" style="color:#ea580c;font-weight:700;">${escapeHtml(trackUrl)}</a>
-        </p>
-      </div>
-    `,
+    extra: renderOrderTrackingButton(order.order_number),
   }))
 }
 
