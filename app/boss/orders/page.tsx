@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
+import OrderFulfillmentBadge from '@/components/OrderFulfillmentBadge'
 import { displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 
 const TABS = [
@@ -146,9 +147,12 @@ export default function BossOrdersPage() {
                     </div>
                     <div className="shrink-0 text-right">
                       <div className="text-xl font-black text-orange-600">${order.total.toFixed(2)}</div>
-                      <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-1 text-xs font-black capitalize">
-                        {order.status.replace(/_/g, ' ')}
-                      </span>
+                      <div className="mt-1 flex flex-wrap justify-end gap-1">
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold capitalize text-gray-800">
+                          {order.status.replace(/_/g, ' ')}
+                        </span>
+                        <OrderFulfillmentBadge order={order} />
+                      </div>
                     </div>
                   </div>
                 </div>
