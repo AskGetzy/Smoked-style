@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { matchOrdersByPhone, summarizeOrderItems, type PublicOrderItem } from '@/lib/order-tracking'
 import { normalizePhoneDigits } from '@/lib/phone'
 import { createServerClient } from '@/lib/supabase-server'
@@ -39,5 +41,8 @@ export async function POST(req: NextRequest) {
     }
   })
 
-  return NextResponse.json({ orders: matched })
+  return NextResponse.json(
+    { orders: matched },
+    { headers: { 'Cache-Control': 'no-store, max-age=0' } },
+  )
 }

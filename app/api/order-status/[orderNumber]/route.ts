@@ -1,17 +1,13 @@
-import { notFound } from 'next/navigation'
-import OrderStatusDetailView from '@/components/order-status/OrderStatusDetailView'
-import { OrderStatusPageShell } from '@/components/order-status/OrderStatusShell'
-import type { PublicOrderDetail, PublicOrderItem } from '@/lib/order-tracking'
+import { NextRequest, NextResponse } from 'next/server'
+import { type PublicOrderDetail, type PublicOrderItem } from '@/lib/order-tracking'
 import { createServerClient } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
-export const revalidate = 0
 
-type Props = {
-  params: { orderNumber: string }
-}
-
-export default async function OrderStatusDetailPage({ params }: Props) {
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { orderNumber: string } },
+) {
   const orderNumber = decodeURIComponent(params.orderNumber)
   const supabase = createServerClient()
 
@@ -23,12 +19,16 @@ export default async function OrderStatusDetailPage({ params }: Props) {
     .eq('order_number', orderNumber)
     .maybeSingle()
 
-  if (error || !order) {
-    notFound()
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  if (!order) {
+    return NextResponse.json({ error: 'Order not found' }, { status: 404 })
   }
 
   const items = (order.order_items ?? []) as PublicOrderItem[]
-  const initialOrder: PublicOrderDetail = {
+  const payload: PublicOrderDetail = {
     order_number: order.order_number,
     status: order.status,
     order_type: order.order_type,
@@ -40,9 +40,7 @@ export default async function OrderStatusDetailPage({ params }: Props) {
     order_items: items,
   }
 
-  return (
-    <OrderStatusPageShell backHref="/order-status">
-      <OrderStatusDetailView initialOrder={initialOrder} />
-    </OrderStatusPageShell>
-  )
+  return NextResponse.json(payload, {
+    headers: { 'Cache-Control': 'no-store, max-age=0' },
+  })
 }

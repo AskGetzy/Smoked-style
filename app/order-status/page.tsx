@@ -30,6 +30,7 @@ export default function OrderStatusLookupPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone }),
+      cache: 'no-store',
     })
     const json = await res.json()
     setLoading(false)
