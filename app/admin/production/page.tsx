@@ -11,6 +11,7 @@ import {
   tallyProductionItems,
   type ProductionOrderRow,
 } from '@/lib/production-items'
+import { fetchWithAuth } from '@/lib/auth-fetch'
 import type { Order } from '@/types'
 
 export default function ProductionPage() {
@@ -34,10 +35,7 @@ export default function ProductionPage() {
     }
     setError('')
 
-    const res = await fetch('/api/admin/orders', {
-      credentials: 'include',
-      cache: 'no-store',
-    })
+    const res = await fetchWithAuth('/api/admin/orders')
     const data = await res.json()
 
     if (!res.ok) {

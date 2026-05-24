@@ -8,10 +8,19 @@ import BulkPrintModal from '@/components/BulkPrintModal'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
 import { useLanguage } from '@/lib/language-context'
 import { orderStatusLabel } from '@/lib/i18n'
+import { fetchWithAuth } from '@/lib/auth-fetch'
 import { displayBuyerName } from '@/lib/order-buyer'
 import type { Order } from '@/types'
 
-const STATUS_TABS = ['all', 'pending', 'approved', 'out_for_delivery', 'delivered', 'cancelled']
+const STATUS_TABS = [
+  'all',
+  'pending',
+  'approved',
+  'ready_for_pickup',
+  'out_for_delivery',
+  'delivered',
+  'cancelled',
+]
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   approved: 'bg-blue-100 text-blue-800',
@@ -51,10 +60,7 @@ export default function OrdersPage() {
     setError('')
 
     try {
-      const res = await fetch('/api/admin/orders', {
-        credentials: 'include',
-        cache: 'no-store',
-      })
+      const res = await fetchWithAuth('/api/admin/orders')
       const payload = await res.json()
 
       if (!res.ok) {

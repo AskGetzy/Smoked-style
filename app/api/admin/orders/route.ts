@@ -58,17 +58,30 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    const hasBulkPrintFilters = Boolean(
+      normalizedDeliveryDate || deliveryAreaId || statusesParam,
+    )
+
+    // Unfiltered dashboard lists need newest orders first; a 500-row cap sorted by
+    // earliest delivery_date was hiding recently created boss orders.
+    if (hasBulkPrintFilters) {
+      query = query
+        .order('delivery_date', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: true })
+        .limit(500)
+    } else {
+      query = query.order('created_at', { ascending: false }).limit(2000)
+    }
+
     const { data, error } = await query
-      .order('delivery_date', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: true })
-      .limit(500)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     const orders = data ?? []
-    console.log('[admin/orders] Bulk list query', {
+    console.log('[admin/orders] List query', {
+      mode: hasBulkPrintFilters ? 'bulk-print' : 'dashboard',
       delivery_date: normalizedDeliveryDate,
       delivery_area_id: deliveryAreaId,
       statuses: statusesParam,
