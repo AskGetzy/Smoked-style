@@ -22,6 +22,7 @@ export default function BossOrderDetailPage() {
   useEffect(() => { void loadOrder() }, [id])
 
   async function loadOrder() {
+    setLoading(true)
     const res = await fetchWithAuth(`/api/admin/orders?id=${encodeURIComponent(id)}`)
     const data = await res.json()
     setOrder(data.order ?? null)
@@ -30,19 +31,21 @@ export default function BossOrderDetailPage() {
 
   async function approve() {
     setBusy(true)
-    const res = await fetch('/api/capture-payment', {
+    setError('')
+    const res = await fetchWithAuth('/api/capture-payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderId: id }),
     })
-    if (res.ok) router.push('/boss/orders')
+    if (res.ok) await loadOrder()
     else setError((await res.json()).error ?? 'Could not approve')
     setBusy(false)
   }
 
   async function reject() {
     setBusy(true)
-    const res = await fetch('/api/reject-order', {
+    setError('')
+    const res = await fetchWithAuth('/api/reject-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderId: id, reason }),
@@ -55,13 +58,14 @@ export default function BossOrderDetailPage() {
   if (loading) return <div className="p-4 text-base">Loading...</div>
   if (!order) return <div className="p-4 text-base">Order not found</div>
 
-  const customer = order.customers as { full_name?: string; phone?: string; email?: string } | undefined
   const items = order.order_items ?? []
   const isPending = order.status === 'pending'
-  const hasStatusActions = !isPending && order.status !== 'cancelled' && order.status !== 'payment_failed'
+  const canEditStatus =
+    !isPending && order.status !== 'cancelled' && order.status !== 'payment_failed'
+  const showBottomBar = isPending || canEditStatus
 
   return (
-    <div className={`space-y-4 p-4 text-base ${isPending || hasStatusActions ? 'pb-56' : 'pb-6'}`}>
+    <div className={`space-y-4 p-4 text-base ${showBottomBar ? 'pb-72' : 'pb-6'}`}>
       <Link
         href="/boss/orders"
         className="flex min-h-12 items-center gap-2 rounded-2xl bg-white px-4 text-base font-black text-gray-700 shadow-sm"
@@ -132,58 +136,59 @@ export default function BossOrderDetailPage() {
         {order.gift_message && <div className="mt-3 rounded-2xl bg-orange-50 p-3 text-base">{order.gift_message}</div>}
       </section>
 
-      {error && <div className="rounded-2xl bg-red-50 p-3 font-bold text-red-700">{error}</div>}
-
-      {hasStatusActions && (
-        <section className="rounded-3xl bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-lg font-black">Update status</h2>
-          <OrderStatusActions order={order} onUpdated={loadOrder} useBossAuth />
-        </section>
+      {error && !showBottomBar && (
+        <div className="rounded-2xl bg-red-50 p-3 font-bold text-red-700">{error}</div>
       )}
 
-      {isPending && (
-        <div className="fixed bottom-24 left-0 right-0 z-40 border-t border-gray-100 bg-white/95 p-4 shadow-2xl backdrop-blur">
+      {showBottomBar && (
+        <div className="fixed bottom-24 left-0 right-0 z-40 max-h-[55vh] overflow-y-auto border-t border-gray-100 bg-white/95 p-4 shadow-2xl backdrop-blur">
           <div className="mx-auto max-w-lg space-y-3">
-            <Link
-              href="/boss/orders"
-              className="flex min-h-12 w-full items-center justify-center rounded-2xl border-2 border-gray-200 bg-white text-base font-black text-gray-800"
-            >
-              Back to orders
-            </Link>
-            <button
-              type="button"
-              onClick={approve}
-              disabled={busy}
-              className="min-h-14 w-full rounded-2xl bg-green-600 text-lg font-black text-white disabled:opacity-60"
-            >
-              Approve
-            </button>
-            {showReason ? (
-              <div className="space-y-3">
-                <input
-                  value={reason}
-                  onChange={e => setReason(e.target.value)}
-                  placeholder="Reason"
-                  className="h-12 w-full rounded-2xl border px-4 text-base"
-                />
+            <h2 className="text-lg font-black text-gray-900">
+              {isPending ? 'Approve or reject' : 'Order status'}
+            </h2>
+
+            {isPending ? (
+              <>
                 <button
                   type="button"
-                  onClick={reject}
+                  onClick={approve}
                   disabled={busy}
-                  className="min-h-14 w-full rounded-2xl bg-red-600 text-lg font-black text-white disabled:opacity-60"
+                  className="min-h-14 w-full rounded-2xl bg-green-600 text-lg font-black text-white disabled:opacity-60"
                 >
-                  Confirm Reject
+                  Approve
                 </button>
-              </div>
+                {showReason ? (
+                  <div className="space-y-3">
+                    <input
+                      value={reason}
+                      onChange={e => setReason(e.target.value)}
+                      placeholder="Reason"
+                      className="h-12 w-full rounded-2xl border px-4 text-base"
+                    />
+                    <button
+                      type="button"
+                      onClick={reject}
+                      disabled={busy}
+                      className="min-h-14 w-full rounded-2xl bg-red-600 text-lg font-black text-white disabled:opacity-60"
+                    >
+                      Confirm Reject
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowReason(true)}
+                    className="min-h-14 w-full rounded-2xl bg-red-600 text-lg font-black text-white"
+                  >
+                    Reject
+                  </button>
+                )}
+              </>
             ) : (
-              <button
-                type="button"
-                onClick={() => setShowReason(true)}
-                className="min-h-14 w-full rounded-2xl bg-red-600 text-lg font-black text-white"
-              >
-                Reject
-              </button>
+              <OrderStatusActions order={order} onUpdated={loadOrder} useBossAuth />
             )}
+
+            {error && <div className="rounded-2xl bg-red-50 p-3 font-bold text-red-700">{error}</div>}
           </div>
         </div>
       )}
