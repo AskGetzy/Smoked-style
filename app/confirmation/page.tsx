@@ -57,7 +57,14 @@ function ConfirmationContent() {
           <p className="text-xs text-gray-500 mt-0.5">Email: <a href="mailto:Smokedstyle1@gmail.com" className="text-orange-600 font-semibold">Smokedstyle1@gmail.com</a></p>
         </div>
 
-        <Link href="/" className="block w-full text-white font-bold py-3 rounded-xl" style={{ background: 'var(--navy)' }}>
+        <Link
+          href={`/order-status/${encodeURIComponent(orderNumber)}`}
+          className="mb-3 block w-full rounded-xl border-2 border-orange-500 py-3 font-bold text-orange-600"
+        >
+          Track Your Order
+        </Link>
+
+        <Link href="/" className="block w-full rounded-xl py-3 font-bold text-white" style={{ background: 'var(--navy)' }}>
           Continue Shopping
         </Link>
       </div>

@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { formatDeliveryDate } from '@/lib/dates'
+import { getOrderTrackingUrl } from '@/lib/order-tracking'
 
 type EmailCustomer = {
   full_name?: string | null
@@ -257,12 +258,21 @@ export async function sendOrderConfirmation(order: EmailOrder) {
 }
 
 export async function sendOrderApproval(order: EmailOrder) {
+  const trackUrl = getOrderTrackingUrl(order.order_number)
   const subject = `Your Smoked Style Order #${order.order_number} is Confirmed!`
   return sendEmail(order, subject, layout({
     preview: `Your Smoked Style order #${order.order_number} is confirmed`,
     heading: 'Your order is confirmed',
     intro: `Your order has been approved and your card has been charged ${formatCurrency(order.total)}.`,
     order,
+    extra: `
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:16px;margin:18px 0;color:#1e3a8a;line-height:1.55;">
+        <p style="margin:0 0 8px;font-weight:700;">Track your order status</p>
+        <p style="margin:0;">
+          <a href="${escapeHtml(trackUrl)}" style="color:#ea580c;font-weight:700;">${escapeHtml(trackUrl)}</a>
+        </p>
+      </div>
+    `,
   }))
 }
 
