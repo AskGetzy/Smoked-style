@@ -52,9 +52,11 @@ export default function PayrollTab({ range, onRangeChange }: Props) {
   const [byMonth, setByMonth] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [showStaffForm, setShowStaffForm] = useState(false)
+  const [editingStaffId, setEditingStaffId] = useState<string | null>(null)
   const [showEntryForm, setShowEntryForm] = useState(false)
   const [selectedEntry, setSelectedEntry] = useState<PayrollEntry | null>(null)
   const [saving, setSaving] = useState(false)
+  const [staffSaving, setStaffSaving] = useState(false)
 
   const [staffForm, setStaffForm] = useState({ full_name: '', role: '', pay_type: 'hourly', rate: '' })
   const [entryForm, setEntryForm] = useState({
@@ -117,17 +119,48 @@ export default function PayrollTab({ range, onRangeChange }: Props) {
     setLoading(false)
   }
 
+  function resetStaffForm() {
+    setEditingStaffId(null)
+    setStaffForm({ full_name: '', role: '', pay_type: 'hourly', rate: '' })
+  }
+
+  function openAddStaff() {
+    resetStaffForm()
+    setShowStaffForm(true)
+  }
+
+  function openEditStaff(member: Staff) {
+    setEditingStaffId(member.id)
+    setStaffForm({
+      full_name: member.full_name,
+      role: member.role ?? '',
+      pay_type: member.pay_type,
+      rate: String(member.rate),
+    })
+    setShowStaffForm(true)
+  }
+
   async function saveStaff(e: React.FormEvent) {
     e.preventDefault()
-    await fetch('/api/bookkeeping/payroll', {
+    setStaffSaving(true)
+    const res = await fetch('/api/bookkeeping/payroll', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ type: 'staff', ...staffForm, rate: Number(staffForm.rate) }),
+      body: JSON.stringify({
+        type: 'staff',
+        ...(editingStaffId ? { id: editingStaffId } : {}),
+        ...staffForm,
+        rate: Number(staffForm.rate),
+      }),
     })
-    setShowStaffForm(false)
-    setStaffForm({ full_name: '', role: '', pay_type: 'hourly', rate: '' })
-    void load()
+    setStaffSaving(false)
+
+    if (res.ok) {
+      setShowStaffForm(false)
+      resetStaffForm()
+      void load()
+    }
   }
 
   function updateExtraLine(index: number, patch: Partial<ExtraPayLine>) {
@@ -195,8 +228,8 @@ export default function PayrollTab({ range, onRangeChange }: Props) {
     <div className="space-y-6">
       <DateRangePicker range={range} onChange={onRangeChange} />
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => setShowStaffForm(!showStaffForm)} className="rounded-lg border bg-white px-4 py-2 text-sm font-semibold">
-          Add staff member
+        <button type="button" onClick={() => (showStaffForm && !editingStaffId ? (setShowStaffForm(false), resetStaffForm()) : openAddStaff())} className="rounded-lg border bg-white px-4 py-2 text-sm font-semibold">
+          {showStaffForm && !editingStaffId ? 'Cancel' : 'Add staff member'}
         </button>
         <button
           type="button"
@@ -213,6 +246,9 @@ export default function PayrollTab({ range, onRangeChange }: Props) {
 
       {showStaffForm && (
         <form onSubmit={saveStaff} className="grid gap-3 rounded-xl border bg-white p-4 sm:grid-cols-2">
+          <h3 className="text-sm font-bold text-gray-900 sm:col-span-2">
+            {editingStaffId ? 'Edit staff member' : 'Add staff member'}
+          </h3>
           <input required placeholder="Full name" value={staffForm.full_name} onChange={e => setStaffForm(f => ({ ...f, full_name: e.target.value }))} className="rounded-lg border px-3 py-2" />
           <input placeholder="Role" value={staffForm.role} onChange={e => setStaffForm(f => ({ ...f, role: e.target.value }))} className="rounded-lg border px-3 py-2" />
           <select value={staffForm.pay_type} onChange={e => setStaffForm(f => ({ ...f, pay_type: e.target.value }))} className="rounded-lg border px-3 py-2">
@@ -220,8 +256,61 @@ export default function PayrollTab({ range, onRangeChange }: Props) {
             <option value="salary">Salary</option>
           </select>
           <input required type="number" min="0" step="0.01" placeholder={staffForm.pay_type === 'hourly' ? 'Hourly rate' : 'Salary amount'} value={staffForm.rate} onChange={e => setStaffForm(f => ({ ...f, rate: e.target.value }))} className="rounded-lg border px-3 py-2" />
-          <button type="submit" className="rounded-lg px-4 py-2 text-sm font-semibold text-white sm:col-span-2" style={{ background: 'var(--navy)' }}>Save staff</button>
+          <div className="flex flex-wrap gap-2 sm:col-span-2">
+            <button type="submit" disabled={staffSaving} className="rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" style={{ background: 'var(--navy)' }}>
+              {staffSaving ? 'Saving…' : editingStaffId ? 'Update staff' : 'Save staff'}
+            </button>
+            {editingStaffId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowStaffForm(false)
+                  resetStaffForm()
+                }}
+                className="rounded-lg border px-4 py-2 text-sm font-semibold"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </form>
+      )}
+
+      {!loading && staff.length > 0 && (
+        <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+              <tr>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Role</th>
+                <th className="px-4 py-3">Pay type</th>
+                <th className="px-4 py-3 text-right">Rate</th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {staff.map(member => (
+                <tr key={member.id} className={editingStaffId === member.id ? 'bg-orange-50' : undefined}>
+                  <td className="px-4 py-3 font-medium">{member.full_name}</td>
+                  <td className="px-4 py-3 text-gray-600">{member.role || '—'}</td>
+                  <td className="px-4 py-3 capitalize">{member.pay_type}</td>
+                  <td className="px-4 py-3 text-right">
+                    {member.pay_type === 'hourly' ? `${formatMoney(member.rate)}/hr` : formatMoney(member.rate)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => openEditStaff(member)}
+                      className="text-sm font-semibold text-orange-600"
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {showEntryForm && (

@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
   const type = String(body.type || '')
 
   if (type === 'staff') {
+    const id = body.id ? String(body.id) : null
     const full_name = String(body.full_name || '').trim()
     const role = body.role ? String(body.role).trim() : null
     const pay_type = body.pay_type === 'salary' ? 'salary' : 'hourly'
@@ -57,6 +58,18 @@ export async function POST(req: NextRequest) {
 
     if (!full_name || !Number.isFinite(rate)) {
       return NextResponse.json({ error: 'Name and rate are required' }, { status: 400 })
+    }
+
+    if (id) {
+      const { data, error } = await owner.supabase
+        .from('staff_members')
+        .update({ full_name, role, pay_type, rate })
+        .eq('id', id)
+        .select('*')
+        .single()
+
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ staff: data })
     }
 
     const { data, error } = await owner.supabase

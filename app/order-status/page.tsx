@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { OrderStatusPageShell } from '@/components/order-status/OrderStatusShell'
 import { PUBLIC_STATUS_BADGE, publicStatusLabel } from '@/lib/order-tracking'
 import { formatPhoneInput } from '@/lib/phone'
@@ -15,10 +16,20 @@ type OrderResult = {
 }
 
 export default function OrderStatusLookupPage() {
+  const router = useRouter()
   const [phone, setPhone] = useState('')
+  const [orderNumber, setOrderNumber] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [orders, setOrders] = useState<OrderResult[]>([])
+
+  function goToOrderNumber(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = orderNumber.trim()
+    if (!trimmed) return
+    setError('')
+    router.push(`/order-status/${encodeURIComponent(trimmed)}`)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -53,8 +64,31 @@ export default function OrderStatusLookupPage() {
           Track Your Order
         </h1>
         <p className="mb-6 text-center text-sm text-gray-500">
-          Enter your phone number to find your order. No login required.
+          Search by phone or order number. No login required.
         </p>
+
+        <form onSubmit={goToOrderNumber} className="mb-6 space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
+          <label className="block text-sm font-semibold text-gray-700">
+            Order number
+            <input
+              type="text"
+              value={orderNumber}
+              onChange={e => setOrderNumber(e.target.value)}
+              placeholder="SS-2026-0029 or 0029"
+              className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+            />
+          </label>
+          <button
+            type="submit"
+            className="w-full rounded-xl border-2 border-orange-500 py-3 text-sm font-bold text-orange-600"
+          >
+            Track by order number
+          </button>
+        </form>
+
+        <div className="mb-4 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">
+          or search by phone
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block text-sm font-semibold text-gray-700">

@@ -94,12 +94,28 @@ export function isTerminalCancelled(status: string) {
   return status === 'cancelled'
 }
 
-export function matchOrdersByPhone<T extends { buyer_phone?: string | null }>(
+export type OrderPhoneFields = {
+  buyer_phone?: string | null
+  recipient_phone?: string | null
+  customers?: { phone?: string | null } | null
+}
+
+export function orderPhoneValues(order: OrderPhoneFields): string[] {
+  return [order.buyer_phone, order.recipient_phone, order.customers?.phone].filter(
+    (value): value is string => Boolean(value?.trim()),
+  )
+}
+
+export function orderMatchesPhone(order: OrderPhoneFields, phoneDigits: string): boolean {
+  return orderPhoneValues(order).some(value => phonesMatch(value, phoneDigits))
+}
+
+export function matchOrdersByPhone<T extends OrderPhoneFields>(
   orders: T[],
   phoneDigits: string,
   limit = 5,
 ): T[] {
-  return orders.filter(order => phonesMatch(order.buyer_phone, phoneDigits)).slice(0, limit)
+  return orders.filter(order => orderMatchesPhone(order, phoneDigits)).slice(0, limit)
 }
 
 export const PUBLIC_STATUS_BADGE: Record<string, string> = {

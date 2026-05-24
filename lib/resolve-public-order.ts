@@ -36,7 +36,7 @@ export async function resolvePublicOrderByNumber(
 
   const suffix = digits.slice(-4).padStart(4, '0')
   const year = new Date().getFullYear()
-  const candidates = [`SS-${year}-${suffix}`, `SS-${year - 1}-${suffix}`]
+  const candidates = Array.from({ length: 5 }, (_, i) => `SS-${year - i}-${suffix}`)
 
   for (const candidate of candidates) {
     const { data, error } = await supabase
@@ -59,10 +59,6 @@ export async function resolvePublicOrderByNumber(
   if (suffixError) throw suffixError
   if (!rows?.length) return null
 
-  const list = rows as PublicOrderRow[]
-  if (list.length === 1) return list[0]
-
-  // Prefer the most recently created non-pending order when multiple share a suffix.
-  const nonPending = list.find(row => row.status !== 'pending')
-  return nonPending ?? list[0]
+  // Newest order ending in this suffix (e.g. 0029 → SS-2026-0029).
+  return rows[0] as PublicOrderRow
 }

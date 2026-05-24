@@ -15,11 +15,19 @@ export function formatPhoneInput(value: string): string {
   return `+${digits.slice(0, 1)} (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7, 11)}`
 }
 
+/** Compare US phones by last 10 digits so 718… and 1+718… match. */
+export function phoneMatchKey(value: string | null | undefined): string | null {
+  const digits = normalizePhoneDigits(value)
+  if (digits.length < 7) return null
+  return digits.length >= 10 ? digits.slice(-10) : digits
+}
+
 export function phonesMatch(
   a: string | null | undefined,
   b: string | null | undefined,
 ): boolean {
-  const da = normalizePhoneDigits(a)
-  const db = normalizePhoneDigits(b)
-  return da.length >= 7 && da === db
+  const ka = phoneMatchKey(a)
+  const kb = phoneMatchKey(b)
+  if (!ka || !kb) return false
+  return ka === kb
 }
