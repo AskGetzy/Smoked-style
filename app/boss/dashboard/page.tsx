@@ -4,9 +4,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import DashboardOrderList, { type DashboardOrder } from '@/components/DashboardOrderList'
+import OrderFulfillmentSummary from '@/components/OrderFulfillmentSummary'
 import SlideOverPanel from '@/components/SlideOverPanel'
 import { fetchWithAuth } from '@/lib/auth-fetch'
-import { addLocalDays, formatDeliveryDate, normalizeDeliveryDate, todayLocal } from '@/lib/dates'
+import { addLocalDays, formatDeliveryDate, todayLocal } from '@/lib/dates'
+import { orderMatchesFulfillmentFilter, type FulfillmentFilter } from '@/lib/order-fulfillment-summary'
+import type { Order } from '@/types'
 
 type LowStockProduct = {
   id: string
@@ -21,12 +24,19 @@ export default function BossDashboardPage() {
   const router = useRouter()
   const [date, setDate] = useState(todayLocal())
   const [orders, setOrders] = useState<DashboardOrder[]>([])
+  const [dateOrders, setDateOrders] = useState<Order[]>([])
+  const [dateOrdersLoading, setDateOrdersLoading] = useState(false)
+  const [fulfillmentFilter, setFulfillmentFilter] = useState<FulfillmentFilter | null>(null)
   const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState<ModalKind>(null)
   const [modalLoading, setModalLoading] = useState(false)
 
   useEffect(() => { void loadDashboard() }, [])
+
+  useEffect(() => {
+    void loadDateOrders()
+  }, [date])
 
   async function loadDashboard() {
     setLoading(true)
@@ -37,13 +47,27 @@ export default function BossDashboardPage() {
     setLoading(false)
   }
 
+  async function loadDateOrders() {
+    setDateOrdersLoading(true)
+    setFulfillmentFilter(null)
+    try {
+      const res = await fetchWithAuth(
+        `/api/admin/orders?delivery_date=${encodeURIComponent(date)}`,
+      )
+      const data = await res.json()
+      setDateOrders(res.ok ? ((data.orders ?? []) as Order[]) : [])
+    } finally {
+      setDateOrdersLoading(false)
+    }
+  }
+
   const ordersForDate = useMemo(
-    () => orders.filter(order => normalizeDeliveryDate(order.delivery_date) === date),
-    [orders, date],
+    () => dateOrders.filter(order => orderMatchesFulfillmentFilter(order, fulfillmentFilter)),
+    [dateOrders, fulfillmentFilter],
   )
   const revenueOrders = useMemo(
-    () => ordersForDate.filter(order => order.status !== 'cancelled'),
-    [ordersForDate],
+    () => dateOrders.filter(order => order.status !== 'cancelled'),
+    [dateOrders],
   )
   const allApprovedOrders = useMemo(
     () => orders.filter(order => order.status === 'approved'),
@@ -175,12 +199,41 @@ export default function BossDashboardPage() {
             ))}
           </div>
 
+          <OrderFulfillmentSummary
+            date={date}
+            onDateChange={setDate}
+            orders={dateOrders}
+            loading={dateOrdersLoading}
+            activeFilter={fulfillmentFilter}
+            onFilterChange={setFulfillmentFilter}
+            variant="boss"
+          />
+
           <section className="rounded-3xl bg-white p-4 shadow-sm">
-            <h2 className="mb-3 text-lg font-black">Orders for this date</h2>
-            <DashboardOrderList
-              orders={ordersForDate}
-              emptyMessage="No orders scheduled for this delivery date."
-            />
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-lg font-black">Orders for this date</h2>
+              {fulfillmentFilter && (
+                <button
+                  type="button"
+                  onClick={() => setFulfillmentFilter(null)}
+                  className="rounded-full bg-orange-500 px-3 py-1 text-xs font-bold text-white"
+                >
+                  Clear filter
+                </button>
+              )}
+            </div>
+            {dateOrdersLoading ? (
+              <p className="text-base text-gray-500">Loading orders…</p>
+            ) : (
+              <DashboardOrderList
+                orders={ordersForDate}
+                emptyMessage={
+                  fulfillmentFilter
+                    ? 'No orders match this filter for this date.'
+                    : 'No orders scheduled for this delivery date.'
+                }
+              />
+            )}
           </section>
         </>
       )}

@@ -6,7 +6,12 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import AdminLayout from '@/components/AdminLayout'
 import BulkPrintModal from '@/components/BulkPrintModal'
 import OrderFulfillmentBadge from '@/components/OrderFulfillmentBadge'
-import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
+import OrderFulfillmentSummary from '@/components/OrderFulfillmentSummary'
+import { formatDeliveryDate, formatOrderDate, normalizeDeliveryDate, todayLocal } from '@/lib/dates'
+import {
+  orderMatchesFulfillmentFilter,
+  type FulfillmentFilter,
+} from '@/lib/order-fulfillment-summary'
 import { useLanguage } from '@/lib/language-context'
 import { orderStatusLabel } from '@/lib/i18n'
 import { fetchWithAuth } from '@/lib/auth-fetch'
@@ -45,6 +50,10 @@ export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
   const [bulkPrintOpen, setBulkPrintOpen] = useState(false)
+  const [summaryDate, setSummaryDate] = useState(todayLocal)
+  const [summaryOrders, setSummaryOrders] = useState<Order[]>([])
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [fulfillmentFilter, setFulfillmentFilter] = useState<FulfillmentFilter | null>(null)
   const hasLoadedOrdersRef = useRef(false)
   const fetchInFlightRef = useRef(false)
 
@@ -82,6 +91,27 @@ export default function OrdersPage() {
     void fetchOrders()
   }, [fetchOrders])
 
+  const fetchSummaryOrders = useCallback(async () => {
+    setSummaryLoading(true)
+    try {
+      const res = await fetchWithAuth(
+        `/api/admin/orders?delivery_date=${encodeURIComponent(summaryDate)}`,
+      )
+      const payload = await res.json()
+      if (res.ok) {
+        setSummaryOrders((payload.orders ?? []) as Order[])
+      } else {
+        setSummaryOrders([])
+      }
+    } finally {
+      setSummaryLoading(false)
+    }
+  }, [summaryDate])
+
+  useEffect(() => {
+    void fetchSummaryOrders()
+  }, [fetchSummaryOrders])
+
   useEffect(() => {
     const supabase = createClientComponentClient()
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -90,6 +120,7 @@ export default function OrdersPage() {
       if (debounceTimer) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => {
         void fetchOrders()
+        void fetchSummaryOrders()
       }, 400)
     }
 
@@ -105,13 +136,23 @@ export default function OrdersPage() {
       clearInterval(pollingFallback)
       void supabase.removeChannel(channel)
     }
-  }, [fetchOrders])
+  }, [fetchOrders, fetchSummaryOrders])
 
   const filtered = orders.filter(o => {
     const matchTab = activeTab === 'all' || o.status === activeTab
-    const matchSearch = search === '' ||
+    const matchSearch =
+      search === '' ||
       o.order_number.toLowerCase().includes(search.toLowerCase()) ||
       displayBuyerName(o).toLowerCase().includes(search.toLowerCase())
+    const matchSummaryDate =
+      normalizeDeliveryDate(o.delivery_date) === summaryDate
+    const matchFulfillment =
+      !fulfillmentFilter ||
+      (matchSummaryDate && orderMatchesFulfillmentFilter(o, fulfillmentFilter))
+
+    if (fulfillmentFilter) {
+      return matchTab && matchSearch && matchFulfillment
+    }
     return matchTab && matchSearch
   })
 
@@ -151,6 +192,16 @@ export default function OrdersPage() {
         </div>
 
         <BulkPrintModal open={bulkPrintOpen} onClose={() => setBulkPrintOpen(false)} />
+
+        <OrderFulfillmentSummary
+          date={summaryDate}
+          onDateChange={setSummaryDate}
+          orders={summaryOrders}
+          loading={summaryLoading}
+          activeFilter={fulfillmentFilter}
+          onFilterChange={setFulfillmentFilter}
+          variant="admin"
+        />
 
         <input
           value={search}
