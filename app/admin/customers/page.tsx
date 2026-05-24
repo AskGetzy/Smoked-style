@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import AdminLayout from '@/components/AdminLayout'
+import CustomerImportPanel from '@/components/CustomerImportPanel'
 import { useLanguage } from '@/lib/language-context'
 import type { Customer } from '@/types'
 
@@ -51,12 +52,16 @@ export default function CustomersPage() {
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--navy)' }}>{t.customers}</h1>
 
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder={t.searchByNameOrEmail}
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-4 focus:outline-none focus:border-orange-400"
-        />
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start">
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={t.searchByNameOrEmail}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-400"
+          />
+        </div>
+
+        <CustomerImportPanel variant="admin" onComplete={() => void fetchCustomers()} />
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">

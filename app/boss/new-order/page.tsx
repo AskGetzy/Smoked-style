@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BossLine, Customer, DeliveryArea, Product } from '@/types'
 import BossCardPayment, { type BossCardPaymentHandle } from '@/components/BossCardPayment'
+import CustomerImportPanel from '@/components/CustomerImportPanel'
 import BossPlaceOrderModal, { type BossPlaceOrderPayload } from '@/components/BossPlaceOrderModal'
 import BossProductSheet from '@/components/BossProductSheet'
 import { customerMatchesSearch } from '@/lib/customer-search'
@@ -215,6 +216,12 @@ export default function BossNewOrderPage() {
       <div className="space-y-5 p-4 pb-52 text-base">
         <section className="rounded-3xl bg-white p-4 shadow-sm">
           <h2 className="mb-3 text-lg font-black">Customer</h2>
+
+          <CustomerImportPanel
+            variant="boss"
+            onComplete={() => void loadCatalog()}
+            onCustomersMerged={setCustomers}
+          />
 
           {customerMode === 'search' && (
             <div className="relative">
