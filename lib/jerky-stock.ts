@@ -37,6 +37,29 @@ export function getJerkyFlavors(product: Product): string[] {
   return [...JERKY_FLAVOR_NAMES]
 }
 
+/** Build per-flavor maps when DB json is empty but flavors are known. */
+export function buildJerkyInventoryMaps(product: Product): {
+  stock: Record<string, number>
+  thresholds: Record<string, number>
+} {
+  const stock = parseJerkyFlavorStock(product.jerky_flavor_stock)
+  const thresholds = parseJerkyFlavorThresholds(product.jerky_flavor_thresholds)
+  const flavors = getJerkyFlavors(product)
+  const defaultStock = Number(product.stock_quantity) || 0
+  const defaultThreshold = Number(product.low_stock_threshold) || 0
+
+  if (Object.keys(stock).length > 0) {
+    return { stock, thresholds }
+  }
+
+  return {
+    stock: Object.fromEntries(flavors.map(flavor => [flavor, defaultStock])),
+    thresholds: Object.fromEntries(
+      flavors.map(flavor => [flavor, thresholds[flavor] ?? defaultThreshold]),
+    ),
+  }
+}
+
 function hasJerkyFlavorStockData(product: Product): boolean {
   return Object.keys(parseJerkyFlavorStock(product.jerky_flavor_stock)).length > 0
 }

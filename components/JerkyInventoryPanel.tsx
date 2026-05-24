@@ -1,29 +1,17 @@
 'use client'
 
-import { useState } from 'react'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { useEffect, useState } from 'react'
 import {
+  buildJerkyInventoryMaps,
   getJerkyFlavorStock,
   getJerkyFlavorThreshold,
   getJerkyFlavors,
   isJerkyFlavorLowStock,
-  parseJerkyFlavorStock,
-  parseJerkyFlavorThresholds,
 } from '@/lib/jerky-stock'
+import { patchProductInventory } from '@/lib/inventory-api'
 import type { Product } from '@/types'
 
-function formatInventoryError(message: string): string {
-  if (message.includes('jerky_flavor')) {
-    return 'Missing jerky columns in database. Run migrations 004 and 005 in the Supabase SQL editor.'
-  }
-  if (message.includes('row-level security') || message.includes('policy')) {
-    return 'Not allowed to save inventory. Sign in as admin and apply migration 006_admin_inventory_write.sql.'
-  }
-  return message
-}
-
 type Props = {
-  supabase: SupabaseClient
   product: Product
   onUpdate: (updated: Product) => void
   onError?: (message: string) => void
@@ -50,7 +38,6 @@ type Props = {
 type EditField = { flavor: string; field: 'stock' | 'threshold' } | null
 
 export default function JerkyInventoryPanel({
-  supabase,
   product,
   onUpdate,
   onError,
@@ -63,74 +50,86 @@ export default function JerkyInventoryPanel({
   const [editing, setEditing] = useState<EditField>(null)
   const [draftStock, setDraftStock] = useState('')
   const [draftThreshold, setDraftThreshold] = useState('')
-  const [localStock, setLocalStock] = useState(() => parseJerkyFlavorStock(product.jerky_flavor_stock))
-  const [localThresholds, setLocalThresholds] = useState(() =>
-    parseJerkyFlavorThresholds(product.jerky_flavor_thresholds),
-  )
+  const initialMaps = buildJerkyInventoryMaps(product)
+  const [localStock, setLocalStock] = useState(initialMaps.stock)
+  const [localThresholds, setLocalThresholds] = useState(initialMaps.thresholds)
 
   const flavors = getJerkyFlavors(product)
 
+  useEffect(() => {
+    const maps = buildJerkyInventoryMaps(product)
+    setLocalStock(maps.stock)
+    setLocalThresholds(maps.thresholds)
+  }, [product.id, product.jerky_flavor_stock, product.jerky_flavor_thresholds, product.stock_quantity])
+
   async function toggleStock() {
     const next = !product.is_in_stock
-    const { error } = await supabase.from('products').update({ is_in_stock: next }).eq('id', product.id)
+    const { product: updated, error } = await patchProductInventory(product.id, { is_in_stock: next })
     if (error) {
-      onError?.(formatInventoryError(error.message))
+      onError?.(error)
       return
     }
-    onUpdate({ ...product, is_in_stock: next })
+    if (updated) onUpdate(updated)
   }
 
   async function savePrice(price: number) {
     setSaving('price')
-    const { error } = await supabase.from('products').update({ price }).eq('id', product.id)
+    const { product: updated, error } = await patchProductInventory(product.id, { price })
     if (error) {
-      onError?.(formatInventoryError(error.message))
+      onError?.(error)
       setSaving(null)
       return
     }
-    onUpdate({ ...product, price })
+    if (updated) onUpdate(updated)
     setSaving(null)
   }
 
   async function saveFlavor(flavor: string, stock: number, threshold: number) {
+    if (!Number.isFinite(stock) || stock < 0) {
+      onError?.('Enter a valid stock amount (0 or more).')
+      return
+    }
+    if (!Number.isFinite(threshold) || threshold < 0) {
+      onError?.('Enter a valid low-stock threshold (0 or more).')
+      return
+    }
+
     setSaving(flavor)
     const previous = localStock[flavor] ?? 0
     const nextStock = { ...localStock, [flavor]: stock }
     const nextThresholds = { ...localThresholds, [flavor]: threshold }
 
-    const { error } = await supabase
-      .from('products')
-      .update({
+    const { product: updated, error } = await patchProductInventory(
+      product.id,
+      {
         jerky_flavor_stock: nextStock,
         jerky_flavor_thresholds: nextThresholds,
-      })
-      .eq('id', product.id)
+      },
+      {
+        change_amount: stock - previous,
+        previous_quantity: previous,
+        new_quantity: stock,
+        reason: `Manual stock update — ${flavor}`,
+      },
+    )
 
     if (error) {
-      onError?.(formatInventoryError(error.message))
+      onError?.(error)
       setSaving(null)
       return
     }
 
-    const { error: historyError } = await supabase.from('stock_history').insert({
-      product_id: product.id,
-      change_amount: stock - previous,
-      previous_quantity: previous,
-      new_quantity: stock,
-      reason: `Manual stock update — ${flavor}`,
-    })
-
-    if (historyError) {
-      console.warn('Stock history insert failed', historyError)
-    }
-
     setLocalStock(nextStock)
     setLocalThresholds(nextThresholds)
-    onUpdate({
-      ...product,
-      jerky_flavor_stock: nextStock,
-      jerky_flavor_thresholds: nextThresholds,
-    })
+    if (updated) {
+      onUpdate(updated)
+    } else {
+      onUpdate({
+        ...product,
+        jerky_flavor_stock: nextStock,
+        jerky_flavor_thresholds: nextThresholds,
+      })
+    }
 
     setSaving(null)
     setEditing(null)
@@ -228,7 +227,7 @@ export default function JerkyInventoryPanel({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {flavors.map(flavor => {
-              const stock = localStock[flavor] ?? getJerkyFlavorStock(product, flavor)
+              const stock = localStock[flavor] ?? 0
               const threshold = localThresholds[flavor] ?? getJerkyFlavorThreshold(product, flavor)
               const unavailable = stock <= 0
               const low = isJerkyFlavorLowStock(

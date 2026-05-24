@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import AdminLayout from '@/components/AdminLayout'
 import JerkyInventoryPanel from '@/components/JerkyInventoryPanel'
 import { createBrowserSupabaseClient } from '@/lib/supabase-client'
+import { patchProductInventory } from '@/lib/inventory-api'
 import { useLanguage } from '@/lib/language-context'
 import { productCategoryLabel } from '@/lib/i18n'
 import type { Product } from '@/types'
@@ -35,24 +36,24 @@ export default function InventoryPage() {
   async function updateProduct(id: string, qty: number, price: number) {
     setSaving(id)
     setSaveError(null)
-    const { error } = await supabase.from('products').update({ stock_quantity: qty, price }).eq('id', id)
+    const { product, error } = await patchProductInventory(id, { stock_quantity: qty, price })
     if (error) {
-      setSaveError(error.message)
+      setSaveError(error)
       setSaving(null)
       return
     }
-    setProducts(ps => ps.map(p => p.id === id ? { ...p, stock_quantity: qty, price } : p))
+    if (product) updateProductInState(product)
     setSaving(null)
   }
 
   async function toggleStock(id: string, current: boolean) {
     setSaveError(null)
-    const { error } = await supabase.from('products').update({ is_in_stock: !current }).eq('id', id)
+    const { product, error } = await patchProductInventory(id, { is_in_stock: !current })
     if (error) {
-      setSaveError(error.message)
+      setSaveError(error)
       return
     }
-    setProducts(ps => ps.map(p => p.id === id ? { ...p, is_in_stock: !current } : p))
+    if (product) updateProductInState(product)
   }
 
   async function uploadImage(id: string, file: File) {
@@ -74,8 +75,13 @@ export default function InventoryPage() {
       .from('product-images')
       .getPublicUrl(path)
 
-    await supabase.from('products').update({ image_url: publicUrl }).eq('id', id)
-    setProducts(ps => ps.map(p => p.id === id ? { ...p, image_url: publicUrl } : p))
+    const { product, error } = await patchProductInventory(id, { image_url: publicUrl })
+    if (error) {
+      setSaveError(error)
+      setUploading(null)
+      return
+    }
+    if (product) updateProductInState(product)
     setUploading(null)
   }
 
@@ -140,7 +146,6 @@ export default function InventoryPage() {
                   {items.map(p => (
                     <JerkyInventoryPanel
                       key={p.id}
-                      supabase={supabase}
                       product={p}
                       onUpdate={updated => {
                         setSaveError(null)
