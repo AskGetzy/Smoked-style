@@ -29,9 +29,6 @@ export default function BulkLabelPreviewCard({ order, checked, onCheckedChange }
     day: 'numeric',
   })
   const areaName = order.delivery_areas?.name ?? null
-  const areaDateLine = isPickup
-    ? formattedDate
-    : [areaName, formattedDate].filter(Boolean).join(' · ')
   const items = order.order_items ?? []
 
   return (
@@ -52,7 +49,16 @@ export default function BulkLabelPreviewCard({ order, checked, onCheckedChange }
           <p className="text-base font-black tracking-wide" style={{ color: 'var(--navy)' }}>
             SMOKED STYLE
           </p>
-          <p className="mt-1 text-lg font-bold text-gray-900">{order.order_number}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <p className="text-lg font-bold text-gray-900">{order.order_number}</p>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                isPickup ? 'bg-orange-200 text-orange-900' : 'bg-blue-200 text-blue-900'
+              }`}
+            >
+              {isPickup ? 'Pickup' : 'Delivery'}
+            </span>
+          </div>
         </div>
         <div
           className="flex h-14 w-14 shrink-0 items-center justify-center rounded border-2 border-dashed border-gray-400 bg-gray-100 text-[10px] font-bold uppercase tracking-wide text-gray-500"
@@ -68,15 +74,47 @@ export default function BulkLabelPreviewCard({ order, checked, onCheckedChange }
           <p className="text-gray-600">{displayBuyerPhone(order)}</p>
         )}
 
-        {isPickup ? (
-          <p className="text-3xl font-black uppercase tracking-wide text-orange-600">PICKUP</p>
-        ) : (
-          <p className="font-medium leading-snug text-gray-900">
-            {order.delivery_address || 'Address TBD'}
+        <div
+          className={`rounded-lg border px-3 py-2.5 ${
+            isPickup ? 'border-orange-200 bg-orange-50' : 'border-blue-200 bg-blue-50'
+          }`}
+        >
+          <p
+            className={`text-xs font-bold uppercase tracking-wide ${
+              isPickup ? 'text-orange-800' : 'text-blue-800'
+            }`}
+          >
+            {isPickup ? 'Pickup order' : 'Delivery order'}
+          </p>
+
+          {isPickup ? (
+            <p className="mt-1 text-2xl font-black uppercase tracking-wide text-orange-600">
+              PICKUP
+            </p>
+          ) : (
+            <div className="mt-2 space-y-1">
+              {areaName && (
+                <p className="font-bold text-gray-900">
+                  <span className="text-gray-600 font-semibold">Area: </span>
+                  {areaName}
+                </p>
+              )}
+              <p className="font-medium leading-snug text-gray-900">
+                <span className="text-gray-600 font-semibold">Address: </span>
+                {order.delivery_address || 'Address TBD'}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {formattedDate && (
+          <p className="text-gray-600">
+            <span className="font-semibold text-gray-700">
+              {isPickup ? 'Pickup date: ' : 'Delivery date: '}
+            </span>
+            {formattedDate}
           </p>
         )}
-
-        {areaDateLine && <p className="text-gray-600">{areaDateLine}</p>}
 
         {items.length > 0 && (
           <ul className="space-y-1 border-t border-gray-100 pt-2">
