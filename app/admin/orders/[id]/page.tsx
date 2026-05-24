@@ -6,6 +6,7 @@ import Link from 'next/link'
 import AdminLayout from '@/components/AdminLayout'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
 import { useLanguage } from '@/lib/language-context'
+import OrderStatusActions from '@/components/OrderStatusActions'
 import { orderStatusLabel } from '@/lib/i18n'
 import { displayBuyerEmail, displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 import type { Order, OrderItem } from '@/types'
@@ -145,23 +146,6 @@ export default function OrderDetailPage() {
     }
   }
 
-  async function updateOrderStatus(status: 'ready_for_pickup' | 'out_for_delivery' | 'delivered') {
-    setError('')
-    const res = await fetch('/api/admin/orders/status', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ orderId: id, status }),
-    })
-
-    if (res.ok) {
-      fetchOrder()
-    } else {
-      const payload = await res.json()
-      setError(payload.error ?? t.couldNotUpdateStatus)
-    }
-  }
-
   if (loading) return (
     <AdminLayout>
       <div className="p-6 animate-pulse space-y-4">
@@ -236,23 +220,10 @@ export default function OrderDetailPage() {
                 </button>
               </>
             )}
-            {order.status === 'approved' && (
-              <>
-                {order.order_type === 'pickup' ? (
-                  <button onClick={() => updateOrderStatus('ready_for_pickup')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600">
-                    {t.readyForPickup}
-                  </button>
-                ) : (
-                  <button onClick={() => updateOrderStatus('out_for_delivery')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700">
-                    🚗 {t.markOutForDelivery}
-                  </button>
-                )}
-              </>
-            )}
-            {(order.status === 'out_for_delivery' || order.status === 'ready_for_pickup') && (
-              <button onClick={() => updateOrderStatus('delivered')} className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700">
-                ✓ {t.markDelivered}
-              </button>
+            {order.status !== 'pending' &&
+              order.status !== 'cancelled' &&
+              order.status !== 'payment_failed' && (
+              <OrderStatusActions order={order} onUpdated={fetchOrder} />
             )}
           </div>
         </div>

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendOrderDelivered, sendOrderReadyForPickup } from '@/lib/email'
 import { requireAdmin } from '@/lib/admin-auth'
+import {
+  canSetOrderStatus,
+  getRevertStatus,
+  statusRequiresPickupOnly,
+} from '@/lib/order-status'
+import type { Order } from '@/types'
 
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+const LEGACY_FORWARD: Record<string, string[]> = {
   approved: ['out_for_delivery', 'ready_for_pickup'],
   out_for_delivery: ['delivered'],
   ready_for_pickup: ['delivered'],
@@ -13,9 +19,9 @@ export async function POST(req: NextRequest) {
     const admin = await requireAdmin(req)
     if (!admin.ok) return admin.response
 
-    const { orderId, status } = await req.json()
-    if (!orderId || !status) {
-      return NextResponse.json({ error: 'Missing order ID or status' }, { status: 400 })
+    const { orderId, status: requestedStatus, revert } = await req.json()
+    if (!orderId) {
+      return NextResponse.json({ error: 'Missing order ID' }, { status: 400 })
     }
 
     const { supabase } = admin
@@ -29,23 +35,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    if (!ALLOWED_TRANSITIONS[order.status]?.includes(status)) {
+    let status: Order['status']
+    if (revert) {
+      const previous = getRevertStatus(order.status, order.order_type)
+      if (!previous) {
+        return NextResponse.json(
+          { error: `Cannot revert order from ${order.status}` },
+          { status: 400 },
+        )
+      }
+      status = previous
+    } else if (!requestedStatus) {
+      return NextResponse.json({ error: 'Missing status' }, { status: 400 })
+    } else {
+      status = requestedStatus as Order['status']
+    }
+
+    const allowedByRules = canSetOrderStatus(order.status, status, order.order_type)
+    const allowedLegacy = LEGACY_FORWARD[order.status]?.includes(status) ?? false
+
+    if (!allowedByRules && !allowedLegacy) {
       return NextResponse.json(
         { error: `Cannot change order from ${order.status} to ${status}` },
         { status: 400 },
       )
     }
 
-    if (status === 'ready_for_pickup' && order.order_type !== 'pickup') {
+    if (statusRequiresPickupOnly(status) && order.order_type !== 'pickup') {
       return NextResponse.json(
         { error: 'Only pickup orders can be marked ready for pickup' },
         { status: 400 },
       )
     }
 
-    const update: Record<string, string> = { status }
+    if (status === 'out_for_delivery' && order.order_type === 'pickup') {
+      return NextResponse.json(
+        { error: 'Pickup orders cannot be marked out for delivery' },
+        { status: 400 },
+      )
+    }
+
+    const update: Record<string, string | null> = { status }
     if (status === 'delivered') {
       update.delivered_at = new Date().toISOString()
+    } else if (order.status === 'delivered') {
+      update.delivered_at = null
     }
 
     const { error: updateError } = await supabase
@@ -57,41 +91,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
+    const movingForward =
+      !revert &&
+      (LEGACY_FORWARD[order.status]?.includes(status) ||
+        (order.status !== status && status === 'delivered'))
+
     const emailOrder = { ...order, status, delivered_at: update.delivered_at ?? order.delivered_at }
-    // Pickup orders: email on received, approved, and ready for pickup only — not when picked up.
-    if (status === 'delivered' && order.order_type === 'delivery') {
+
+    if (movingForward && status === 'delivered' && order.order_type === 'delivery') {
       try {
-        console.log('[email] About to send order delivered', {
-          orderId,
-          orderNumber: order.order_number,
-        })
         await sendOrderDelivered(emailOrder)
-        console.log('[email] Finished sending order delivered', {
-          orderId,
-          orderNumber: order.order_number,
-        })
       } catch (emailError) {
         console.error('Order delivered email failed', emailError)
       }
     }
 
-    if (status === 'ready_for_pickup') {
+    if (movingForward && status === 'ready_for_pickup') {
       try {
-        console.log('[email] About to send order ready for pickup', {
-          orderId,
-          orderNumber: order.order_number,
-        })
         await sendOrderReadyForPickup(emailOrder)
-        console.log('[email] Finished sending order ready for pickup', {
-          orderId,
-          orderNumber: order.order_number,
-        })
       } catch (emailError) {
         console.error('Order ready for pickup email failed', emailError)
       }
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, status })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Could not update order status'
     return NextResponse.json({ error: message }, { status: 500 })

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
+import OrderStatusActions from '@/components/OrderStatusActions'
 import { displayBuyerEmail, displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 
 export default function BossOrderDetailPage() {
@@ -57,9 +58,10 @@ export default function BossOrderDetailPage() {
   const customer = order.customers as { full_name?: string; phone?: string; email?: string } | undefined
   const items = order.order_items ?? []
   const isPending = order.status === 'pending'
+  const hasStatusActions = !isPending && order.status !== 'cancelled' && order.status !== 'payment_failed'
 
   return (
-    <div className={`space-y-4 p-4 text-base ${isPending ? 'pb-56' : 'pb-6'}`}>
+    <div className={`space-y-4 p-4 text-base ${isPending || hasStatusActions ? 'pb-56' : 'pb-6'}`}>
       <Link
         href="/boss/orders"
         className="flex min-h-12 items-center gap-2 rounded-2xl bg-white px-4 text-base font-black text-gray-700 shadow-sm"
@@ -131,6 +133,13 @@ export default function BossOrderDetailPage() {
       </section>
 
       {error && <div className="rounded-2xl bg-red-50 p-3 font-bold text-red-700">{error}</div>}
+
+      {hasStatusActions && (
+        <section className="rounded-3xl bg-white p-4 shadow-sm">
+          <h2 className="mb-3 text-lg font-black">Update status</h2>
+          <OrderStatusActions order={order} onUpdated={loadOrder} useBossAuth />
+        </section>
+      )}
 
       {isPending && (
         <div className="fixed bottom-24 left-0 right-0 z-40 border-t border-gray-100 bg-white/95 p-4 shadow-2xl backdrop-blur">

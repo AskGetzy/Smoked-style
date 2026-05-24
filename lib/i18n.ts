@@ -14,6 +14,7 @@ export const translations = {
     outForDelivery: 'Out for Delivery',
     delivered: 'Delivered',
     cancelled: 'Cancelled',
+    paymentFailed: 'Payment Failed',
     allOrders: 'All Orders',
     all: 'All',
     readyForPickup: 'Ready for Pickup',
@@ -114,6 +115,7 @@ export const translations = {
     couldNotSaveOrder: 'Could not save order changes',
     couldNotRejectOrder: 'Could not reject order',
     couldNotUpdateStatus: 'Could not update order status',
+    revertStatus: 'Revert',
     backToOrders: 'Orders',
     searchProductsPlaceholder: 'Search products...',
     noProductsFound: 'No products found. Run the seed data step first.',
@@ -149,6 +151,7 @@ export const translations = {
     outForDelivery: 'En Camino',
     delivered: 'Entregado',
     cancelled: 'Cancelado',
+    paymentFailed: 'Pago fallido',
     allOrders: 'Todos los Pedidos',
     all: 'Todos',
     readyForPickup: 'Listo para Recoger',
@@ -249,6 +252,7 @@ export const translations = {
     couldNotSaveOrder: 'No se pudieron guardar los cambios',
     couldNotRejectOrder: 'No se pudo rechazar el pedido',
     couldNotUpdateStatus: 'No se pudo actualizar el estado',
+    revertStatus: 'Revertir',
     backToOrders: 'Pedidos',
     searchProductsPlaceholder: 'Buscar productos...',
     noProductsFound: 'No se encontraron productos. Ejecute el seed primero.',
@@ -287,6 +291,7 @@ const STATUS_KEYS: Record<string, keyof TranslationDict> = {
   delivered: 'delivered',
   cancelled: 'cancelled',
   ready_for_pickup: 'readyForPickup',
+  payment_failed: 'paymentFailed',
 }
 
 export function orderStatusLabel(t: TranslationDict, status: string): string {

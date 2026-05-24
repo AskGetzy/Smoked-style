@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import DashboardOrderList, { type DashboardOrder } from '@/components/DashboardOrderList'
 import SlideOverPanel from '@/components/SlideOverPanel'
 import { fetchWithAuth } from '@/lib/auth-fetch'
-import { isCreatedOnLocalDate, todayLocal } from '@/lib/dates'
+import { addLocalDays, formatDeliveryDate, normalizeDeliveryDate, todayLocal } from '@/lib/dates'
 
 type LowStockProduct = {
   id: string
@@ -19,6 +19,7 @@ type ModalKind = 'revenue' | 'approved' | 'lowStock' | null
 
 export default function BossDashboardPage() {
   const router = useRouter()
+  const [date, setDate] = useState(todayLocal())
   const [orders, setOrders] = useState<DashboardOrder[]>([])
   const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,22 +37,22 @@ export default function BossDashboardPage() {
     setLoading(false)
   }
 
-  const today = todayLocal()
-  const todayOrders = useMemo(
-    () => orders.filter(order => order.created_at && isCreatedOnLocalDate(order.created_at, today)),
-    [orders, today],
+  const ordersForDate = useMemo(
+    () => orders.filter(order => normalizeDeliveryDate(order.delivery_date) === date),
+    [orders, date],
   )
-  const todayRevenueOrders = useMemo(
-    () => todayOrders.filter(order => order.status !== 'cancelled'),
-    [todayOrders],
+  const revenueOrders = useMemo(
+    () => ordersForDate.filter(order => order.status !== 'cancelled'),
+    [ordersForDate],
   )
-  const approvedOrders = useMemo(
+  const allApprovedOrders = useMemo(
     () => orders.filter(order => order.status === 'approved'),
     [orders],
   )
-  const todayRevenue = todayRevenueOrders.reduce((sum, order) => sum + Number(order.total), 0)
+  const dateRevenue = revenueOrders.reduce((sum, order) => sum + Number(order.total), 0)
   const pendingCount = orders.filter(order => order.status === 'pending').length
-  const approvedCount = approvedOrders.length
+  const approvedCount = orders.filter(order => order.status === 'approved').length
+  const dateLabel = formatDeliveryDate(date, { weekday: 'long', month: 'long', day: 'numeric' })
 
   function openModal(kind: ModalKind) {
     setModal(kind)
@@ -60,16 +61,16 @@ export default function BossDashboardPage() {
   }
 
   const modalTitle =
-    modal === 'revenue' ? "Today's orders"
-    : modal === 'approved' ? 'Approved orders'
+    modal === 'revenue' ? `Orders for ${dateLabel}`
+    : modal === 'approved' ? `Approved on ${dateLabel}`
     : modal === 'lowStock' ? 'Low stock items'
     : ''
 
   const modalContent =
     modal === 'revenue' ? (
-      <DashboardOrderList orders={todayRevenueOrders} emptyMessage="No orders placed today." />
+      <DashboardOrderList orders={revenueOrders} emptyMessage="No orders scheduled for this date." />
     ) : modal === 'approved' ? (
-      <DashboardOrderList orders={approvedOrders} emptyMessage="No approved orders." />
+      <DashboardOrderList orders={allApprovedOrders} emptyMessage="No approved orders." />
     ) : modal === 'lowStock' ? (
       lowStockProducts.length === 0 ? (
         <p className="text-base text-gray-500">All products are above the low stock threshold.</p>
@@ -90,8 +91,8 @@ export default function BossDashboardPage() {
   const cards = [
     {
       key: 'revenue',
-      label: 'Today Revenue',
-      value: `$${todayRevenue.toFixed(2)}`,
+      label: 'Revenue (by delivery date)',
+      value: `$${dateRevenue.toFixed(2)}`,
       onClick: () => openModal('revenue'),
     },
     {
@@ -102,7 +103,7 @@ export default function BossDashboardPage() {
     },
     {
       key: 'approved',
-      label: 'Approved Orders',
+      label: 'Approved (all dates)',
       value: String(approvedCount),
       onClick: () => openModal('approved'),
     },
@@ -116,6 +117,38 @@ export default function BossDashboardPage() {
 
   return (
     <div className="space-y-4 p-4 text-base">
+      <div className="rounded-3xl bg-white p-4 shadow-sm">
+        <div className="mb-1 text-sm font-bold text-gray-500">Delivery date</div>
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setDate(addLocalDays(date, -1))}
+            className="min-h-12 rounded-2xl bg-gray-100 px-4 text-xl font-black"
+            aria-label="Previous day"
+          >
+            ‹
+          </button>
+          <div className="text-center text-lg font-black leading-tight">{dateLabel}</div>
+          <button
+            type="button"
+            onClick={() => setDate(addLocalDays(date, 1))}
+            className="min-h-12 rounded-2xl bg-gray-100 px-4 text-xl font-black"
+            aria-label="Next day"
+          >
+            ›
+          </button>
+        </div>
+        {date !== todayLocal() && (
+          <button
+            type="button"
+            onClick={() => setDate(todayLocal())}
+            className="mt-3 min-h-10 w-full rounded-2xl text-sm font-black text-orange-700 ring-1 ring-orange-200"
+          >
+            Jump to today
+          </button>
+        )}
+      </div>
+
       {pendingCount > 0 && (
         <Link href="/boss/orders?status=pending" className="block rounded-3xl bg-orange-500 p-5 text-xl font-black text-white shadow-lg">
           {pendingCount} orders need approval
@@ -127,19 +160,29 @@ export default function BossDashboardPage() {
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-orange-500" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3">
-          {cards.map(card => (
-            <button
-              key={card.key}
-              type="button"
-              onClick={card.onClick}
-              className="rounded-3xl bg-white p-5 text-left shadow-sm transition hover:ring-2 hover:ring-orange-200 active:scale-[0.99]"
-            >
-              <div className="text-base font-bold text-gray-500">{card.label}</div>
-              <div className="mt-2 text-4xl font-black" style={{ color: 'var(--navy)' }}>{card.value}</div>
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-3">
+            {cards.map(card => (
+              <button
+                key={card.key}
+                type="button"
+                onClick={card.onClick}
+                className="rounded-3xl bg-white p-5 text-left shadow-sm transition hover:ring-2 hover:ring-orange-200 active:scale-[0.99]"
+              >
+                <div className="text-base font-bold text-gray-500">{card.label}</div>
+                <div className="mt-2 text-4xl font-black" style={{ color: 'var(--navy)' }}>{card.value}</div>
+              </button>
+            ))}
+          </div>
+
+          <section className="rounded-3xl bg-white p-4 shadow-sm">
+            <h2 className="mb-3 text-lg font-black">Orders for this date</h2>
+            <DashboardOrderList
+              orders={ordersForDate}
+              emptyMessage="No orders scheduled for this delivery date."
+            />
+          </section>
+        </>
       )}
 
       <SlideOverPanel

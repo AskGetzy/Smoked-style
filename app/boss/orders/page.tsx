@@ -8,7 +8,20 @@ import { fetchWithAuth } from '@/lib/auth-fetch'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
 import { displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 
-const TABS = ['all', 'pending', 'approved', 'delivered']
+const TABS = [
+  'all',
+  'pending',
+  'approved',
+  'ready_for_pickup',
+  'out_for_delivery',
+  'delivered',
+  'cancelled',
+  'payment_failed',
+] as const
+
+function tabLabel(tab: string): string {
+  return tab === 'all' ? 'All' : tab.replace(/_/g, ' ')
+}
 
 function matchesSearch(order: Order, query: string) {
   const q = query.trim().toLowerCase()
@@ -37,7 +50,7 @@ export default function BossOrdersPage() {
 
   useEffect(() => {
     const requested = searchParams.get('status')
-    if (requested && TABS.includes(requested)) {
+    if (requested && (TABS as readonly string[]).includes(requested)) {
       setStatus(requested)
     }
   }, [searchParams])
@@ -76,10 +89,10 @@ export default function BossOrdersPage() {
                 key={tab}
                 type="button"
                 onClick={() => setStatus(tab)}
-                className={`min-h-12 rounded-full px-5 text-base font-black capitalize ${status === tab ? 'text-white' : 'bg-white text-gray-700'}`}
+                className={`min-h-12 shrink-0 rounded-full px-5 text-base font-black capitalize ${status === tab ? 'text-white' : 'bg-white text-gray-700'}`}
                 style={status === tab ? { background: 'var(--navy)' } : undefined}
               >
-                {tab}
+                {tabLabel(tab)}
               </button>
             ))}
           </div>

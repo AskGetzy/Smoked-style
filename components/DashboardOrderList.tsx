@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { formatDeliveryDate } from '@/lib/dates'
+import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
 import { displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 
 export type DashboardOrder = {
@@ -69,8 +69,13 @@ export default function DashboardOrderList({
               <span className="capitalize">{order.status.replace(/_/g, ' ')}</span>
               <span className="font-black text-gray-900">${Number(order.total).toFixed(2)}</span>
             </div>
-            {order.delivery_date && (
+            {order.created_at && (
               <p className="mt-1 text-sm text-gray-500">
+                Ordered: {formatOrderDate(order.created_at)}
+              </p>
+            )}
+            {order.delivery_date && (
+              <p className="text-sm text-gray-500">
                 Delivery: {formatDeliveryDate(order.delivery_date)}
               </p>
             )}
