@@ -150,6 +150,27 @@ export function downloadTextFile(filename: string, content: string, mimeType: st
   URL.revokeObjectURL(url)
 }
 
+/** e.g. "Previewing 12 labels for May 26 — Williamsburg" */
+export function bulkPrintPreviewHeading(
+  count: number,
+  filters: BulkPrintFilters,
+  areaName: string | null,
+) {
+  const parts: string[] = []
+  if (filters.scope !== 'area' && filters.deliveryDate) {
+    parts.push(
+      formatDeliveryDate(filters.deliveryDate, { month: 'short', day: 'numeric' }) ||
+        filters.deliveryDate,
+    )
+  }
+  if (filters.scope !== 'date' && areaName && filters.orderType !== 'pickup') {
+    parts.push(areaName)
+  }
+  const where = parts.length > 0 ? ` for ${parts.join(' — ')}` : ''
+  const labelWord = count === 1 ? 'label' : 'labels'
+  return `Previewing ${count} ${labelWord}${where}`
+}
+
 export function bulkPrintSummary(
   count: number,
   filters: BulkPrintFilters,
