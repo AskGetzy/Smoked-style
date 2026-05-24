@@ -21,6 +21,8 @@ const OWNER_NAV = { href: '/admin/bookkeeping', key: 'bookkeeping' as Translatio
 
 /** Persists across per-page AdminLayout remounts so nav does not flash on route change. */
 let adminSessionVerified = false
+let cachedAdminEmail: string | null = null
+let cachedIsOwner = false
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = createBrowserSupabaseClient()
@@ -28,30 +30,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname()
   const { t } = useLanguage()
   const [checking, setChecking] = useState(!adminSessionVerified)
-  const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [isOwner, setIsOwner] = useState(false)
+  const [userEmail, setUserEmail] = useState<string | null>(cachedAdminEmail)
+  const [isOwner, setIsOwner] = useState(cachedIsOwner)
 
   useEffect(() => {
-    if (adminSessionVerified) {
-      setChecking(false)
-      return
-    }
-
     let cancelled = false
     supabase.auth.getSession().then(async ({ data }) => {
       if (cancelled) return
       if (!data.session) {
         adminSessionVerified = false
+        cachedAdminEmail = null
+        cachedIsOwner = false
         router.push('/admin/login')
         return
       }
       adminSessionVerified = true
-      setUserEmail(data.session.user.email ?? null)
+      cachedAdminEmail = data.session.user.email ?? null
+      setUserEmail(cachedAdminEmail)
       try {
         const res = await fetch('/api/admin/me', { credentials: 'include' })
         const me = await res.json()
-        if (res.ok) setIsOwner(Boolean(me.isOwner))
+        if (res.ok) {
+          cachedIsOwner = Boolean(me.isOwner)
+          setIsOwner(cachedIsOwner)
+        } else {
+          cachedIsOwner = false
+          setIsOwner(false)
+        }
       } catch {
+        cachedIsOwner = false
         setIsOwner(false)
       }
       setChecking(false)
@@ -64,6 +71,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   async function signOut() {
     await supabase.auth.signOut()
     adminSessionVerified = false
+    cachedAdminEmail = null
+    cachedIsOwner = false
     router.push('/admin/login')
   }
 
