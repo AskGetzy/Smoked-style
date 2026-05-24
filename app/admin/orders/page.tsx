@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import AdminLayout from '@/components/AdminLayout'
+import BulkPrintModal from '@/components/BulkPrintModal'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
 import { useLanguage } from '@/lib/language-context'
 import { orderStatusLabel } from '@/lib/i18n'
@@ -33,6 +34,7 @@ export default function OrdersPage() {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
+  const [bulkPrintOpen, setBulkPrintOpen] = useState(false)
   const hasLoadedOrdersRef = useRef(false)
   const fetchInFlightRef = useRef(false)
 
@@ -124,7 +126,14 @@ export default function OrdersPage() {
               />
             )}
           </div>
-          <div className="flex flex-wrap justify-end gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setBulkPrintOpen(true)}
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-800 shadow-sm hover:border-orange-200"
+            >
+              Bulk Print Labels
+            </button>
             <div className="rounded-full bg-yellow-100 px-3 py-1 text-sm font-semibold text-yellow-800">
               {counts.pending} {t.pending}
             </div>
@@ -133,6 +142,8 @@ export default function OrdersPage() {
             </div>
           </div>
         </div>
+
+        <BulkPrintModal open={bulkPrintOpen} onClose={() => setBulkPrintOpen(false)} />
 
         <input
           value={search}

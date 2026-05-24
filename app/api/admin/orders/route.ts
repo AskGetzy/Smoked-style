@@ -24,16 +24,36 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ order: data })
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('orders')
       .select('*, customers(full_name, email, phone), order_items(*), delivery_areas(name)')
-      .order('created_at', { ascending: false })
+
+    const deliveryDate = req.nextUrl.searchParams.get('delivery_date')
+    const deliveryAreaId = req.nextUrl.searchParams.get('delivery_area_id')
+    const statusesParam = req.nextUrl.searchParams.get('statuses')
+
+    if (deliveryDate) {
+      query = query.eq('delivery_date', deliveryDate)
+    }
+    if (deliveryAreaId) {
+      query = query.eq('delivery_area_id', deliveryAreaId)
+    }
+    if (statusesParam) {
+      const statuses = statusesParam.split(',').map(s => s.trim()).filter(Boolean)
+      if (statuses.length > 0) {
+        query = query.in('status', statuses)
+      }
+    }
+
+    const { data, error } = await query
+      .order('delivery_date', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ orders: data ?? [] })
+    return NextResponse.json({ orders: data ?? [], count: (data ?? []).length })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Could not load orders'
     return NextResponse.json({ error: message }, { status: 500 })

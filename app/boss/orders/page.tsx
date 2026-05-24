@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
+import BulkPrintModal from '@/components/BulkPrintModal'
 import { displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
 
 const TABS = [
@@ -47,6 +48,7 @@ export default function BossOrdersPage() {
   const [status, setStatus] = useState('all')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [bulkPrintOpen, setBulkPrintOpen] = useState(false)
 
   useEffect(() => {
     const requested = searchParams.get('status')
@@ -74,6 +76,16 @@ export default function BossOrdersPage() {
   return (
     <div className="p-4 pb-6">
       <div className="sticky top-[57px] z-30 -mx-4 mb-4 space-y-3 bg-[#f8fafc] px-4 pb-3 pt-1">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setBulkPrintOpen(true)}
+            className="min-h-12 flex-1 rounded-2xl border border-gray-200 bg-white px-4 text-base font-black text-gray-800 shadow-sm"
+          >
+            Bulk Print Labels
+          </button>
+        </div>
+        <BulkPrintModal open={bulkPrintOpen} onClose={() => setBulkPrintOpen(false)} />
         <input
           type="search"
           value={search}
