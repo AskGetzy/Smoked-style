@@ -9,6 +9,7 @@ import {
   downloadTextFile,
   validateBulkPrintFilters,
   type BulkPrintFilters,
+  type BulkPrintOrderType,
   type BulkPrintScope,
 } from '@/lib/bulk-print'
 import { fetchWithAuth } from '@/lib/auth-fetch'
@@ -41,11 +42,18 @@ const SCOPE_OPTIONS: { value: BulkPrintScope; label: string }[] = [
   { value: 'both', label: 'Print by date and area' },
 ]
 
+const ORDER_TYPE_OPTIONS: { value: BulkPrintOrderType; label: string }[] = [
+  { value: 'all', label: 'All orders (delivery + pickup)' },
+  { value: 'delivery', label: 'Delivery only' },
+  { value: 'pickup', label: 'Pickup only' },
+]
+
 export default function BulkPrintModal({ open, onClose }: Props) {
   const [scope, setScope] = useState<BulkPrintScope>('date')
   const [deliveryDate, setDeliveryDate] = useState('')
   const [deliveryAreaId, setDeliveryAreaId] = useState('')
   const [includePending, setIncludePending] = useState(false)
+  const [orderType, setOrderType] = useState<BulkPrintOrderType>('all')
   const [areas, setAreas] = useState<DeliveryArea[]>([])
   const [previewCount, setPreviewCount] = useState<number | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
@@ -53,9 +61,11 @@ export default function BulkPrintModal({ open, onClose }: Props) {
   const [error, setError] = useState('')
 
   const filters = useMemo<BulkPrintFilters>(
-    () => ({ scope, deliveryDate, deliveryAreaId, includePending }),
-    [scope, deliveryDate, deliveryAreaId, includePending],
+    () => ({ scope, deliveryDate, deliveryAreaId, includePending, orderType }),
+    [scope, deliveryDate, deliveryAreaId, includePending, orderType],
   )
+
+  const showAreaFilter = orderType !== 'pickup' && (scope === 'area' || scope === 'both')
 
   const selectedAreaName = areas.find(a => a.id === deliveryAreaId)?.name ?? null
   const validationError = validateBulkPrintFilters(filters)
@@ -208,7 +218,27 @@ export default function BulkPrintModal({ open, onClose }: Props) {
             </label>
           )}
 
-          {(scope === 'area' || scope === 'both') && (
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-bold text-gray-700">Order type</legend>
+            {ORDER_TYPE_OPTIONS.map(option => (
+              <label
+                key={option.value}
+                className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-gray-200 px-3 py-2"
+              >
+                <input
+                  type="radio"
+                  name="bulk-order-type"
+                  value={option.value}
+                  checked={orderType === option.value}
+                  onChange={() => setOrderType(option.value)}
+                  className="h-4 w-4 accent-orange-500"
+                />
+                <span className="text-sm font-semibold text-gray-800">{option.label}</span>
+              </label>
+            ))}
+          </fieldset>
+
+          {showAreaFilter && (
             <label className="block text-sm font-bold text-gray-700">
               Delivery area
               <select

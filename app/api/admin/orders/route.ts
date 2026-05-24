@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     if (orderId) {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, customers(*), order_items(*)')
+        .select('*, customers(*), order_items(*), delivery_areas(name)')
         .eq('id', orderId)
         .single()
 
@@ -31,18 +31,29 @@ export async function GET(req: NextRequest) {
     const deliveryDate = req.nextUrl.searchParams.get('delivery_date')
     const deliveryAreaId = req.nextUrl.searchParams.get('delivery_area_id')
     const statusesParam = req.nextUrl.searchParams.get('statuses')
+    const orderType = req.nextUrl.searchParams.get('order_type') || 'all'
 
     if (deliveryDate) {
       query = query.eq('delivery_date', deliveryDate)
-    }
-    if (deliveryAreaId) {
-      query = query.eq('delivery_area_id', deliveryAreaId)
     }
     if (statusesParam) {
       const statuses = statusesParam.split(',').map(s => s.trim()).filter(Boolean)
       if (statuses.length > 0) {
         query = query.in('status', statuses)
       }
+    }
+
+    if (orderType === 'pickup') {
+      query = query.eq('order_type', 'pickup')
+    } else if (orderType === 'delivery') {
+      query = query.eq('order_type', 'delivery')
+      if (deliveryAreaId) {
+        query = query.eq('delivery_area_id', deliveryAreaId)
+      }
+    } else if (deliveryAreaId) {
+      query = query.or(
+        `and(order_type.eq.delivery,delivery_area_id.eq.${deliveryAreaId}),order_type.eq.pickup`,
+      )
     }
 
     const { data, error } = await query

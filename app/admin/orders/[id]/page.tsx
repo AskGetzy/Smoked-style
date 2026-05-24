@@ -6,6 +6,7 @@ import Link from 'next/link'
 import AdminLayout from '@/components/AdminLayout'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
 import { useLanguage } from '@/lib/language-context'
+import OrderPrintActions from '@/components/OrderPrintActions'
 import OrderStatusActions from '@/components/OrderStatusActions'
 import { orderStatusLabel } from '@/lib/i18n'
 import { displayBuyerEmail, displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
@@ -192,7 +193,11 @@ export default function OrderDetailPage() {
             {displayBuyerPhone(order) && (
               <p className="text-sm text-gray-500">📞 {displayBuyerPhone(order)}</p>
             )}
-            {order.delivery_address && <p className="text-sm text-gray-600 mt-2">📍 {order.delivery_address}</p>}
+            {order.order_type === 'pickup' ? (
+              <p className="mt-2 text-sm font-semibold text-orange-700">Pickup order</p>
+            ) : (
+              order.delivery_address && <p className="text-sm text-gray-600 mt-2">📍 {order.delivery_address}</p>
+            )}
             {order.delivery_date && (
               <p className="text-sm text-gray-600 mt-1">
                 📅 {formatDeliveryDate(order.delivery_date, { weekday: 'long', month: 'long', day: 'numeric' })}
@@ -223,6 +228,7 @@ export default function OrderDetailPage() {
             {order.status !== 'pending' && order.status !== 'payment_failed' && (
               <OrderStatusActions order={order} onUpdated={fetchOrder} />
             )}
+            <OrderPrintActions order={order} />
           </div>
         </div>
 

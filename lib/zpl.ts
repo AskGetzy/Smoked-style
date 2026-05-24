@@ -41,19 +41,19 @@ function itemLine(item: ZplOrderItem) {
 /** Build Zebra ZPL for a 4x6 shipping label (203 dpi). */
 export function buildOrderLabelZpl(order: ZplOrder): string {
   const isPickup = order.order_type === 'pickup'
-  const addressLine = isPickup
-    ? 'PICKUP'
-    : zplEscape(order.delivery_address || 'Address TBD')
-  const areaDate = [
-    order.delivery_area_name,
-    formatDeliveryDate(order.delivery_date, {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-    }),
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  const formattedDate = formatDeliveryDate(order.delivery_date, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
+  const areaDate = isPickup
+    ? [formattedDate].filter(Boolean).join('')
+    : [
+        order.delivery_area_name,
+        formattedDate,
+      ]
+        .filter(Boolean)
+        .join(' · ')
 
   const itemLines = (order.order_items ?? []).slice(0, 8).map(itemLine)
   const trackingUrl = getOrderTrackingUrl(order.order_number)
@@ -71,8 +71,14 @@ export function buildOrderLabelZpl(order: ZplOrder): string {
   }
 
   let y = order.buyer_phone ? 154 : 128
-  lines.push(`^FO30,${y}^A0N,18,18^FD${addressLine}^FS`)
-  y += 26
+
+  if (isPickup) {
+    lines.push(`^FO30,${y}^A0N,48,48^FDPICKUP^FS`)
+    y += 56
+  } else {
+    lines.push(`^FO30,${y}^A0N,20,20^FD${zplEscape(order.delivery_address || 'Address TBD')}^FS`)
+    y += 28
+  }
 
   if (areaDate) {
     lines.push(`^FO30,${y}^A0N,18,18^FD${zplEscape(areaDate)}^FS`)

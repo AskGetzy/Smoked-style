@@ -5,17 +5,21 @@ import type { Order } from '@/types'
 
 export type BulkPrintScope = 'date' | 'area' | 'both'
 
+export type BulkPrintOrderType = 'all' | 'delivery' | 'pickup'
+
 export type BulkPrintFilters = {
   scope: BulkPrintScope
   deliveryDate: string
   deliveryAreaId: string
   includePending: boolean
+  orderType: BulkPrintOrderType
 }
 
 export type BulkPrintQuery = {
   delivery_date?: string
   delivery_area_id?: string
   statuses: string
+  order_type: BulkPrintOrderType
 }
 
 export function bulkPrintStatuses(includePending: boolean) {
@@ -25,6 +29,7 @@ export function bulkPrintStatuses(includePending: boolean) {
 export function filtersToQuery(filters: BulkPrintFilters): BulkPrintQuery {
   const query: BulkPrintQuery = {
     statuses: bulkPrintStatuses(filters.includePending),
+    order_type: filters.orderType,
   }
 
   if (filters.scope === 'date' || filters.scope === 'both') {
@@ -42,19 +47,36 @@ export function buildBulkPrintSearchParams(filters: BulkPrintFilters) {
   const query = filtersToQuery(filters)
   const params = new URLSearchParams()
   params.set('statuses', query.statuses)
+  params.set('order_type', query.order_type)
   if (query.delivery_date) params.set('delivery_date', query.delivery_date)
   if (query.delivery_area_id) params.set('delivery_area_id', query.delivery_area_id)
   return params
 }
 
 export function validateBulkPrintFilters(filters: BulkPrintFilters): string | null {
+  if (filters.orderType === 'pickup' && filters.scope === 'area') {
+    return 'Pickup orders must be filtered by date.'
+  }
+
   if (filters.scope === 'date' || filters.scope === 'both') {
     if (!filters.deliveryDate) return 'Select a delivery date.'
   }
-  if (filters.scope === 'area' || filters.scope === 'both') {
-    if (!filters.deliveryAreaId) return 'Select a delivery area.'
+
+  const needsArea =
+    filters.orderType !== 'pickup' &&
+    (filters.scope === 'area' || filters.scope === 'both')
+
+  if (needsArea && !filters.deliveryAreaId) {
+    return 'Select a delivery area.'
   }
+
   return null
+}
+
+export function bulkPrintOrderTypeLabel(orderType: BulkPrintOrderType) {
+  if (orderType === 'delivery') return 'delivery only'
+  if (orderType === 'pickup') return 'pickup only'
+  return 'delivery + pickup'
 }
 
 export function orderToZplOrder(order: Order): ZplOrder {
@@ -97,7 +119,8 @@ export function bulkLabelsFilename(
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-|-$/g, '') || 'all-areas'
-  return `labels-${datePart}-${areaPart}.zpl`
+  const typePart = filters.orderType === 'all' ? 'all-types' : filters.orderType
+  return `labels-${datePart}-${areaPart}-${typePart}.zpl`
 }
 
 export function downloadTextFile(filename: string, content: string, mimeType: string) {
@@ -120,9 +143,10 @@ export function bulkPrintSummary(
   if (filters.scope !== 'area' && filters.deliveryDate) {
     parts.push(formatDeliveryDate(filters.deliveryDate, { month: 'short', day: 'numeric' }) || filters.deliveryDate)
   }
-  if (filters.scope !== 'date' && areaName) {
+  if (filters.scope !== 'date' && areaName && filters.orderType !== 'pickup') {
     parts.push(areaName)
   }
+  parts.push(bulkPrintOrderTypeLabel(filters.orderType))
   const where = parts.length > 0 ? ` for ${parts.join(', ')}` : ''
   const labelWord =
     kind === 'labels'
