@@ -4,6 +4,7 @@ import { amountsMatch } from '@/lib/checkout-pricing'
 import { normalizeDeliveryDate } from '@/lib/dates'
 import { sendOrderConfirmation } from '@/lib/email'
 import { sendNewOrderPushNotification } from '@/lib/send-new-order-push'
+import { findOrCreateCustomer } from '@/lib/customers-server'
 import { stripe } from '@/lib/stripe'
 
 type BossOrderItem = {
@@ -47,43 +48,13 @@ export async function POST(req: NextRequest) {
       String(customer.email || '').trim().toLowerCase() ||
       `${buyerPhone.replace(/\D/g, '')}@boss.local`
 
-    let customerId = body.customerId as string | undefined
-    if (customerId) {
-      const { data: existingRow, error: fetchError } = await supabase
-        .from('customers')
-        .select('id, full_name')
-        .eq('id', customerId)
-        .single()
-
-      if (fetchError) throw new Error(`Customer lookup failed: ${fetchError.message}`)
-
-      if (!existingRow?.full_name?.trim()) {
-        const { error: updateError } = await supabase
-          .from('customers')
-          .update({ full_name: buyerName, phone: buyerPhone, email: buyerEmail })
-          .eq('id', customerId)
-
-        if (updateError) throw new Error(updateError.message)
-      }
-    } else {
-      const { data: existing } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('phone', buyerPhone)
-        .maybeSingle()
-
-      if (existing) {
-        customerId = existing.id
-      } else {
-        const { data: created, error: customerError } = await supabase
-          .from('customers')
-          .insert({ full_name: buyerName, phone: buyerPhone, email: buyerEmail })
-          .select('id')
-          .single()
-        if (customerError || !created) throw new Error(customerError?.message ?? 'Could not create customer')
-        customerId = created.id
-      }
-    }
+    const customerRow = await findOrCreateCustomer(supabase, {
+      full_name: buyerName,
+      phone: buyerPhone,
+      email: buyerEmail,
+      customerId: body.customerId as string | undefined,
+    })
+    const customerId = customerRow.id
 
     const subtotal = items.reduce((sum, item) => sum + Number(item.line_total), 0)
     const total = subtotal + deliveryFee
@@ -194,7 +165,12 @@ export async function POST(req: NextRequest) {
 
     await sendNewOrderPushNotification(buyerName, total, orderNumber)
 
-    return NextResponse.json({ orderId: order.id, orderNumber })
+    return NextResponse.json({
+      orderId: order.id,
+      orderNumber,
+      customerId: customerRow.id,
+      customer: customerRow,
+    })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Could not create boss order'
     return NextResponse.json({ error: message }, { status: 500 })

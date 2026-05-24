@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const { supabase } = admin
   const [products, customers, areas] = await Promise.all([
     supabase.from('products').select('*').order('category'),
-    supabase.from('customers').select('id, full_name, email, phone').order('created_at', { ascending: false }).limit(100),
+    supabase.from('customers').select('id, full_name, email, phone').order('created_at', { ascending: false }).limit(500),
     supabase.from('delivery_areas').select('*').eq('is_active', true).order('name'),
   ])
 

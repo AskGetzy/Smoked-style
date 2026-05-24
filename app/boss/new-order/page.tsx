@@ -5,6 +5,7 @@ import type { BossLine, Customer, DeliveryArea, Product } from '@/types'
 import BossCardPayment, { type BossCardPaymentHandle } from '@/components/BossCardPayment'
 import BossPlaceOrderModal, { type BossPlaceOrderPayload } from '@/components/BossPlaceOrderModal'
 import BossProductSheet from '@/components/BossProductSheet'
+import { customerMatchesSearch } from '@/lib/customer-search'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { todayLocal } from '@/lib/dates'
 
@@ -61,17 +62,7 @@ export default function BossNewOrderPage() {
   const searchQuery = customerSearch.trim()
   const matchingCustomers = useMemo(() => {
     if (!searchQuery) return []
-    const query = searchQuery.toLowerCase()
-    const queryDigits = query.replace(/\D/g, '')
-    return customers.filter(customer => {
-      const phoneDigits = (customer.phone ?? '').replace(/\D/g, '')
-      return (
-        customer.full_name.toLowerCase().includes(query) ||
-        (customer.phone ?? '').toLowerCase().includes(query) ||
-        (queryDigits.length >= 3 && phoneDigits.includes(queryDigits)) ||
-        (customer.email ?? '').toLowerCase().includes(query)
-      )
-    }).slice(0, 8)
+    return customers.filter(customer => customerMatchesSearch(customer, searchQuery)).slice(0, 8)
   }, [customers, searchQuery])
 
   const showCustomerDropdown = customerMode === 'search' && searchQuery.length >= 2 && matchingCustomers.length > 0
@@ -156,7 +147,7 @@ export default function BossNewOrderPage() {
     setLines(current => current.filter((_, i) => i !== index))
   }
 
-  function handleOrderPlaced(orderNumber: string) {
+  function handleOrderPlaced(orderNumber: string, savedCustomer?: Customer) {
     setShowPlaceModal(false)
     setChargeCard(false)
     setCardPaymentComplete(false)
@@ -166,6 +157,14 @@ export default function BossNewOrderPage() {
     setNotes('')
     clearCustomer()
     setDeliveryAddress('')
+    if (savedCustomer) {
+      setCustomers(prev => {
+        const rest = prev.filter(c => c.id !== savedCustomer.id)
+        return [savedCustomer, ...rest]
+      })
+    } else {
+      void loadCatalog()
+    }
   }
 
   async function createOrder(paymentIntentId?: string) {
@@ -179,7 +178,7 @@ export default function BossNewOrderPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        handleOrderPlaced(data.orderNumber)
+        handleOrderPlaced(data.orderNumber, data.customer as Customer | undefined)
       } else {
         setMessage(data.error ?? 'Could not create order')
         setPlacingOrder(false)

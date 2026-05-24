@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import AdminLayout from '@/components/AdminLayout'
-import { supabase } from '@/lib/supabase'
 import { useLanguage } from '@/lib/language-context'
 import type { Customer } from '@/types'
 
@@ -12,33 +11,39 @@ const TAG_COLORS: Record<string, string> = {
   event_customer: 'bg-purple-100 text-purple-800',
 }
 
+type CustomerRow = Customer & { order_count: number; total_spent: number }
+
 export default function CustomersPage() {
   const { t } = useLanguage()
-  const [customers, setCustomers] = useState<(Customer & { order_count: number; total_spent: number })[]>([])
+  const [customers, setCustomers] = useState<CustomerRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => { fetchCustomers() }, [])
+  useEffect(() => {
+    void fetchCustomers()
+  }, [])
 
   async function fetchCustomers() {
-    const { data } = await supabase.from('customers').select('*').order('created_at', { ascending: false })
-    if (!data) { setLoading(false); return }
-
-    const enriched = await Promise.all(data.map(async c => {
-      const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true }).eq('customer_id', c.id)
-      const { data: orders } = await supabase.from('orders').select('total').eq('customer_id', c.id).eq('status', 'delivered')
-      const total_spent = (orders ?? []).reduce((s: number, o: any) => s + o.total, 0)
-      return { ...c, order_count: count ?? 0, total_spent }
-    }))
-
-    setCustomers(enriched)
+    setLoading(true)
+    setError(null)
+    const res = await fetch('/api/admin/customers', { credentials: 'include', cache: 'no-store' })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      setError(data.error ?? 'Could not load customers')
+      setCustomers([])
+      setLoading(false)
+      return
+    }
+    setCustomers(data.customers ?? [])
     setLoading(false)
   }
 
   const filtered = customers.filter(c =>
     search === '' ||
     c.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase())
+    c.email.toLowerCase().includes(search.toLowerCase()) ||
+    (c.phone ?? '').toLowerCase().includes(search.toLowerCase()),
   )
 
   return (
@@ -46,16 +51,25 @@ export default function CustomersPage() {
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--navy)' }}>{t.customers}</h1>
 
-        <input value={search} onChange={e => setSearch(e.target.value)}
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
           placeholder={t.searchByNameOrEmail}
-          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-4 focus:outline-none focus:border-orange-400" />
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-4 focus:outline-none focus:border-orange-400"
+        />
+
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {error}
+          </div>
+        )}
 
         {loading ? (
-          <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-gray-200 rounded-xl animate-pulse" />)}</div>
+          <div className="space-y-2">{[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-200 rounded-xl animate-pulse" />)}</div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <div className="text-4xl mb-2">👥</div>
-            <p>{t.noCustomersYet}</p>
+            <p>{error ? t.noResults : t.noCustomersYet}</p>
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
