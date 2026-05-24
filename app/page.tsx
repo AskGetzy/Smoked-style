@@ -225,6 +225,11 @@ export default function CatalogPage() {
       ? products
       : products.filter(p => p.category === activeCategory)
 
+  const displayProducts =
+    activeCategory === 'all' && !isSearching
+      ? [...filtered].sort((a, b) => a.price - b.price)
+      : filtered
+
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
   const cartTotal = cart.reduce((s, i) => s + i.line_total, 0)
 
@@ -329,7 +334,7 @@ export default function CatalogPage() {
               </div>
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : displayProducts.length === 0 ? (
           <div className="text-center py-20 text-gray-500">
             <div className="text-5xl mb-4">🥩</div>
             <p className="text-lg font-medium">
@@ -341,7 +346,7 @@ export default function CatalogPage() {
           </div>
         ) : (
           <div className="grid auto-rows-fr grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map(product => (
+            {displayProducts.map(product => (
               <ProductCard
                 key={product.id}
                 product={product}
