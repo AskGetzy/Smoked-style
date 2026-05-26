@@ -74,7 +74,7 @@ export default function BossProductSheet({ product: initialProduct, sizeVariants
   const product = activeProduct
   const isJerky = product.category === 'jerky'
   const isWeightBased = isWeightBasedProduct(product)
-  const isBoard = product.category === 'boards'
+  const isBoard = product.sold_as === 'per_board'
   const hasMultipleVariants = variants.length > 1
   const variantLabel = isBoard ? 'Size' : 'Cut'
   const basePriceLabel =

@@ -12,7 +12,6 @@ import { todayLocal } from '@/lib/dates'
 import {
   collapseVariantProducts,
   compareProductsPriceAsc,
-  compareProductsInquiryLast,
   formatPrice,
   getProductVariants,
   groupBoardProducts,
@@ -81,7 +80,7 @@ export default function BossNewOrderPage() {
     ...collapseVariantProducts(
       category === 'all' ? products : products.filter(product => product.category === category),
     ),
-  ].sort(category === 'boards' ? compareProductsPriceAsc : compareProductsInquiryLast)
+  ].sort(compareProductsPriceAsc)
   const boardGroups = category === 'boards' ? groupBoardProducts(filteredProducts) : []
   const subtotal = lines.reduce((sum, line) => sum + line.line_total, 0)
   const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0)

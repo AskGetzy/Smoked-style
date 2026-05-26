@@ -8,11 +8,12 @@ import { isOutOfStock } from '@/lib/product-stock'
 
 type Props = {
   product: Product
+  priceLabel?: string
   onOpen: () => void
   onAdd: () => void
 }
 
-export default function ProductCard({ product, onOpen, onAdd }: Props) {
+export default function ProductCard({ product, priceLabel, onOpen, onAdd }: Props) {
   const outOfStock = isOutOfStock(product)
   const inquiryOnly = Boolean(product.customer_inquiry_only)
 
@@ -52,7 +53,7 @@ export default function ProductCard({ product, onOpen, onAdd }: Props) {
               </span>
             ) : (
               <span className="text-lg font-bold" style={{ color: 'var(--orange)' }}>
-                {formatPrice(product)}
+                {priceLabel ?? formatPrice(product)}
               </span>
             )}
           </div>

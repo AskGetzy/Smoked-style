@@ -64,7 +64,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
   const inquiryOnly = Boolean(product.customer_inquiry_only)
   const isJerky = product.category === 'jerky'
   const isWeightBased = isWeightBasedProduct(product)
-  const isBoard = product.category === 'boards'
+  const isBoard = product.sold_as === 'per_board'
   const showQuantity = !isWeightBased && !isBoard
   const hasMultipleSizes = variants.length > 1
   const variantLabel = isBoard ? 'Size' : 'Cut'

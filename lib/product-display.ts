@@ -15,19 +15,39 @@ const BOARD_GROUP_LABELS: Record<(typeof BOARD_GROUP_ORDER)[number], string> = {
   steak: 'Steak',
 }
 
-export function formatPrice(product: Product): string {
+function formatCurrencyValue(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, '')
+}
+
+function priceSuffix(product: Product): string {
   switch (product.sold_as) {
     case 'per_lb':
-      return `$${product.price}/lb`
+      return '/lb'
     case 'per_pack':
-      return `$${product.price}/pack`
+      return '/pack'
     case 'per_pan':
-      return `$${product.price}/pan`
-    case 'per_board':
-      return `$${product.price}`
+      return '/pan'
     default:
-      return `$${product.price}`
+      return ''
   }
+}
+
+export function formatPrice(product: Product): string {
+  return `$${formatCurrencyValue(product.price)}${priceSuffix(product)}`
+}
+
+export function formatProductCardPrice(product: Product, products: Product[]): string {
+  if (!product.subcategory || product.sold_as === 'per_board') return formatPrice(product)
+
+  const variants = getProductVariants(product, products)
+  if (variants.length <= 1) return formatPrice(product)
+
+  const prices = variants.map(variant => Number(variant.price))
+  const minPrice = Math.min(...prices)
+  const maxPrice = Math.max(...prices)
+
+  if (minPrice === maxPrice) return formatPrice(product)
+  return `$${formatCurrencyValue(minPrice)}-$${formatCurrencyValue(maxPrice)}${priceSuffix(product)}`
 }
 
 export function compareProductsInquiryLast(a: Product, b: Product): number {
@@ -43,7 +63,7 @@ export function compareProductsPriceAsc(a: Product, b: Product): number {
 
 function variantFamilyKey(product: Product): string | null {
   if (!product.subcategory) return null
-  if (product.category === 'boards') return null
+  if (product.sold_as === 'per_board') return null
   return `${product.category}:${product.subcategory}`
 }
 

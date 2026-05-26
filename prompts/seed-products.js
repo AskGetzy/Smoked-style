@@ -31,7 +31,7 @@ module.exports =
   "- 8x12: $185\n" +
   "- 10x15: $275\n" +
   "- 12x18: $400\n\n" +
-  "CARPACCIO (category: boards, subcategory: carpaccio, sold_as: per_board):\n" +
+  "CARPACCIO (category: jerky, subcategory: carpaccio, sold_as: per_board):\n" +
   "- 14x14 Tray, comes with few sauces on the side: $75\n\n" +
   "SMOKED (category: smoked, sold_as: per_piece or per_pan as noted):\n" +
   "- Smoked Brisket 2nd Cut: $75, per_piece, desc: Smaller piece about 2 lbs\n" +

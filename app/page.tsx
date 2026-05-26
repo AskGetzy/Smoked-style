@@ -9,8 +9,8 @@ import ProductModal from '@/components/ProductModal'
 import {
   collapseVariantProducts,
   compareProductsPriceAsc,
-  compareProductsInquiryLast,
   formatPrice,
+  formatProductCardPrice,
   getProductVariants,
   groupBoardProducts,
 } from '@/lib/product-display'
@@ -245,12 +245,7 @@ export default function CatalogPage() {
       ? products
       : products.filter(p => p.category === activeCategory)
 
-  const displayProducts =
-    activeCategory === 'all' && !isSearching
-      ? collapseVariantProducts(filtered).sort(compareProductsPriceAsc)
-      : activeCategory === 'boards' && !isSearching
-        ? collapseVariantProducts(filtered).sort(compareProductsPriceAsc)
-        : collapseVariantProducts(filtered).sort(compareProductsInquiryLast)
+  const displayProducts = collapseVariantProducts(filtered).sort(compareProductsPriceAsc)
 
   const boardGroups =
     activeCategory === 'boards' && !isSearching ? groupBoardProducts(displayProducts) : []
@@ -384,6 +379,7 @@ export default function CatalogPage() {
                     <ProductCard
                       key={product.id}
                       product={product}
+                      priceLabel={formatProductCardPrice(product, products)}
                       onOpen={() => openProduct(product)}
                       onAdd={() => handleAddToCart(product)}
                     />
@@ -398,6 +394,7 @@ export default function CatalogPage() {
               <ProductCard
                 key={product.id}
                 product={product}
+                priceLabel={formatProductCardPrice(product, products)}
                 onOpen={() => openProduct(product)}
                 onAdd={() => handleAddToCart(product)}
               />

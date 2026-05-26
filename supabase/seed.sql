@@ -41,7 +41,6 @@ insert into products (name, description, category, subcategory, price, sold_as, 
   ('Smoked Rib Eye Boneless', 'Smoked boneless rib eye roast, ready for carving and serving', 'smoked', null, 500, 'per_piece', null, null, 8, 2),
   ('Smoked Turkey Breast', 'Whole smoked turkey breast', 'smoked', null, 95, 'per_piece', null, null, 12, 3),
   ('Smoked Pulled Chicken', 'Tender smoked pulled chicken', 'smoked', null, 65, 'per_piece', null, null, 20, 4),
-  ('Smoked Flanken Roast Boneless', 'Boneless smoked flanken roast with selectable cut options', 'smoked', 'smoked_flanken_roast_boneless', 125, 'per_piece', null, '3 Bone Cut (Boneless)', 12, 3),
   ('Smoked Flanken Roast Boneless', 'Boneless smoked flanken roast with selectable cut options', 'smoked', 'smoked_flanken_roast_boneless', 200, 'per_piece', null, '3+5 Bone Cut (Boneless)', 10, 2),
   ('Smoked Flanken Roast Boneless', 'Boneless smoked flanken roast with selectable cut options', 'smoked', 'smoked_flanken_roast_boneless', 100, 'per_piece', null, '5 Bone Cut (Boneless)', 12, 3);
 
@@ -59,4 +58,4 @@ insert into products (name, description, category, subcategory, price, sold_as, 
   ('Meat Board — Large', 'Grand curated selection of smoked meats', 'boards', 'meat_board', 250, 'per_board', '12x18', 8, 2),
   ('Jerky Board', 'Assorted jerky flavors beautifully presented', 'boards', 'jerky_board', 120, 'per_board', '10x14', 12, 3),
   ('Steak Board', 'Premium steak cuts with sauces and sides', 'boards', 'steak_board', 200, 'per_board', '10x16', 8, 2),
-  ('Carpaccio Board', 'Thinly sliced cured meats, artisan style', 'boards', 'carpaccio', 135, 'per_board', '10x14', 10, 2);
+  ('Carpaccio Board', 'Thinly sliced cured meats, artisan style', 'jerky', 'carpaccio', 135, 'per_board', '10x14', 10, 2);
