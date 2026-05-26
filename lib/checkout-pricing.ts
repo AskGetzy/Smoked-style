@@ -1,5 +1,9 @@
 import type { Product } from '@/types'
-import { assertCartWithinStock, isOutOfStock } from '@/lib/product-stock'
+import {
+  assertCartWithinStock,
+  isOutOfStock,
+  isWeightBasedProduct,
+} from '@/lib/product-stock'
 
 export type CheckoutCartLine = {
   product_id: string
@@ -21,7 +25,7 @@ export function computeLineTotal(product: Product, line: CheckoutCartLine): Pric
     throw new Error(`${product.name} is out of stock`)
   }
 
-  if (product.category === 'jerky') {
+  if (isWeightBasedProduct(product)) {
     const weight = line.selected_weight
     if (weight == null || weight <= 0) {
       throw new Error(`Weight is required for ${product.name}`)
@@ -37,12 +41,13 @@ export function computeLineTotal(product: Product, line: CheckoutCartLine): Pric
       throw new Error(`Invalid weight for ${product.name}`)
     }
     const unit_price = product.price * weight
+    const quantity = Math.max(1, Math.floor(line.quantity || 1))
     return {
       ...line,
       product_name: product.name,
-      quantity: 1,
+      quantity,
       unit_price,
-      line_total: unit_price,
+      line_total: unit_price * quantity,
     }
   }
 

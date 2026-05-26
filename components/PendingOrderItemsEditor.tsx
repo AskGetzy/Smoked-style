@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import BossProductSheet from '@/components/BossProductSheet'
 import { fetchWithAuth } from '@/lib/auth-fetch'
+import { collapseVariantProducts, getProductVariants } from '@/lib/product-display'
 import type { BossLine, Order, OrderItem, Product } from '@/types'
 
 type EditableItem = {
@@ -49,8 +50,11 @@ export default function PendingOrderItemsEditor({ order, onUpdated, useBossAuth 
 
   const filteredProducts = useMemo(() => {
     const q = productSearch.trim().toLowerCase()
-    if (!q) return products
-    return products.filter(p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+    const visibleProducts = collapseVariantProducts(products)
+    if (!q) return visibleProducts
+    return visibleProducts.filter(
+      p => p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q),
+    )
   }, [products, productSearch])
 
   async function loadProducts() {
@@ -317,6 +321,7 @@ export default function PendingOrderItemsEditor({ order, onUpdated, useBossAuth 
 
       <BossProductSheet
         product={pickerProduct}
+        sizeVariants={pickerProduct ? getProductVariants(pickerProduct, products) : []}
         onClose={() => setPickerProduct(null)}
         onAdd={line => {
           setNewLines(lines => [...lines, line])

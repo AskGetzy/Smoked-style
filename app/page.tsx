@@ -6,11 +6,19 @@ import type { Product, CartItem } from '@/types'
 import Header from '@/components/Header'
 import ProductCard from '@/components/ProductCard'
 import ProductModal from '@/components/ProductModal'
-import { formatPrice, getBoardVariants } from '@/lib/product-display'
+import {
+  collapseVariantProducts,
+  compareProductsPriceAsc,
+  compareProductsInquiryLast,
+  formatPrice,
+  getProductVariants,
+  groupBoardProducts,
+} from '@/lib/product-display'
 import {
   clampLineQuantity,
   formatStockLeft,
   getMaxLineQuantity,
+  isWeightBasedProduct,
   isOutOfStock,
 } from '@/lib/product-stock'
 
@@ -69,6 +77,7 @@ export default function CatalogPage() {
 
   function handleAddToCart(product: Product) {
     if (isOutOfStock(product)) return
+    const hasVariants = getProductVariants(product, products).length > 1
     if (product.customer_inquiry_only) {
       setSelectedProduct(product)
       return
@@ -79,7 +88,7 @@ export default function CatalogPage() {
       return
     }
     if (product.category === 'jerky' || product.category === 'boards' ||
-        product.category === 'steaks' || product.sold_as !== 'per_piece') {
+        product.category === 'steaks' || product.sold_as !== 'per_piece' || hasVariants) {
       setSelectedProduct(product)
     } else {
       addSimpleItem(product, 1)
@@ -142,13 +151,13 @@ export default function CatalogPage() {
 
     const lineKey = {
       product_id: item.product_id,
-      selected_flavor: item.selected_flavor,
-      selected_weight: item.selected_weight,
+      selected_flavor: product.category === 'jerky' ? item.selected_flavor : null,
+      selected_weight: isWeightBasedProduct(product) ? item.selected_weight : null,
       selected_size: item.selected_size,
     }
 
     let nextItem = item
-    if (product.category === 'jerky') {
+    if (isWeightBasedProduct(product)) {
       const weight = item.selected_weight ?? 0
       const allowedWeight = clampLineQuantity(product, cart, lineKey, weight)
       if (allowedWeight <= 0) {
@@ -176,6 +185,13 @@ export default function CatalogPage() {
           line_total: allowedQty * item.unit_price,
         }
       }
+    }
+
+    if (isWeightBasedProduct(product)) {
+      saveCart([...cart, nextItem])
+      setSelectedProduct(null)
+      showToast(`${nextItem.product_name} added to cart`)
+      return
     }
 
     const existing = cart.find(i =>
@@ -231,8 +247,13 @@ export default function CatalogPage() {
 
   const displayProducts =
     activeCategory === 'all' && !isSearching
-      ? [...filtered].sort((a, b) => a.price - b.price)
-      : filtered
+      ? collapseVariantProducts(filtered).sort(compareProductsPriceAsc)
+      : activeCategory === 'boards' && !isSearching
+        ? collapseVariantProducts(filtered).sort(compareProductsPriceAsc)
+        : collapseVariantProducts(filtered).sort(compareProductsInquiryLast)
+
+  const boardGroups =
+    activeCategory === 'boards' && !isSearching ? groupBoardProducts(displayProducts) : []
 
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
   const cartTotal = cart.reduce((s, i) => s + i.line_total, 0)
@@ -348,6 +369,29 @@ export default function CatalogPage() {
               {isSearching ? 'Try a different search or clear it to browse categories.' : 'Run the database seed step to add products.'}
             </p>
           </div>
+        ) : activeCategory === 'boards' && !isSearching ? (
+          <div className="space-y-10">
+            {boardGroups.map(group => (
+              <section key={group.id}>
+                <div className="mb-4 flex items-center justify-between">
+                  <h2 className="text-xl font-black text-gray-900">{group.label}</h2>
+                  <span className="text-sm font-semibold text-gray-400">
+                    {group.products.length} item{group.products.length === 1 ? '' : 's'}
+                  </span>
+                </div>
+                <div className="grid auto-rows-fr grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.products.map(product => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onOpen={() => openProduct(product)}
+                      onAdd={() => handleAddToCart(product)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
         ) : (
           <div className="grid auto-rows-fr grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {displayProducts.map(product => (
@@ -367,7 +411,7 @@ export default function CatalogPage() {
         <ProductModal
           product={selectedProduct}
           cart={cart}
-          sizeVariants={getBoardVariants(selectedProduct, products)}
+          sizeVariants={getProductVariants(selectedProduct, products)}
           onClose={() => setSelectedProduct(null)}
           onAdd={addModalItem}
         />

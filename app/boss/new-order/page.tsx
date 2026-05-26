@@ -9,7 +9,14 @@ import BossProductSheet from '@/components/BossProductSheet'
 import { customerMatchesSearch } from '@/lib/customer-search'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { todayLocal } from '@/lib/dates'
-import { formatPrice } from '@/lib/product-display'
+import {
+  collapseVariantProducts,
+  compareProductsPriceAsc,
+  compareProductsInquiryLast,
+  formatPrice,
+  getProductVariants,
+  groupBoardProducts,
+} from '@/lib/product-display'
 
 const CATEGORIES = ['all', 'jerky', 'steaks', 'smoked', 'non_smoked', 'boards']
 
@@ -70,7 +77,12 @@ export default function BossNewOrderPage() {
   const showCustomerDropdown = customerMode === 'search' && searchQuery.length >= 2 && matchingCustomers.length > 0
   const showNewCustomerOption = customerMode === 'search' && searchQuery.length >= 2 && matchingCustomers.length === 0
 
-  const filteredProducts = category === 'all' ? products : products.filter(product => product.category === category)
+  const filteredProducts = [
+    ...collapseVariantProducts(
+      category === 'all' ? products : products.filter(product => product.category === category),
+    ),
+  ].sort(category === 'boards' ? compareProductsPriceAsc : compareProductsInquiryLast)
+  const boardGroups = category === 'boards' ? groupBoardProducts(filteredProducts) : []
   const subtotal = lines.reduce((sum, line) => sum + line.line_total, 0)
   const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0)
   const deliveryFeeAmount = Number(deliveryFee || 0)
@@ -323,13 +335,32 @@ export default function BossNewOrderPage() {
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {filteredProducts.map(product => (
-              <button key={product.id} onClick={() => openProduct(product)} className="min-h-20 rounded-2xl border bg-white p-3 text-left text-base font-bold">
-                {product.name}<br /><span className="text-sm font-semibold text-orange-600">{formatPrice(product)}</span>
-              </button>
-            ))}
-          </div>
+          {category === 'boards' ? (
+            <div className="space-y-5">
+              {boardGroups.map(group => (
+                <div key={group.id}>
+                  <h3 className="mb-2 text-sm font-black uppercase tracking-wide text-gray-500">
+                    {group.label}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    {group.products.map(product => (
+                      <button key={product.id} onClick={() => openProduct(product)} className="min-h-20 rounded-2xl border bg-white p-3 text-left text-base font-bold">
+                        {product.name}<br /><span className="text-sm font-semibold text-orange-600">{formatPrice(product)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {filteredProducts.map(product => (
+                <button key={product.id} onClick={() => openProduct(product)} className="min-h-20 rounded-2xl border bg-white p-3 text-left text-base font-bold">
+                  {product.name}<br /><span className="text-sm font-semibold text-orange-600">{formatPrice(product)}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         {lines.length > 0 && (
@@ -466,6 +497,7 @@ export default function BossNewOrderPage() {
       {selectedProduct && (
         <BossProductSheet
           product={selectedProduct}
+          sizeVariants={getProductVariants(selectedProduct, products)}
           onClose={() => setSelectedProduct(null)}
           onAdd={addLine}
         />

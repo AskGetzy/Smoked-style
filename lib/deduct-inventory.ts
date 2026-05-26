@@ -9,16 +9,18 @@ type OrderItem = {
 
 type ProductRow = {
   category: string
+  sold_as: string
   stock_quantity: number | null
   jerky_flavor_stock: Record<string, number> | null
 }
 
 import { parseJerkyFlavorStock } from '@/lib/jerky-stock'
 
-function deductAmount(item: OrderItem, category: string): number {
-  if (category === 'jerky') {
+function deductAmount(item: OrderItem, product: ProductRow): number {
+  if (product.sold_as === 'per_lb') {
     const weight = Number(item.selected_weight)
-    if (Number.isFinite(weight) && weight > 0) return weight
+    const quantity = Math.max(1, Number(item.quantity) || 1)
+    if (Number.isFinite(weight) && weight > 0) return weight * quantity
   }
   return Number(item.quantity) || 0
 }
@@ -41,14 +43,14 @@ export async function deductInventoryOnApproval(
 
     const { data: product, error: productError } = await supabase
       .from('products')
-      .select('category, stock_quantity, jerky_flavor_stock')
+      .select('category, sold_as, stock_quantity, jerky_flavor_stock')
       .eq('id', item.product_id)
       .single()
 
     if (productError || !product) continue
 
     const row = product as ProductRow
-    const amount = deductAmount(item as OrderItem, row.category)
+    const amount = deductAmount(item as OrderItem, row)
     if (amount <= 0) continue
 
     const reason = `Order ${orderNumber} approved`

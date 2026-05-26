@@ -4,6 +4,10 @@ import {
   isJerkyProductOutOfStock,
 } from '@/lib/jerky-stock'
 
+export function isWeightBasedProduct(product: Product | null | undefined): boolean {
+  return product?.sold_as === 'per_lb'
+}
+
 export function isOutOfStock(product: Product): boolean {
   if (product.is_in_stock === false) return true
   if (product.category === 'jerky') {
@@ -60,6 +64,10 @@ export function getAvailableStock(product: Product | null | undefined, flavor?: 
     return isJerkyProductOutOfStock(product) ? 0 : Number(product.stock_quantity) || 0
   }
 
+  if (isWeightBasedProduct(product)) {
+    return isOutOfStock(product) ? 0 : Number(product.stock_quantity) || 0
+  }
+
   if (isOutOfStock(product)) return 0
 
   const stock = Number(product.stock_quantity)
@@ -72,9 +80,10 @@ export function getLineStockUsage(
   product: Product | null | undefined,
 ): number {
   if (!product) return 0
-  if (product.category === 'jerky') {
+  if (isWeightBasedProduct(product)) {
     const weight = Number(item.selected_weight)
-    if (Number.isFinite(weight) && weight > 0) return weight
+    const quantity = Math.max(1, Number(item.quantity) || 1)
+    if (Number.isFinite(weight) && weight > 0) return weight * quantity
   }
   return Math.max(0, Number(item.quantity) || 0)
 }
@@ -83,6 +92,9 @@ export function getLineStockUsage(
 export function stockPoolKey(product: Product | null | undefined, line: StockLineKey): string {
   if (product?.category === 'jerky') {
     return `${line.product_id}|${line.selected_flavor ?? ''}`
+  }
+  if (isWeightBasedProduct(product)) {
+    return `${line.product_id}`
   }
   return stockLineKey(line)
 }
@@ -134,7 +146,7 @@ export function clampLineQuantity(
   if (!product) return 0
   const max = getMaxLineQuantity(product, cart, line, excludeItemId)
   if (max <= 0) return 0
-  if (product.category === 'jerky') {
+  if (isWeightBasedProduct(product)) {
     return Math.min(requested, max)
   }
   return Math.max(1, Math.min(Math.floor(requested), Math.floor(max)))
@@ -142,7 +154,7 @@ export function clampLineQuantity(
 
 export function formatStockLeft(product: Product, remaining: number): string | null {
   if (remaining <= 0) return null
-  if (product.category === 'jerky') {
+  if (isWeightBasedProduct(product)) {
     return `${remaining} lb left`
   }
   const unit = product.sold_as === 'per_pack' ? 'pack' : 'pc'

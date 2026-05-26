@@ -15,6 +15,7 @@ import {
   getAvailableStock,
   getMaxLineQuantity,
   getRemainingStock,
+  isWeightBasedProduct,
   isOutOfStock,
 } from '@/lib/product-stock'
 
@@ -62,18 +63,20 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
   const outOfStock = isOutOfStock(product)
   const inquiryOnly = Boolean(product.customer_inquiry_only)
   const isJerky = product.category === 'jerky'
+  const isWeightBased = isWeightBasedProduct(product)
   const isBoard = product.category === 'boards'
-  const showQuantity = !isJerky && !isBoard
-  const hasMultipleSizes = isBoard && variants.length > 1
+  const showQuantity = !isWeightBased && !isBoard
+  const hasMultipleSizes = variants.length > 1
+  const variantLabel = isBoard ? 'Size' : 'Cut'
 
   const lineKey = useMemo(
     () => ({
       product_id: product.id,
-      selected_flavor: flavor,
-      selected_weight: isJerky ? weight : null,
-      selected_size: isBoard ? product.size_label : null,
+      selected_flavor: isJerky ? flavor : null,
+      selected_weight: isWeightBased ? weight : null,
+      selected_size: product.size_label ?? null,
     }),
-    [product.id, product.size_label, flavor, weight, isJerky, isBoard],
+    [product.id, product.size_label, flavor, weight, isJerky, isWeightBased],
   )
 
   const remainingStock = useMemo(
@@ -94,28 +97,28 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
   }, [maxQty, qty, showQuantity])
 
   const lineTotal = useMemo(() => {
-    if (isJerky && weight) return product.price * weight
+    if (isWeightBased && weight) return product.price * weight
     return product.price * qty
-  }, [isJerky, weight, product.price, qty])
+  }, [isWeightBased, weight, product.price, qty])
 
-  const unitPrice = isJerky && weight ? product.price * weight : product.price
+  const unitPrice = isWeightBased && weight ? product.price * weight : product.price
 
   function handleAdd() {
     if (inquiryOnly) return
     if (outOfStock || maxQty <= 0) return
     if (isJerky && flavor && !isJerkyFlavorAvailable(product, flavor)) return
-    if (isJerky && weight && weight > maxQty) return
-    if (!isJerky && qty > maxQty) return
+    if (isWeightBased && weight && weight > maxQty) return
+    if (!isWeightBased && qty > maxQty) return
     const item: CartItem = {
       id: crypto.randomUUID(),
       product_id: product.id,
       product_name: product.name,
       category: product.category,
       price: product.price,
-      quantity: isJerky ? 1 : qty,
-      selected_flavor: flavor,
-      selected_weight: weight,
-      selected_size: isBoard ? product.size_label : null,
+      quantity: isWeightBased ? 1 : qty,
+      selected_flavor: isJerky ? flavor : null,
+      selected_weight: isWeightBased ? weight : null,
+      selected_size: product.size_label ?? null,
       unit_price: unitPrice,
       line_total: lineTotal,
       image_url: product.image_url,
@@ -211,15 +214,17 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
                   )}
                 </div>
               )}
-              {product.weight_options && product.weight_options.length > 0 && (
+              {isWeightBased && product.weight_options && product.weight_options.length > 0 && (
                 <div className="mt-4">
                   <label className="mb-2 block text-sm font-bold text-gray-700">Weight</label>
                   <div className="grid grid-cols-2 gap-2">
                     {product.weight_options.map(w => {
-                      const flavorAvailable = flavor && isJerkyFlavorAvailable(product, flavor)
-                        ? getAvailableStock(product, flavor)
-                        : 0
-                      const weightDisabled = !flavorAvailable || w > flavorAvailable
+                      const availableWeight = isJerky
+                        ? flavor && isJerkyFlavorAvailable(product, flavor)
+                          ? getAvailableStock(product, flavor)
+                          : 0
+                        : getAvailableStock(product)
+                      const weightDisabled = !availableWeight || w > availableWeight
                       return (
                         <button
                           key={w}
@@ -244,7 +249,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
 
           {!inquiryOnly && hasMultipleSizes && (
             <div className="mt-5">
-              <label className="mb-2 block text-sm font-bold text-gray-700">Size</label>
+              <label className="mb-2 block text-sm font-bold text-gray-700">{variantLabel}</label>
               <div className="grid gap-2">
                 {variants.map(variant => (
                   <button
@@ -259,7 +264,11 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
                     }`}
                   >
                     <span>{variant.size_label ?? variant.name}</span>
-                    <span>${variant.price.toFixed(2)}</span>
+                    <span>
+                      {variant.category === 'jerky'
+                        ? `$${variant.price.toFixed(2)}/lb`
+                        : `$${variant.price.toFixed(2)}`}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -337,8 +346,8 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
             <button
               onClick={handleAdd}
               disabled={
-                isJerky
-                  ? !flavor || !isJerkyFlavorAvailable(product, flavor) || !weight || (weight ?? 0) > maxQty
+                isWeightBased
+                  ? (isJerky && (!flavor || !isJerkyFlavorAvailable(product, flavor))) || !weight || (weight ?? 0) > maxQty
                   : qty > maxQty
               }
               className="min-h-14 w-full rounded-xl text-lg font-black text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"

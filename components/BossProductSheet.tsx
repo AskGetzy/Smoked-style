@@ -1,22 +1,25 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { isWeightBasedProduct } from '@/lib/product-stock'
 import type { BossLine, Product } from '@/types'
 
 type Props = {
   product: Product | null
+  sizeVariants?: Product[]
   onClose: () => void
   onAdd: (line: BossLine) => void
 }
 
 function buildLine(product: Product, flavor: string, weight: number | null, qty: number): BossLine {
   const isJerky = product.category === 'jerky'
-  const selectedWeight = isJerky ? weight : null
+  const isWeightBased = isWeightBasedProduct(product)
+  const selectedWeight = isWeightBased ? weight : null
   const unitPrice =
-    isJerky && selectedWeight
+    isWeightBased && selectedWeight
       ? product.price * selectedWeight
       : product.price
-  const quantity = isJerky ? 1 : qty
+  const quantity = isWeightBased ? 1 : qty
 
   return {
     product_id: product.id,
@@ -25,32 +28,38 @@ function buildLine(product: Product, flavor: string, weight: number | null, qty:
     quantity,
     selected_flavor: isJerky ? flavor || null : null,
     selected_weight: selectedWeight,
-    selected_size: product.category === 'boards' ? product.size_label : null,
+    selected_size: product.size_label ?? null,
     unit_price: unitPrice,
     line_total: unitPrice * quantity,
   }
 }
 
-export default function BossProductSheet({ product, onClose, onAdd }: Props) {
+export default function BossProductSheet({ product: initialProduct, sizeVariants = [], onClose, onAdd }: Props) {
+  const variants = sizeVariants.length > 1 ? sizeVariants : initialProduct ? [initialProduct] : []
+  const [activeProduct, setActiveProduct] = useState<Product | null>(initialProduct)
   const [flavor, setFlavor] = useState('')
   const [weight, setWeight] = useState<number | null>(null)
   const [qty, setQty] = useState(1)
 
   useEffect(() => {
-    if (!product) return
+    setActiveProduct(initialProduct)
+  }, [initialProduct?.id])
+
+  useEffect(() => {
+    if (!activeProduct) return
     setQty(1)
-    setFlavor(product.flavors?.[0] ?? '')
-    setWeight(product.weight_options?.[0] ?? null)
-  }, [product?.id])
+    setFlavor(activeProduct.flavors?.[0] ?? '')
+    setWeight(activeProduct.weight_options?.[0] ?? null)
+  }, [activeProduct?.id])
 
   const pricing = useMemo(() => {
-    if (!product) return { lineTotal: 0, summary: '' }
-    const line = buildLine(product, flavor, weight, qty)
-    const isJerky = product.category === 'jerky'
+    if (!activeProduct) return { lineTotal: 0, summary: '' }
+    const line = buildLine(activeProduct, flavor, weight, qty)
+    const isWeightBased = isWeightBasedProduct(activeProduct)
 
     let summary = ''
-    if (isJerky && line.selected_weight) {
-      summary = `$${product.price.toFixed(2)}/lb × ${line.selected_weight} lb = $${line.line_total.toFixed(2)}`
+    if (isWeightBased && line.selected_weight) {
+      summary = `$${activeProduct.price.toFixed(2)}/lb × ${line.selected_weight} lb = $${line.line_total.toFixed(2)}`
     } else if (line.quantity > 1) {
       summary = `$${line.unit_price.toFixed(2)} × ${line.quantity} = $${line.line_total.toFixed(2)}`
     } else {
@@ -58,14 +67,18 @@ export default function BossProductSheet({ product, onClose, onAdd }: Props) {
     }
 
     return { lineTotal: line.line_total, summary }
-  }, [product, flavor, weight, qty])
+  }, [activeProduct, flavor, weight, qty])
 
-  if (!product) return null
+  if (!activeProduct) return null
 
+  const product = activeProduct
   const isJerky = product.category === 'jerky'
+  const isWeightBased = isWeightBasedProduct(product)
   const isBoard = product.category === 'boards'
+  const hasMultipleVariants = variants.length > 1
+  const variantLabel = isBoard ? 'Size' : 'Cut'
   const basePriceLabel =
-    product.category === 'jerky'
+    isWeightBased
       ? `$${product.price.toFixed(2)}/lb`
       : `$${product.price.toFixed(2)}`
 
@@ -119,7 +132,7 @@ export default function BossProductSheet({ product, onClose, onAdd }: Props) {
             </div>
           )}
 
-          {isJerky && (product.weight_options?.length ?? 0) > 0 && (
+          {isWeightBased && (product.weight_options?.length ?? 0) > 0 && (
             <div className="mb-4">
               <label className="mb-2 block text-sm font-bold text-gray-700">Weight</label>
               <div className="grid grid-cols-2 gap-2">
@@ -141,7 +154,34 @@ export default function BossProductSheet({ product, onClose, onAdd }: Props) {
             </div>
           )}
 
-          {isBoard && product.size_label && (
+          {hasMultipleVariants && (
+            <div className="mb-4">
+              <label className="mb-2 block text-sm font-bold text-gray-700">{variantLabel}</label>
+              <div className="grid gap-2">
+                {variants.map(variant => (
+                  <button
+                    key={variant.id}
+                    type="button"
+                    onClick={() => setActiveProduct(variant)}
+                    className={`flex min-h-12 items-center justify-between rounded-2xl border-2 px-4 text-base font-bold ${
+                      activeProduct.id === variant.id
+                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                        : 'border-gray-200 text-gray-700'
+                    }`}
+                  >
+                    <span>{variant.size_label ?? variant.name}</span>
+                    <span>
+                      {variant.sold_as === 'per_lb'
+                        ? `$${variant.price.toFixed(2)}/lb`
+                        : `$${variant.price.toFixed(2)}`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {!hasMultipleVariants && isBoard && product.size_label && (
             <div className="mb-4">
               <label className="mb-2 block text-sm font-bold text-gray-700">Size</label>
               <div className="flex min-h-12 items-center rounded-2xl border-2 border-orange-500 bg-orange-50 px-4 text-base font-bold text-orange-700">
@@ -150,7 +190,7 @@ export default function BossProductSheet({ product, onClose, onAdd }: Props) {
             </div>
           )}
 
-          {!isJerky && (
+          {!isWeightBased && (
             <div className="mb-4">
               <label className="mb-2 block text-sm font-bold text-gray-700">Quantity</label>
               <div className="flex items-center gap-4">

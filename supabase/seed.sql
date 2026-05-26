@@ -33,11 +33,17 @@ insert into products (name, description, category, price, sold_as, pack_size, st
   ('London Broil', 'Marinated and smoked London broil', 'steaks', 75, 'per_piece', null, 20, 4);
 
 -- Products: Smoked
-insert into products (name, description, category, price, sold_as, stock_quantity, low_stock_threshold) values
-  ('Smoked Brisket', 'Low and slow smoked brisket, whole or sliced', 'smoked', 180, 'per_piece', 10, 2),
-  ('Smoked Pastrami', 'New York-style smoked pastrami', 'smoked', 90, 'per_piece', 15, 3),
-  ('Smoked Turkey Breast', 'Whole smoked turkey breast', 'smoked', 95, 'per_piece', 12, 3),
-  ('Smoked Pulled Chicken', 'Tender smoked pulled chicken', 'smoked', 65, 'per_piece', 20, 4);
+insert into products (name, description, category, subcategory, price, sold_as, weight_options, size_label, stock_quantity, low_stock_threshold) values
+  ('Smoked Brisket', 'Low and slow smoked brisket, whole or sliced', 'smoked', null, 180, 'per_piece', null, null, 10, 2),
+  ('Lamb Roast Roll', 'Smoked lamb roast roll, ready for carving and serving', 'smoked', null, 250, 'per_piece', null, null, 10, 2),
+  ('Smoked Pastrami', 'New York-style smoked pastrami', 'smoked', null, 90, 'per_piece', null, null, 15, 3),
+  ('Smoked Pastrami Thin Sliced', 'Thin-sliced smoked pastrami sold by the pound', 'smoked', null, 50, 'per_lb', array[1, 2, 3, 4, 5], null, 25, 5),
+  ('Smoked Rib Eye Boneless', 'Smoked boneless rib eye roast, ready for carving and serving', 'smoked', null, 500, 'per_piece', null, null, 8, 2),
+  ('Smoked Turkey Breast', 'Whole smoked turkey breast', 'smoked', null, 95, 'per_piece', null, null, 12, 3),
+  ('Smoked Pulled Chicken', 'Tender smoked pulled chicken', 'smoked', null, 65, 'per_piece', null, null, 20, 4),
+  ('Smoked Flanken Roast Boneless', 'Boneless smoked flanken roast with selectable cut options', 'smoked', 'smoked_flanken_roast_boneless', 125, 'per_piece', null, '3 Bone Cut (Boneless)', 12, 3),
+  ('Smoked Flanken Roast Boneless', 'Boneless smoked flanken roast with selectable cut options', 'smoked', 'smoked_flanken_roast_boneless', 200, 'per_piece', null, '3+5 Bone Cut (Boneless)', 10, 2),
+  ('Smoked Flanken Roast Boneless', 'Boneless smoked flanken roast with selectable cut options', 'smoked', 'smoked_flanken_roast_boneless', 100, 'per_piece', null, '5 Bone Cut (Boneless)', 12, 3);
 
 -- Products: Non-Smoked
 insert into products (name, description, category, price, sold_as, stock_quantity, low_stock_threshold) values

@@ -6,7 +6,7 @@ import Header from '@/components/Header'
 import type { CartItem, Product } from '@/types'
 import { useSupabaseUser } from '@/lib/use-supabase-user'
 import { isJerkyFlavorAvailable } from '@/lib/jerky-stock'
-import { getMaxLineQuantity, isOutOfStock } from '@/lib/product-stock'
+import { getMaxLineQuantity, isOutOfStock, isWeightBasedProduct } from '@/lib/product-stock'
 
 export default function CartPage() {
   const { user, authReady, supabase } = useSupabaseUser()
@@ -80,7 +80,7 @@ export default function CartPage() {
     const item = cart.find(i => i.id === id)
     if (!item) return
     const product = productsById.get(item.product_id)
-    if (!product || product.category === 'jerky') return
+    if (!product || isWeightBasedProduct(product)) return
 
     const lineKey = {
       product_id: item.product_id,
@@ -176,7 +176,7 @@ export default function CartPage() {
                   const product = getCartProduct(item)
                   const unavailable = itemIsOutOfStock(item)
                   const canAdjustQty = Boolean(
-                    product && productsLoaded && !unavailable && product.category !== 'jerky',
+                    product && productsLoaded && !unavailable && !isWeightBasedProduct(product),
                   )
                   const maxQty = product
                     ? getMaxLineQuantity(product, cart, {
@@ -201,7 +201,11 @@ export default function CartPage() {
                         {unavailable ? (
                           <p className="text-red-600 text-xs font-semibold mt-1">This item is no longer available</p>
                         ) : (
-                          <p className="text-gray-500 text-xs mt-0.5">${item.unit_price.toFixed(2)} each</p>
+                          <p className="text-gray-500 text-xs mt-0.5">
+                            {product && isWeightBasedProduct(product)
+                              ? `${product.price.toFixed(2)}/lb`
+                              : `$${item.unit_price.toFixed(2)} each`}
+                          </p>
                         )}
                         {canAdjustQty && (
                           <div className="flex items-center gap-2 mt-2">
