@@ -23,9 +23,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (order.stripe_payment_intent_id) {
-      await stripe.paymentIntents.capture(order.stripe_payment_intent_id, {
-        amount_to_capture: toCents(order.total),
-      })
+      const paymentIntent = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id)
+
+      if (paymentIntent.status === 'requires_capture') {
+        await stripe.paymentIntents.capture(order.stripe_payment_intent_id, {
+          amount_to_capture: toCents(order.total),
+        })
+      } else if (paymentIntent.status !== 'succeeded') {
+        return NextResponse.json(
+          {
+            error: `Payment cannot be captured (Stripe status: ${paymentIntent.status}). The customer may need to place a new order.`,
+          },
+          { status: 400 },
+        )
+      }
     }
 
     try {

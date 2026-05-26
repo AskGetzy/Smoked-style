@@ -8,6 +8,7 @@ import { fetchWithAuth } from '@/lib/auth-fetch'
 import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
 import OrderFulfillmentBadge from '@/components/OrderFulfillmentBadge'
 import { displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
+import { orderMatchesNumberSearch } from '@/lib/order-number-search'
 
 const TABS = [
   'all',
@@ -31,7 +32,7 @@ function matchesSearch(order: Order, query: string) {
   const phoneDigits = (order.buyer_phone ?? customer?.phone ?? '').replace(/\D/g, '')
   const queryDigits = q.replace(/\D/g, '')
   return (
-    order.order_number?.toLowerCase().includes(q) ||
+    orderMatchesNumberSearch(order.order_number ?? '', query) ||
     order.buyer_name?.toLowerCase().includes(q) ||
     customer?.full_name?.toLowerCase().includes(q) ||
     order.recipient_name?.toLowerCase().includes(q) ||

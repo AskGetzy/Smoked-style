@@ -24,28 +24,36 @@ export default function Header({
   const email = user?.email ?? ''
 
   return (
-    <header className="sticky top-0 z-40 shadow-md" style={{ background: 'var(--navy)' }}>
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4">
-        <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2">
-          <span className="text-xl font-black tracking-wide text-white">
-            SMOKED <span style={{ color: 'var(--orange)' }}>STYLE</span>
-          </span>
+    <header className="rustic-divider sticky top-0 z-40 border-b border-white/10 bg-[linear-gradient(180deg,rgba(16,25,45,0.98),rgba(27,18,13,0.96))] shadow-[0_14px_40px_rgba(18,12,8,0.22)]">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-3 px-4">
+        <Link href="/" className="flex min-w-0 shrink-0 items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/10 text-sm font-black text-white shadow-inner">
+            SS
+          </div>
+          <div className="min-w-0">
+            <div className="truncate font-serif text-2xl font-bold tracking-[0.08em] text-white">
+              Smoked <span style={{ color: 'var(--gold)' }}>Style</span>
+            </div>
+            <div className="hidden truncate text-[11px] font-semibold uppercase tracking-[0.22em] text-white/60 sm:block">
+              Premium cuts and smokehouse favorites
+            </div>
+          </div>
         </Link>
 
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {!authReady ? (
-            <span className="hidden h-9 w-20 animate-pulse rounded-lg bg-white/10 sm:inline-block" aria-hidden />
+            <span className="hidden h-10 w-24 animate-pulse rounded-2xl bg-white/10 sm:inline-block" aria-hidden />
           ) : user ? (
             <div className="flex min-w-0 items-center gap-2">
               <span
-                className="hidden max-w-[140px] truncate text-xs font-medium text-white/80 sm:inline md:max-w-[200px]"
+                className="hidden max-w-[140px] truncate rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/80 sm:inline md:max-w-[220px]"
                 title={email}
               >
                 {email}
               </span>
               <SignOutButton
                 onClick={onSignOut}
-                className="!px-3 !py-2 text-xs sm:text-sm"
+                className="!rounded-2xl !border-white/15 !bg-white/10 !px-3.5 !py-2.5 text-xs sm:text-sm"
                 variant="navy"
               />
             </div>
@@ -53,7 +61,7 @@ export default function Header({
             <button
               type="button"
               onClick={onSignIn}
-              className="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+              className="shrink-0 rounded-2xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
             >
               Sign In
             </button>
@@ -61,8 +69,7 @@ export default function Header({
 
           <Link
             href="/cart"
-            className="flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-white transition-colors sm:px-4"
-            style={{ background: 'rgba(255,255,255,0.1)' }}
+            className="flex shrink-0 items-center gap-2 rounded-2xl border border-[#f1d9a1]/25 bg-[linear-gradient(135deg,rgba(212,168,75,0.18),rgba(255,255,255,0.10))] px-3 py-2.5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition hover:border-[#f1d9a1]/35 sm:px-4"
           >
             <CartIcon />
             {cartCount > 0 && (

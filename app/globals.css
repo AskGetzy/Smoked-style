@@ -4,13 +4,20 @@
 
 :root {
   --navy: #1a2744;
+  --navy-deep: #10192d;
   --orange: #e87722;
   --gold: #d4a84b;
   --cream: #fdf8f0;
+  --paper: #fffaf1;
+  --espresso: #3b2b20;
+  --sand: #efe1c7;
 }
 
 body {
   background-color: var(--cream);
+  background-image:
+    radial-gradient(circle at top, rgba(212, 168, 75, 0.12), transparent 24%),
+    linear-gradient(180deg, #fbf5ea 0%, #f7efe0 52%, #f4eadb 100%);
   color: #1f2937;
 }
 
@@ -34,4 +41,18 @@ body {
   .catalog-modal-slide-up {
     animation: none;
   }
+}
+
+.rustic-divider {
+  position: relative;
+}
+
+.rustic-divider::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59, 43, 32, 0.18), transparent);
 }

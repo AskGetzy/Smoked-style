@@ -118,14 +118,19 @@ export default function OrderDetailPage() {
 
   async function approveOrder() {
     setApproving(true)
+    setError('')
     const res = await fetch('/api/capture-payment', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ orderId: id }),
     })
+    const payload = await res.json().catch(() => ({}))
     if (res.ok) {
       setShowApproveModal(false)
       fetchOrder()
+    } else {
+      setError((payload as { error?: string }).error ?? t.couldNotApproveOrder)
     }
     setApproving(false)
   }
@@ -383,6 +388,11 @@ export default function OrderDetailPage() {
             <p className="text-gray-500 text-sm mb-4">
               {t.approveOrderBody} <strong>${order.total.toFixed(2)}</strong> {t.approveOrderBodySuffix}
             </p>
+            {error && (
+              <p className="mb-4 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+              </p>
+            )}
             <div className="flex gap-3">
               <button onClick={() => setShowApproveModal(false)} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm font-semibold">{t.cancel}</button>
               <button onClick={approveOrder} disabled={approving}

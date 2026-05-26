@@ -16,6 +16,7 @@ import { useLanguage } from '@/lib/language-context'
 import { orderStatusLabel } from '@/lib/i18n'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { displayBuyerName } from '@/lib/order-buyer'
+import { orderMatchesNumberSearch } from '@/lib/order-number-search'
 import type { Order } from '@/types'
 
 const STATUS_TABS = [
@@ -142,7 +143,7 @@ export default function OrdersPage() {
     const matchTab = activeTab === 'all' || o.status === activeTab
     const matchSearch =
       search === '' ||
-      o.order_number.toLowerCase().includes(search.toLowerCase()) ||
+      orderMatchesNumberSearch(o.order_number, search) ||
       displayBuyerName(o).toLowerCase().includes(search.toLowerCase())
     const matchSummaryDate =
       normalizeDeliveryDate(o.delivery_date) === summaryDate
