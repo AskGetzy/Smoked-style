@@ -43,7 +43,9 @@ insert into products (name, description, category, price, sold_as, stock_quantit
 insert into products (name, description, category, price, sold_as, stock_quantity, low_stock_threshold) values
   ('Garlic Chicken', 'Roasted garlic chicken, whole', 'non_smoked', 55, 'per_piece', 20, 4),
   ('Honey Glazed Salmon', 'Wild-caught salmon with honey glaze', 'non_smoked', 70, 'per_piece', 15, 3),
-  ('Stuffed Chicken Breast', 'Spinach and mushroom stuffed chicken', 'non_smoked', 65, 'per_piece', 18, 4);
+  ('Stuffed Chicken Breast', 'Spinach and mushroom stuffed chicken', 'non_smoked', 65, 'per_piece', 18, 4),
+  ('Minute Roast', 'Tender minute roast prepared for quick roasting and easy serving', 'non_smoked', 75, 'per_piece', 18, 4),
+  ('9x13 Pulled Beef Gnocchi', 'Pulled beef gnocchi prepared in a 9x13 pan for family-style serving', 'non_smoked', 150, 'per_pan', 12, 3);
 
 -- Products: Boards
 insert into products (name, description, category, subcategory, price, sold_as, size_label, stock_quantity, low_stock_threshold) values
