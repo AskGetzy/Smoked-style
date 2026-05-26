@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Product, CartItem } from '@/types'
 import ProductImage from '@/components/ProductImage'
 import { categoryLabel, formatPrice } from '@/lib/product-display'
+import { ORDER_TRACKING_CONTACT_PHONE } from '@/lib/order-tracking'
 import {
   getFirstAvailableJerkyFlavor,
   getJerkyFlavors,
@@ -59,6 +60,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
 
   const product = activeProduct
   const outOfStock = isOutOfStock(product)
+  const inquiryOnly = Boolean(product.customer_inquiry_only)
   const isJerky = product.category === 'jerky'
   const isBoard = product.category === 'boards'
   const showQuantity = !isJerky && !isBoard
@@ -99,6 +101,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
   const unitPrice = isJerky && weight ? product.price * weight : product.price
 
   function handleAdd() {
+    if (inquiryOnly) return
     if (outOfStock || maxQty <= 0) return
     if (isJerky && flavor && !isJerkyFlavorAvailable(product, flavor)) return
     if (isJerky && weight && weight > maxQty) return
@@ -156,15 +159,35 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
 
           <h2 className="text-2xl font-black leading-tight text-gray-900">{product.name}</h2>
 
-          <p className="mt-2 text-2xl font-bold" style={{ color: 'var(--orange)' }}>
-            {formatPrice(product)}
-          </p>
+          {inquiryOnly ? (
+            <p className="mt-2 text-sm font-bold uppercase tracking-[0.2em] text-amber-700">
+              Available by phone inquiry
+            </p>
+          ) : (
+            <p className="mt-2 text-2xl font-bold" style={{ color: 'var(--orange)' }}>
+              {formatPrice(product)}
+            </p>
+          )}
 
           {product.description && (
             <p className="mt-4 text-base leading-relaxed text-gray-600">{product.description}</p>
           )}
 
-          {isJerky && (
+          {inquiryOnly && (
+            <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+              <p className="text-sm font-semibold text-amber-900">
+                This item is available through direct inquiry only.
+              </p>
+              <a
+                href="tel:7188109472"
+                className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl border border-amber-300 bg-white px-4 text-sm font-bold text-amber-800"
+              >
+                Call {ORDER_TRACKING_CONTACT_PHONE}
+              </a>
+            </div>
+          )}
+
+          {!inquiryOnly && isJerky && (
             <>
               {getJerkyFlavors(product).length > 0 && (
                 <div className="mt-5">
@@ -219,7 +242,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
             </>
           )}
 
-          {hasMultipleSizes && (
+          {!inquiryOnly && hasMultipleSizes && (
             <div className="mt-5">
               <label className="mb-2 block text-sm font-bold text-gray-700">Size</label>
               <div className="grid gap-2">
@@ -243,7 +266,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
             </div>
           )}
 
-          {isBoard && !hasMultipleSizes && product.size_label && (
+          {!inquiryOnly && isBoard && !hasMultipleSizes && product.size_label && (
             <div className="mt-5">
               <label className="mb-2 block text-sm font-bold text-gray-700">Size</label>
               <div className="min-h-12 rounded-xl border-2 border-orange-500 bg-orange-50 px-4 py-3 text-base font-semibold text-orange-700">
@@ -252,7 +275,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
             </div>
           )}
 
-          {showQuantity && (
+          {!inquiryOnly && showQuantity && (
             <div className="mt-5">
               <label className="mb-2 block text-sm font-bold text-gray-700">
                 {product.sold_as === 'per_pack' && product.pack_size
@@ -284,11 +307,11 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
             </div>
           )}
 
-          {isJerky && stockHint && (
+          {!inquiryOnly && isJerky && stockHint && (
             <p className="mt-4 text-sm font-medium text-amber-700">{stockHint}</p>
           )}
 
-          {!outOfStock && (
+          {!inquiryOnly && !outOfStock && (
             <div className="mt-5 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
               <span className="text-sm font-semibold text-gray-500">Total</span>
               <span className="text-2xl font-black" style={{ color: 'var(--orange)' }}>
@@ -299,7 +322,14 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
         </div>
 
         <div className="shrink-0 border-t border-gray-100 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-          {outOfStock || maxQty <= 0 ? (
+          {inquiryOnly ? (
+            <a
+              href="tel:7188109472"
+              className="flex min-h-14 w-full items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 text-lg font-black text-amber-900"
+            >
+              Call Inquiry - {ORDER_TRACKING_CONTACT_PHONE}
+            </a>
+          ) : outOfStock || maxQty <= 0 ? (
             <div className="flex min-h-14 items-center justify-center rounded-xl bg-gray-100 text-lg font-bold text-gray-500">
               Out of Stock
             </div>

@@ -3,6 +3,7 @@
 import type { Product } from '@/types'
 import ProductImage from '@/components/ProductImage'
 import { formatPrice } from '@/lib/product-display'
+import { ORDER_TRACKING_CONTACT_PHONE } from '@/lib/order-tracking'
 import { isOutOfStock } from '@/lib/product-stock'
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
 
 export default function ProductCard({ product, onOpen, onAdd }: Props) {
   const outOfStock = isOutOfStock(product)
+  const inquiryOnly = Boolean(product.customer_inquiry_only)
 
   return (
     <article
@@ -44,15 +46,28 @@ export default function ProductCard({ product, onOpen, onAdd }: Props) {
             {product.name}
           </h3>
           <div className="mt-auto pt-3">
-            <span className="text-lg font-bold" style={{ color: 'var(--orange)' }}>
-              {formatPrice(product)}
-            </span>
+            {inquiryOnly ? (
+              <span className="text-sm font-bold uppercase tracking-wide text-amber-700">
+                Call for inquiry
+              </span>
+            ) : (
+              <span className="text-lg font-bold" style={{ color: 'var(--orange)' }}>
+                {formatPrice(product)}
+              </span>
+            )}
           </div>
         </div>
       </button>
 
       <div className="border-t border-gray-50 p-4 pt-0">
-        {outOfStock ? (
+        {inquiryOnly ? (
+          <a
+            href="tel:7188109472"
+            className="flex min-h-12 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+          >
+            Call Inquiry: {ORDER_TRACKING_CONTACT_PHONE}
+          </a>
+        ) : outOfStock ? (
           <div className="flex min-h-12 items-center justify-center rounded-xl bg-gray-50 text-sm font-semibold text-gray-400">
             Unavailable
           </div>

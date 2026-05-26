@@ -12,15 +12,24 @@ insert into delivery_areas (name, delivery_fee, is_backend_only) values
   ('Uber', 0, true);
 
 -- Products: Jerky
-insert into products (name, description, category, price, sold_as, flavors, weight_options, stock_quantity, low_stock_threshold) values
-  ('Premium Beef Jerky', 'House-smoked, hand-pulled beef jerky in 6 signature flavors', 'jerky', 100, 'per_lb',
+insert into products (name, description, category, price, customer_inquiry_only, sold_as, flavors, weight_options, stock_quantity, low_stock_threshold) values
+  ('Premium Beef Jerky', 'House-smoked, hand-pulled beef jerky in 6 signature flavors', 'jerky', 100, false, 'per_lb',
    array['General Tso', 'BBQ', 'Teriyaki', 'Spicy', 'Original', 'Honey'],
+   array[0.5, 1.0, 1.5, 2.0], 50, 5),
+  ('Charcutrie', 'House-crafted charcutrie sliced fresh and sold by the pound', 'jerky', 100, false, 'per_lb',
+   array['Original'],
+   array[0.5, 1.0, 1.5, 2.0], 50, 5),
+  ('Wholesale Jerky', 'Bulk jerky sold through direct inquiry and special wholesale orders', 'jerky', 75, true, 'per_lb',
+   array['Original'],
    array[0.5, 1.0, 1.5, 2.0], 50, 5);
 
 -- Products: Steaks
 insert into products (name, description, category, price, sold_as, pack_size, stock_quantity, low_stock_threshold) values
   ('Skirt Steak', 'Premium marinated skirt steak, sold in packs of 4', 'steaks', 85, 'per_pack', 4, 20, 3),
   ('Rib Eye Steak', 'USDA choice rib eye, perfectly seasoned', 'steaks', 120, 'per_piece', null, 15, 3),
+  ('Center Cut Rib Eye', 'Thick-cut center rib eye with rich marbling and bold steakhouse flavor', 'steaks', 250, 'per_piece', null, 12, 3),
+  ('Flat Iron Steak', 'Tender flat iron steak with deep beefy flavor, perfect for grilling', 'steaks', 65, 'per_piece', null, 18, 4),
+  ('Tomahawk Steak', 'Large bone-in tomahawk steak for an impressive centerpiece', 'steaks', 200, 'per_piece', null, 10, 2),
   ('London Broil', 'Marinated and smoked London broil', 'steaks', 75, 'per_piece', null, 20, 4);
 
 -- Products: Smoked

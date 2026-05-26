@@ -9,6 +9,7 @@ import BossProductSheet from '@/components/BossProductSheet'
 import { customerMatchesSearch } from '@/lib/customer-search'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { todayLocal } from '@/lib/dates'
+import { formatPrice } from '@/lib/product-display'
 
 const CATEGORIES = ['all', 'jerky', 'steaks', 'smoked', 'non_smoked', 'boards']
 
@@ -325,7 +326,7 @@ export default function BossNewOrderPage() {
           <div className="grid grid-cols-2 gap-2">
             {filteredProducts.map(product => (
               <button key={product.id} onClick={() => openProduct(product)} className="min-h-20 rounded-2xl border bg-white p-3 text-left text-base font-bold">
-                {product.name}<br /><span className="text-sm font-semibold text-orange-600">${product.price}</span>
+                {product.name}<br /><span className="text-sm font-semibold text-orange-600">{formatPrice(product)}</span>
               </button>
             ))}
           </div>

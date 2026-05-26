@@ -69,6 +69,10 @@ export default function CatalogPage() {
 
   function handleAddToCart(product: Product) {
     if (isOutOfStock(product)) return
+    if (product.customer_inquiry_only) {
+      setSelectedProduct(product)
+      return
+    }
     if (!user) {
       setPendingProduct(product)
       setShowSignInModal(true)
