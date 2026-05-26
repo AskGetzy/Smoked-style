@@ -33,22 +33,36 @@ export default function InventoryPage() {
     setProducts(ps => ps.map(p => (p.id === updated.id ? updated : p)))
   }
 
-  async function updateProduct(id: string, qty: number, price: number) {
-    setSaving(id)
+  async function updateProduct(product: Product) {
+    setSaving(product.id)
     setSaveError(null)
-    const { product, error } = await patchProductInventory(id, { stock_quantity: qty, price })
+    const { product: updated, error } = await patchProductInventory(product.id, {
+      stock_quantity: product.stock_quantity,
+      price: product.price,
+      description: product.description?.trim() || null,
+    })
     if (error) {
       setSaveError(error)
       setSaving(null)
       return
     }
-    if (product) updateProductInState(product)
+    if (updated) updateProductInState(updated)
     setSaving(null)
   }
 
   async function toggleStock(id: string, current: boolean) {
     setSaveError(null)
     const { product, error } = await patchProductInventory(id, { is_in_stock: !current })
+    if (error) {
+      setSaveError(error)
+      return
+    }
+    if (product) updateProductInState(product)
+  }
+
+  async function toggleCustomerVisibility(id: string, current: boolean) {
+    setSaveError(null)
+    const { product, error } = await patchProductInventory(id, { is_customer_visible: !current })
     if (error) {
       setSaveError(error)
       return
@@ -97,9 +111,12 @@ export default function InventoryPage() {
 
   const jerkyLabels = {
     priceLabel: t.priceLabel,
+    descriptionLabel: t.descriptionLabel,
     save: t.save,
     inStock: t.inStock,
     off: t.off,
+    visibleToCustomers: t.visibleToCustomers,
+    hiddenFromCustomers: t.hiddenFromCustomers,
     outOfStock: t.outOfStock,
     lowStock: t.lowStock,
     uploading: t.uploading,
@@ -163,6 +180,7 @@ export default function InventoryPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {items.map(p => {
                     const isLow = p.is_in_stock && p.stock_quantity <= p.low_stock_threshold
+                    const customerVisible = p.is_customer_visible !== false
                     return (
                       <div key={p.id} className={`bg-white rounded-xl border p-4 ${
                         !p.is_in_stock ? 'border-red-200 bg-red-50' : isLow ? 'border-yellow-200 bg-yellow-50' : 'border-gray-100'
@@ -193,16 +211,26 @@ export default function InventoryPage() {
                           />
                         </div>
 
-                        <div className="flex items-start justify-between mb-3">
+                        <div className="mb-3 flex items-start justify-between gap-2">
                           <div>
                             <p className="font-semibold text-sm text-gray-900">{p.name}{p.size_label ? ` — ${p.size_label}` : ''}</p>
                             {!p.is_in_stock && <span className="text-xs text-red-600 font-bold">{t.outOfStock.toUpperCase()}</span>}
                             {isLow && <span className="text-xs text-yellow-700 font-bold">{t.lowStock.toUpperCase()}</span>}
                           </div>
-                          <button onClick={() => toggleStock(p.id, p.is_in_stock)}
-                            className={`px-2 py-1 rounded-lg text-xs font-semibold ${p.is_in_stock ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-                            {p.is_in_stock ? t.inStock : t.off}
-                          </button>
+                          <div className="flex flex-col gap-2">
+                            <button
+                              onClick={() => toggleStock(p.id, p.is_in_stock)}
+                              className={`rounded-lg px-2 py-1 text-xs font-semibold ${p.is_in_stock ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}
+                            >
+                              {p.is_in_stock ? t.inStock : t.off}
+                            </button>
+                            <button
+                              onClick={() => toggleCustomerVisibility(p.id, customerVisible)}
+                              className={`rounded-lg px-2 py-1 text-xs font-semibold ${customerVisible ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'}`}
+                            >
+                              {customerVisible ? t.visibleToCustomers : t.hiddenFromCustomers}
+                            </button>
+                          </div>
                         </div>
 
                         <div className="space-y-2">
@@ -226,12 +254,21 @@ export default function InventoryPage() {
                               onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, stock_quantity: Number(e.target.value) } : x))}
                               className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:border-orange-400"
                             />
-                            <button onClick={() => updateProduct(p.id, p.stock_quantity, p.price)}
+                            <button onClick={() => updateProduct(p)}
                               disabled={saving === p.id}
                               className="text-xs px-3 py-1.5 rounded-lg text-white font-semibold disabled:opacity-60 flex-shrink-0"
                               style={{ background: 'var(--navy)' }}>
                               {saving === p.id ? '...' : t.save}
                             </button>
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-xs text-gray-400">{t.descriptionLabel}</label>
+                            <textarea
+                              value={p.description ?? ''}
+                              onChange={e => setProducts(ps => ps.map(x => x.id === p.id ? { ...x, description: e.target.value } : x))}
+                              rows={3}
+                              className="w-full rounded-lg border border-gray-200 px-2 py-2 text-sm focus:border-orange-400 focus:outline-none"
+                            />
                           </div>
                         </div>
                       </div>

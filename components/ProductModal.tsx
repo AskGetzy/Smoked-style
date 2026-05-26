@@ -6,15 +6,17 @@ import ProductImage from '@/components/ProductImage'
 import { categoryLabel, formatPrice } from '@/lib/product-display'
 import { ORDER_TRACKING_CONTACT_PHONE } from '@/lib/order-tracking'
 import {
+  JERKY_MAX_WEIGHT,
+  JERKY_MIN_WEIGHT,
+  defaultJerkyWeight,
   getFirstAvailableJerkyFlavor,
   getJerkyFlavors,
+  isValidJerkyWeight,
   isJerkyFlavorAvailable,
 } from '@/lib/jerky-stock'
 import {
-  formatStockLeft,
   getAvailableStock,
   getMaxLineQuantity,
-  getRemainingStock,
   isWeightBasedProduct,
   isOutOfStock,
 } from '@/lib/product-stock'
@@ -31,7 +33,11 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
   const variants = sizeVariants.length > 1 ? sizeVariants : [initialProduct]
   const [activeProduct, setActiveProduct] = useState(initialProduct)
   const [flavor, setFlavor] = useState(initialProduct.flavors?.[0] ?? null)
-  const [weight, setWeight] = useState(initialProduct.weight_options?.[0] ?? null)
+  const [weight, setWeight] = useState(
+    initialProduct.category === 'jerky' && isWeightBasedProduct(initialProduct)
+      ? defaultJerkyWeight()
+      : initialProduct.weight_options?.[0] ?? null,
+  )
   const [qty, setQty] = useState(1)
 
   function defaultFlavorFor(product: Product) {
@@ -45,7 +51,11 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
         ? defaultFlavorFor(initialProduct)
         : initialProduct.flavors?.[0] ?? null,
     )
-    setWeight(initialProduct.weight_options?.[0] ?? null)
+    setWeight(
+      initialProduct.category === 'jerky' && isWeightBasedProduct(initialProduct)
+        ? defaultJerkyWeight()
+        : initialProduct.weight_options?.[0] ?? null,
+    )
     setQty(1)
   }, [initialProduct.id])
 
@@ -55,7 +65,11 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
         ? defaultFlavorFor(activeProduct)
         : activeProduct.flavors?.[0] ?? null,
     )
-    setWeight(activeProduct.weight_options?.[0] ?? null)
+    setWeight(
+      activeProduct.category === 'jerky' && isWeightBasedProduct(activeProduct)
+        ? defaultJerkyWeight()
+        : activeProduct.weight_options?.[0] ?? null,
+    )
     setQty(1)
   }, [activeProduct.id])
 
@@ -68,6 +82,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
   const showQuantity = !isWeightBased && !isBoard
   const hasMultipleSizes = variants.length > 1
   const variantLabel = isBoard ? 'Size' : 'Cut'
+  const jerkyWeightValid = !isJerky || !isWeightBased || isValidJerkyWeight(weight)
 
   const lineKey = useMemo(
     () => ({
@@ -79,17 +94,15 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
     [product.id, product.size_label, flavor, weight, isJerky, isWeightBased],
   )
 
-  const remainingStock = useMemo(
-    () => getRemainingStock(product, cart, lineKey),
-    [product, cart, lineKey],
-  )
-
   const maxQty = useMemo(
     () => getMaxLineQuantity(product, cart, lineKey),
     [product, cart, lineKey],
   )
 
-  const stockHint = formatStockLeft(product, remainingStock)
+  const maxJerkyWeight = useMemo(
+    () => Math.min(JERKY_MAX_WEIGHT, maxQty),
+    [maxQty],
+  )
 
   useEffect(() => {
     if (!showQuantity) return
@@ -97,16 +110,17 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
   }, [maxQty, qty, showQuantity])
 
   const lineTotal = useMemo(() => {
-    if (isWeightBased && weight) return product.price * weight
+    if (isWeightBased) return product.price * (weight ?? 0)
     return product.price * qty
   }, [isWeightBased, weight, product.price, qty])
 
-  const unitPrice = isWeightBased && weight ? product.price * weight : product.price
+  const unitPrice = isWeightBased ? product.price * (weight ?? 0) : product.price
 
   function handleAdd() {
     if (inquiryOnly) return
     if (outOfStock || maxQty <= 0) return
     if (isJerky && flavor && !isJerkyFlavorAvailable(product, flavor)) return
+    if (isJerky && isWeightBased && !jerkyWeightValid) return
     if (isWeightBased && weight && weight > maxQty) return
     if (!isWeightBased && qty > maxQty) return
     const item: CartItem = {
@@ -214,7 +228,32 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
                   )}
                 </div>
               )}
-              {isWeightBased && product.weight_options && product.weight_options.length > 0 && (
+              {isWeightBased && isJerky && (
+                <div className="mt-4">
+                  <label className="mb-2 block text-sm font-bold text-gray-700">Weight</label>
+                  <input
+                    type="number"
+                    min={JERKY_MIN_WEIGHT}
+                    max={JERKY_MAX_WEIGHT}
+                    step={JERKY_MIN_WEIGHT}
+                    value={weight ?? ''}
+                    onChange={e => setWeight(e.target.value === '' ? null : Number(e.target.value))}
+                    className="min-h-12 w-full rounded-xl border border-gray-200 px-3 text-base focus:border-orange-400 focus:outline-none"
+                  />
+                  <p className="mt-2 text-sm text-gray-500">Enter any weight from 0.25 lb to 4 lb.</p>
+                  {weight != null && !jerkyWeightValid && (
+                    <p className="mt-2 text-sm font-medium text-red-600">
+                      Enter a weight between 0.25 lb and 4 lb in 0.25 lb increments.
+                    </p>
+                  )}
+                  {maxJerkyWeight > 0 && maxJerkyWeight < JERKY_MIN_WEIGHT && (
+                    <p className="mt-2 text-sm font-medium text-red-600">
+                      This flavor does not have enough stock for the minimum 0.25 lb order.
+                    </p>
+                  )}
+                </div>
+              )}
+              {isWeightBased && !isJerky && product.weight_options && product.weight_options.length > 0 && (
                 <div className="mt-4">
                   <label className="mb-2 block text-sm font-bold text-gray-700">Weight</label>
                   <div className="grid grid-cols-2 gap-2">
@@ -291,9 +330,6 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
                   ? `Quantity (packs of ${product.pack_size})`
                   : 'Quantity'}
               </label>
-              {stockHint && (
-                <p className="mb-2 text-sm font-medium text-amber-700">{stockHint}</p>
-              )}
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setQty(q => Math.max(1, q - 1))}
@@ -316,10 +352,6 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
             </div>
           )}
 
-          {!inquiryOnly && isJerky && stockHint && (
-            <p className="mt-4 text-sm font-medium text-amber-700">{stockHint}</p>
-          )}
-
           {!inquiryOnly && !outOfStock && (
             <div className="mt-5 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
               <span className="text-sm font-semibold text-gray-500">Total</span>
@@ -338,7 +370,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
             >
               Call Inquiry - {ORDER_TRACKING_CONTACT_PHONE}
             </a>
-          ) : outOfStock || maxQty <= 0 ? (
+          ) : outOfStock || maxQty <= 0 || (isJerky && isWeightBased && maxJerkyWeight < JERKY_MIN_WEIGHT) ? (
             <div className="flex min-h-14 items-center justify-center rounded-xl bg-gray-100 text-lg font-bold text-gray-500">
               Out of Stock
             </div>
@@ -347,7 +379,9 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
               onClick={handleAdd}
               disabled={
                 isWeightBased
-                  ? (isJerky && (!flavor || !isJerkyFlavorAvailable(product, flavor))) || !weight || (weight ?? 0) > maxQty
+                  ? (isJerky && (!flavor || !isJerkyFlavorAvailable(product, flavor) || !jerkyWeightValid))
+                    || !weight
+                    || (weight ?? 0) > maxQty
                   : qty > maxQty
               }
               className="min-h-14 w-full rounded-xl text-lg font-black text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"

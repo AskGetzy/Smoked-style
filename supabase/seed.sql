@@ -14,14 +14,14 @@ insert into delivery_areas (name, delivery_fee, is_backend_only) values
 -- Products: Jerky
 insert into products (name, description, category, price, customer_inquiry_only, sold_as, flavors, weight_options, stock_quantity, low_stock_threshold) values
   ('Premium Beef Jerky', 'House-smoked, hand-pulled beef jerky in 6 signature flavors', 'jerky', 100, false, 'per_lb',
-   array['General Tso', 'BBQ', 'Teriyaki', 'Spicy', 'Original', 'Honey'],
-   array[0.5, 1.0, 1.5, 2.0], 50, 5),
+   array['General Tso', 'Tangy Sweet', 'Teriyaki', 'Spicy', 'Original', 'Honey'],
+   array[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0], 50, 5),
   ('Charcutrie', 'House-crafted charcutrie sliced fresh and sold by the pound', 'jerky', 100, false, 'per_lb',
    array['Original'],
-   array[0.5, 1.0, 1.5, 2.0], 50, 5),
+   array[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0], 50, 5),
   ('Wholesale Jerky', 'Bulk jerky sold through direct inquiry and special wholesale orders', 'jerky', 75, true, 'per_lb',
    array['Original'],
-   array[0.5, 1.0, 1.5, 2.0], 50, 5);
+   array[0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0], 50, 5);
 
 -- Products: Steaks
 insert into products (name, description, category, price, sold_as, pack_size, stock_quantity, low_stock_threshold) values
@@ -41,6 +41,7 @@ insert into products (name, description, category, subcategory, price, sold_as, 
   ('Smoked Rib Eye Boneless', 'Smoked boneless rib eye roast, ready for carving and serving', 'smoked', null, 500, 'per_piece', null, null, 8, 2),
   ('Smoked Turkey Breast', 'Whole smoked turkey breast', 'smoked', null, 95, 'per_piece', null, null, 12, 3),
   ('Smoked Pulled Chicken', 'Tender smoked pulled chicken', 'smoked', null, 65, 'per_piece', null, null, 20, 4),
+  ('Smoked Flanken Roast Boneless', 'Boneless smoked flanken roast with selectable cut options', 'smoked', 'smoked_flanken_roast_boneless', 125, 'per_piece', null, '3 Bone Cut (Boneless)', 12, 3),
   ('Smoked Flanken Roast Boneless', 'Boneless smoked flanken roast with selectable cut options', 'smoked', 'smoked_flanken_roast_boneless', 200, 'per_piece', null, '3+5 Bone Cut (Boneless)', 10, 2),
   ('Smoked Flanken Roast Boneless', 'Boneless smoked flanken roast with selectable cut options', 'smoked', 'smoked_flanken_roast_boneless', 100, 'per_piece', null, '5 Bone Cut (Boneless)', 12, 3);
 

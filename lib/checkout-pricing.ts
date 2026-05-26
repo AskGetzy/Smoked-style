@@ -1,4 +1,5 @@
 import type { Product } from '@/types'
+import { isValidJerkyWeight } from '@/lib/jerky-stock'
 import {
   assertCartWithinStock,
   isOutOfStock,
@@ -30,6 +31,9 @@ export function computeLineTotal(product: Product, line: CheckoutCartLine): Pric
     if (weight == null || weight <= 0) {
       throw new Error(`Weight is required for ${product.name}`)
     }
+    if (product.category === 'jerky' && !isValidJerkyWeight(weight)) {
+      throw new Error(`Weight must be between 0.25 lb and 4 lb for ${product.name}`)
+    }
     if (
       product.flavors?.length &&
       line.selected_flavor &&
@@ -37,7 +41,11 @@ export function computeLineTotal(product: Product, line: CheckoutCartLine): Pric
     ) {
       throw new Error(`Invalid flavor for ${product.name}`)
     }
-    if (product.weight_options?.length && !product.weight_options.includes(weight)) {
+    if (
+      product.category !== 'jerky' &&
+      product.weight_options?.length &&
+      !product.weight_options.includes(weight)
+    ) {
       throw new Error(`Invalid weight for ${product.name}`)
     }
     const unit_price = product.price * weight

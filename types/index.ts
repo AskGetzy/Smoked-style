@@ -1,11 +1,12 @@
 export interface Product {
   id: string
   name: string
-  description: string
+  description: string | null
   category: 'jerky' | 'steaks' | 'smoked' | 'non_smoked' | 'boards'
   subcategory: string | null
   price: number
   customer_inquiry_only?: boolean
+  is_customer_visible?: boolean
   sold_as: 'per_lb' | 'per_piece' | 'per_pack' | 'per_pan' | 'per_board'
   pack_size: number | null
   flavors: string[] | null

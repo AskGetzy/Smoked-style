@@ -3,12 +3,25 @@ import type { Product } from '@/types'
 /** Default jerky flavors when product.flavors is empty. */
 export const JERKY_FLAVOR_NAMES = [
   'General Tso',
-  'Sweet And Spicy',
-  'Jalapeno',
-  'Pepper Crust',
-  'BBQ',
+  'Tangy Sweet',
   'Teriyaki',
+  'Spicy',
+  'Original',
+  'Honey',
 ] as const
+
+export const JERKY_MIN_WEIGHT = 0.25
+export const JERKY_MAX_WEIGHT = 4
+
+export function defaultJerkyWeight(): number {
+  return JERKY_MIN_WEIGHT
+}
+
+export function isValidJerkyWeight(weight: number | null | undefined): weight is number {
+  if (weight == null || !Number.isFinite(weight)) return false
+  if (weight < JERKY_MIN_WEIGHT || weight > JERKY_MAX_WEIGHT) return false
+  return Math.abs(weight * 4 - Math.round(weight * 4)) < 1e-9
+}
 
 export function parseJerkyFlavorStock(raw: unknown): Record<string, number> {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
@@ -86,7 +99,7 @@ export function getJerkyFlavorThreshold(product: Product, flavor: string): numbe
 export function isJerkyFlavorAvailable(product: Product, flavor: string | null | undefined): boolean {
   if (!product.is_in_stock) return false
   if (!flavor) return false
-  return getJerkyFlavorStock(product, flavor) > 0
+  return getJerkyFlavorStock(product, flavor) >= JERKY_MIN_WEIGHT
 }
 
 export function isJerkyFlavorLowStock(product: Product, flavor: string): boolean {
@@ -105,7 +118,7 @@ export function isJerkyProductOutOfStock(product: Product): boolean {
   if (flavors.length === 0) {
     return legacyJerkyStock(product) <= 0
   }
-  return flavors.every(flavor => getJerkyFlavorStock(product, flavor) <= 0)
+  return flavors.every(flavor => !isJerkyFlavorAvailable(product, flavor))
 }
 
 export function getFirstAvailableJerkyFlavor(product: Product): string | null {

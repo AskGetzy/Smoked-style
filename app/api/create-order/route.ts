@@ -159,6 +159,12 @@ export async function POST(req: NextRequest) {
     if (!products || products.length !== productIds.length) {
       return NextResponse.json({ error: 'One or more products are invalid' }, { status: 400 })
     }
+    if (products.some((product) => product.is_customer_visible === false)) {
+      return NextResponse.json(
+        { error: 'One or more items are no longer available' },
+        { status: 400 },
+      )
+    }
 
     const productsById = new Map<string, Product>(
       products.map((p) => [p.id, p as Product]),

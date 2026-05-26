@@ -14,9 +14,11 @@ export async function patchProductInventory(
       Product,
       | 'price'
       | 'is_in_stock'
+      | 'is_customer_visible'
       | 'stock_quantity'
       | 'jerky_flavor_stock'
       | 'jerky_flavor_thresholds'
+      | 'description'
       | 'image_url'
     >
   >,

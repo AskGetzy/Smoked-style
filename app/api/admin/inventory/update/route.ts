@@ -4,9 +4,11 @@ import { requireAdmin } from '@/lib/admin-auth'
 const ALLOWED_PATCH_KEYS = new Set([
   'price',
   'is_in_stock',
+  'is_customer_visible',
   'stock_quantity',
   'jerky_flavor_stock',
   'jerky_flavor_thresholds',
+  'description',
   'image_url',
 ])
 

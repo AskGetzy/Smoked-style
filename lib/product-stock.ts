@@ -8,6 +8,10 @@ export function isWeightBasedProduct(product: Product | null | undefined): boole
   return product?.sold_as === 'per_lb'
 }
 
+export function isCustomerVisible(product: Product | null | undefined): boolean {
+  return product?.is_customer_visible !== false
+}
+
 export function isOutOfStock(product: Product): boolean {
   if (product.is_in_stock === false) return true
   if (product.category === 'jerky') {
@@ -154,12 +158,7 @@ export function clampLineQuantity(
 
 export function formatStockLeft(product: Product, remaining: number): string | null {
   if (remaining <= 0) return null
-  if (isWeightBasedProduct(product)) {
-    return `${remaining} lb left`
-  }
-  const unit = product.sold_as === 'per_pack' ? 'pack' : 'pc'
-  const plural = remaining === 1 ? unit : `${unit}s`
-  return `${remaining} ${plural} left`
+  return remaining <= Number(product.low_stock_threshold ?? 0) ? 'Limited availability' : null
 }
 
 export function assertCartWithinStock(
@@ -197,12 +196,7 @@ export function assertCartWithinStock(
     const next = (poolUsage.get(key) ?? 0) + demand
     const available = getAvailableStock(product, line.selected_flavor)
     if (next > available) {
-      const left = Math.max(0, available - (poolUsage.get(key) ?? 0))
-      throw new Error(
-        left > 0
-          ? `Only ${left} available for ${product.name}`
-          : `${product.name} is out of stock`,
-      )
+      throw new Error(`Requested quantity is unavailable for ${product.name}`)
     }
     poolUsage.set(key, next)
   }

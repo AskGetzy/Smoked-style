@@ -6,7 +6,12 @@ import Header from '@/components/Header'
 import type { CartItem, Product } from '@/types'
 import { useSupabaseUser } from '@/lib/use-supabase-user'
 import { isJerkyFlavorAvailable } from '@/lib/jerky-stock'
-import { getMaxLineQuantity, isOutOfStock, isWeightBasedProduct } from '@/lib/product-stock'
+import {
+  getMaxLineQuantity,
+  isCustomerVisible,
+  isOutOfStock,
+  isWeightBasedProduct,
+} from '@/lib/product-stock'
 
 export default function CartPage() {
   const { user, authReady, supabase } = useSupabaseUser()
@@ -122,6 +127,7 @@ export default function CartPage() {
     if (!productsLoaded) return false
     const product = getCartProduct(item)
     if (!product) return true
+    if (!isCustomerVisible(product)) return true
     if (product.category === 'jerky' && item.selected_flavor) {
       return !isJerkyFlavorAvailable(product, item.selected_flavor)
     }

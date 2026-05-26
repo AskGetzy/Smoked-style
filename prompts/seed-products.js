@@ -2,8 +2,8 @@ module.exports =
   "Create a seed file at supabase/seed.sql that inserts all products into the products table.\n\n" +
   "JERKY (category: jerky, sold_as: per_lb):\n" +
   "- Price: $100/lb for all flavors\n" +
-  "- Flavors array: ['General Tso', 'Sweet And Spicy', 'Jalapeno', 'Pepper Crust', 'BBQ', 'Teriyaki']\n" +
-  "- Weight options array: [0.5,1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10]\n" +
+  "- Flavors array: ['General Tso', 'Tangy Sweet', 'Teriyaki', 'Spicy', 'Original', 'Honey']\n" +
+  "- Weight options array: [0.25,0.5,0.75,1,1.25,1.5,1.75,2,2.25,2.5,2.75,3,3.25,3.5,3.75,4]\n" +
   "- One product row covers all flavors and weights\n\n" +
   "STEAKS (category: steaks, sold_as: per_piece except Skirt Steak):\n" +
   "- Hanger Steak: $200\n" +

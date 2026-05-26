@@ -6,6 +6,7 @@ import type { Product, CartItem } from '@/types'
 import Header from '@/components/Header'
 import ProductCard from '@/components/ProductCard'
 import ProductModal from '@/components/ProductModal'
+import { JERKY_MIN_WEIGHT, isValidJerkyWeight } from '@/lib/jerky-stock'
 import {
   collapseVariantProducts,
   compareProductsPriceAsc,
@@ -18,6 +19,7 @@ import {
   clampLineQuantity,
   formatStockLeft,
   getMaxLineQuantity,
+  isCustomerVisible,
   isWeightBasedProduct,
   isOutOfStock,
 } from '@/lib/product-stock'
@@ -76,8 +78,8 @@ export default function CatalogPage() {
   }
 
   function handleAddToCart(product: Product) {
-    if (isOutOfStock(product)) return
-    const hasVariants = getProductVariants(product, products).length > 1
+    if (!isCustomerVisible(product) || isOutOfStock(product)) return
+    const hasVariants = getProductVariants(product, customerProducts).length > 1
     if (product.customer_inquiry_only) {
       setSelectedProduct(product)
       return
@@ -99,7 +101,7 @@ export default function CatalogPage() {
     const lineKey = { product_id: product.id }
     const addQty = clampLineQuantity(product, cart, lineKey, qty)
     if (addQty <= 0) {
-      showToast(`Only ${getMaxLineQuantity(product, cart, lineKey)} left in stock`)
+      showToast('Requested quantity is not available')
       return
     }
 
@@ -113,7 +115,10 @@ export default function CatalogPage() {
         existing.id,
       )
       if (newQty <= existing.quantity) {
-        showToast(formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey, existing.id)) ?? 'Out of stock')
+        showToast(
+          formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey, existing.id))
+            ?? 'Requested quantity is not available',
+        )
         return
       }
       saveCart(cart.map(i => i.product_id === product.id && !i.selected_flavor
@@ -146,8 +151,11 @@ export default function CatalogPage() {
       return
     }
 
-    const product = products.find(p => p.id === item.product_id)
-    if (!product) return
+    const product = customerProducts.find(p => p.id === item.product_id)
+    if (!product || !isCustomerVisible(product)) {
+      showToast('This item is no longer available')
+      return
+    }
 
     const lineKey = {
       product_id: item.product_id,
@@ -159,9 +167,20 @@ export default function CatalogPage() {
     let nextItem = item
     if (isWeightBasedProduct(product)) {
       const weight = item.selected_weight ?? 0
+      if (product.category === 'jerky' && !isValidJerkyWeight(weight)) {
+        showToast('Enter a valid jerky weight from 0.25 lb to 4 lb')
+        return
+      }
       const allowedWeight = clampLineQuantity(product, cart, lineKey, weight)
-      if (allowedWeight <= 0) {
-        showToast(formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey)) ?? 'Out of stock')
+      if (allowedWeight < (product.category === 'jerky' ? JERKY_MIN_WEIGHT : Number.EPSILON)) {
+        showToast(
+          formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey))
+            ?? 'Requested quantity is not available',
+        )
+        return
+      }
+      if (product.category === 'jerky' && allowedWeight !== weight) {
+        showToast('Requested quantity is not available')
         return
       }
       if (allowedWeight !== weight) {
@@ -175,7 +194,10 @@ export default function CatalogPage() {
     } else {
       const allowedQty = clampLineQuantity(product, cart, lineKey, item.quantity)
       if (allowedQty <= 0) {
-        showToast(formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey)) ?? 'Out of stock')
+        showToast(
+          formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey))
+            ?? 'Requested quantity is not available',
+        )
         return
       }
       if (allowedQty !== item.quantity) {
@@ -204,7 +226,10 @@ export default function CatalogPage() {
       const mergedQty = existing.quantity + nextItem.quantity
       const cappedQty = clampLineQuantity(product, cart, lineKey, mergedQty, existing.id)
       if (cappedQty <= existing.quantity) {
-        showToast(formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey, existing.id)) ?? 'Out of stock')
+        showToast(
+          formatStockLeft(product, getMaxLineQuantity(product, cart, lineKey, existing.id))
+            ?? 'Requested quantity is not available',
+        )
         return
       }
       saveCart(cart.map(i => i.id === existing.id
@@ -235,15 +260,16 @@ export default function CatalogPage() {
 
   const searchQuery = searchTerm.trim().toLowerCase()
   const isSearching = searchQuery.length > 0
-  const purimProducts = products.filter(p => p.is_featured_purim)
+  const customerProducts = products.filter(isCustomerVisible)
+  const purimProducts = customerProducts.filter(p => p.is_featured_purim)
   const filtered = isSearching
-    ? products.filter(p =>
+    ? customerProducts.filter(p =>
         p.name.toLowerCase().includes(searchQuery) ||
         (p.description ?? '').toLowerCase().includes(searchQuery)
       )
     : activeCategory === 'all'
-      ? products
-      : products.filter(p => p.category === activeCategory)
+      ? customerProducts
+      : customerProducts.filter(p => p.category === activeCategory)
 
   const displayProducts = collapseVariantProducts(filtered).sort(compareProductsPriceAsc)
 
@@ -379,7 +405,7 @@ export default function CatalogPage() {
                     <ProductCard
                       key={product.id}
                       product={product}
-                      priceLabel={formatProductCardPrice(product, products)}
+                      priceLabel={formatProductCardPrice(product, customerProducts)}
                       onOpen={() => openProduct(product)}
                       onAdd={() => handleAddToCart(product)}
                     />
@@ -394,7 +420,7 @@ export default function CatalogPage() {
               <ProductCard
                 key={product.id}
                 product={product}
-                priceLabel={formatProductCardPrice(product, products)}
+                priceLabel={formatProductCardPrice(product, customerProducts)}
                 onOpen={() => openProduct(product)}
                 onAdd={() => handleAddToCart(product)}
               />
@@ -408,7 +434,7 @@ export default function CatalogPage() {
         <ProductModal
           product={selectedProduct}
           cart={cart}
-          sizeVariants={getProductVariants(selectedProduct, products)}
+          sizeVariants={getProductVariants(selectedProduct, customerProducts)}
           onClose={() => setSelectedProduct(null)}
           onAdd={addModalItem}
         />

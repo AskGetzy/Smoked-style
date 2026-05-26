@@ -17,9 +17,12 @@ type Props = {
   onError?: (message: string) => void
   t: {
     priceLabel: string
+    descriptionLabel: string
     save: string
     inStock: string
     off: string
+    visibleToCustomers: string
+    hiddenFromCustomers: string
     outOfStock: string
     lowStock: string
     uploading: string
@@ -72,9 +75,24 @@ export default function JerkyInventoryPanel({
     if (updated) onUpdate(updated)
   }
 
-  async function savePrice(price: number) {
+  async function toggleCustomerVisibility() {
+    const next = product.is_customer_visible === false
+    const { product: updated, error } = await patchProductInventory(product.id, {
+      is_customer_visible: next,
+    })
+    if (error) {
+      onError?.(error)
+      return
+    }
+    if (updated) onUpdate(updated)
+  }
+
+  async function saveDetails(price: number, description: string | null) {
     setSaving('price')
-    const { product: updated, error } = await patchProductInventory(product.id, { price })
+    const { product: updated, error } = await patchProductInventory(product.id, {
+      price,
+      description: description?.trim() || null,
+    })
     if (error) {
       onError?.(error)
       setSaving(null)
@@ -177,15 +195,26 @@ export default function JerkyInventoryPanel({
               <p className="font-semibold text-gray-900">{product.name}</p>
               <p className="text-xs text-gray-500">Per-flavor inventory (lbs)</p>
             </div>
-            <button
-              type="button"
-              onClick={() => void toggleStock()}
-              className={`rounded-lg px-2 py-1 text-xs font-semibold ${
-                product.is_in_stock ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
-              }`}
-            >
-              {product.is_in_stock ? t.inStock : t.off}
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => void toggleStock()}
+                className={`rounded-lg px-2 py-1 text-xs font-semibold ${
+                  product.is_in_stock ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
+                }`}
+              >
+                {product.is_in_stock ? t.inStock : t.off}
+              </button>
+              <button
+                type="button"
+                onClick={() => void toggleCustomerVisibility()}
+                className={`rounded-lg px-2 py-1 text-xs font-semibold ${
+                  product.is_customer_visible === false ? 'bg-gray-200 text-gray-600' : 'bg-blue-100 text-blue-700'
+                }`}
+              >
+                {product.is_customer_visible === false ? t.hiddenFromCustomers : t.visibleToCustomers}
+              </button>
+            </div>
           </div>
 
           <div className="flex max-w-xs items-center gap-2">
@@ -203,13 +232,23 @@ export default function JerkyInventoryPanel({
             </div>
             <button
               type="button"
-              onClick={() => void savePrice(product.price)}
+              onClick={() => void saveDetails(product.price, product.description)}
               disabled={saving === 'price'}
               className="flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
               style={{ background: 'var(--navy)' }}
             >
               {saving === 'price' ? '...' : t.save}
             </button>
+          </div>
+
+          <div className="mt-3">
+            <label className="mb-1 block text-xs text-gray-400">{t.descriptionLabel}</label>
+            <textarea
+              value={product.description ?? ''}
+              onChange={e => onUpdate({ ...product, description: e.target.value })}
+              rows={3}
+              className="w-full rounded-lg border border-gray-200 px-2 py-2 text-sm focus:border-orange-400 focus:outline-none"
+            />
           </div>
         </div>
       </div>

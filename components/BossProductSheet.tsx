@@ -1,6 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import {
+  JERKY_MAX_WEIGHT,
+  JERKY_MIN_WEIGHT,
+  defaultJerkyWeight,
+  isValidJerkyWeight,
+} from '@/lib/jerky-stock'
 import { isWeightBasedProduct } from '@/lib/product-stock'
 import type { BossLine, Product } from '@/types'
 
@@ -16,8 +22,8 @@ function buildLine(product: Product, flavor: string, weight: number | null, qty:
   const isWeightBased = isWeightBasedProduct(product)
   const selectedWeight = isWeightBased ? weight : null
   const unitPrice =
-    isWeightBased && selectedWeight
-      ? product.price * selectedWeight
+    isWeightBased
+      ? product.price * (selectedWeight ?? 0)
       : product.price
   const quantity = isWeightBased ? 1 : qty
 
@@ -49,7 +55,11 @@ export default function BossProductSheet({ product: initialProduct, sizeVariants
     if (!activeProduct) return
     setQty(1)
     setFlavor(activeProduct.flavors?.[0] ?? '')
-    setWeight(activeProduct.weight_options?.[0] ?? null)
+    setWeight(
+      activeProduct.category === 'jerky' && isWeightBasedProduct(activeProduct)
+        ? defaultJerkyWeight()
+        : activeProduct.weight_options?.[0] ?? null,
+    )
   }, [activeProduct?.id])
 
   const pricing = useMemo(() => {
@@ -60,6 +70,8 @@ export default function BossProductSheet({ product: initialProduct, sizeVariants
     let summary = ''
     if (isWeightBased && line.selected_weight) {
       summary = `$${activeProduct.price.toFixed(2)}/lb × ${line.selected_weight} lb = $${line.line_total.toFixed(2)}`
+    } else if (isWeightBased) {
+      summary = 'Enter a valid weight'
     } else if (line.quantity > 1) {
       summary = `$${line.unit_price.toFixed(2)} × ${line.quantity} = $${line.line_total.toFixed(2)}`
     } else {
@@ -77,6 +89,7 @@ export default function BossProductSheet({ product: initialProduct, sizeVariants
   const isBoard = product.sold_as === 'per_board'
   const hasMultipleVariants = variants.length > 1
   const variantLabel = isBoard ? 'Size' : 'Cut'
+  const jerkyWeightValid = !isJerky || !isWeightBased || isValidJerkyWeight(weight)
   const basePriceLabel =
     isWeightBased
       ? `$${product.price.toFixed(2)}/lb`
@@ -84,6 +97,7 @@ export default function BossProductSheet({ product: initialProduct, sizeVariants
 
   function handleAdd() {
     if (!product) return
+    if (isJerky && isWeightBased && !jerkyWeightValid) return
     onAdd(buildLine(product, flavor, weight, qty))
   }
 
@@ -132,7 +146,28 @@ export default function BossProductSheet({ product: initialProduct, sizeVariants
             </div>
           )}
 
-          {isWeightBased && (product.weight_options?.length ?? 0) > 0 && (
+          {isWeightBased && isJerky && (
+            <div className="mb-4">
+              <label className="mb-2 block text-sm font-bold text-gray-700">Weight</label>
+              <input
+                type="number"
+                min={JERKY_MIN_WEIGHT}
+                max={JERKY_MAX_WEIGHT}
+                step={JERKY_MIN_WEIGHT}
+                value={weight ?? ''}
+                onChange={e => setWeight(e.target.value === '' ? null : Number(e.target.value))}
+                className="h-12 w-full rounded-2xl border px-4 text-base"
+              />
+              <p className="mt-2 text-sm text-gray-500">Enter any weight from 0.25 lb to 4 lb.</p>
+              {weight != null && !jerkyWeightValid && (
+                <p className="mt-2 text-sm font-medium text-red-600">
+                  Enter a weight between 0.25 lb and 4 lb in 0.25 lb increments.
+                </p>
+              )}
+            </div>
+          )}
+
+          {isWeightBased && !isJerky && (product.weight_options?.length ?? 0) > 0 && (
             <div className="mb-4">
               <label className="mb-2 block text-sm font-bold text-gray-700">Weight</label>
               <div className="grid grid-cols-2 gap-2">
@@ -224,7 +259,8 @@ export default function BossProductSheet({ product: initialProduct, sizeVariants
           <button
             type="button"
             onClick={handleAdd}
-            className="min-h-14 w-full rounded-2xl text-lg font-black text-white"
+            disabled={isJerky && isWeightBased && !jerkyWeightValid}
+            className="min-h-14 w-full rounded-2xl text-lg font-black text-white disabled:opacity-50"
             style={{ background: 'var(--orange)' }}
           >
             Add to Order

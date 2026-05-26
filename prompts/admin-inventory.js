@@ -20,5 +20,5 @@ module.exports =
   "- Save the new value to products.stock_quantity\n" +
   "- Insert a record into stock_history: who changed it, previous value, new value, timestamp\n" +
   "- If new stock > 0 and is_in_stock was false: automatically set is_in_stock = true\n\n" +
-  "NOTE for Jerky: since all jerky flavors share one product row, show one card per flavor. Store flavor stock as a JSON field jerky_flavor_stock: { 'General Tso': 12.5, 'BBQ': 8.0 } on the jerky product row.\n\n" +
+  "NOTE for Jerky: since all jerky flavors share one product row, show one card per flavor. Store flavor stock as a JSON field jerky_flavor_stock: { 'General Tso': 12.5, 'Tangy Sweet': 8.0 } on the jerky product row.\n\n" +
   "At the top of the page, show a summary: total products low on stock (count) and total out of stock (count).";

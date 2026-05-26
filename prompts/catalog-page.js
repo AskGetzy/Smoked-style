@@ -9,7 +9,7 @@ module.exports =
   "- Product grid: 3 columns on desktop, 2 on tablet, 1 on mobile. Each card shows placeholder image, product name, short description, price, and an Add to Cart button.\n" +
   "- Out of stock products: grey out the card, show 'Out of Stock' badge, hide Add to Cart button.\n\n" +
   "PRODUCT INTERACTIONS (show a modal or slide-in panel):\n" +
-  "- Jerky: let user pick flavor (dropdown from flavors array) and weight (dropdown of weight_options array, showing price next to each: 0.5 lb - $50, 1 lb - $100, etc). Price updates live as they select.\n" +
+  "- Jerky: let user pick flavor (dropdown from flavors array) and enter a custom weight from 0.25 lb to 4 lb in 0.25 lb increments. Price updates live as they type.\n" +
   "- Steaks: let user pick quantity (number input, min 1). For Skirt Steak, label it as 'packs of 4' and show price per pack.\n" +
   "- Boards: if a product has multiple size variants (same subcategory, different size_label), let user pick the size. Show each size and price.\n" +
   "- Smoked and Non-Smoked: let user pick quantity (number input, min 1).\n\n" +
