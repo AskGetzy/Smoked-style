@@ -4,8 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BossLine, Customer, DeliveryArea, Product } from '@/types'
 import BossCardPayment, { type BossCardPaymentHandle } from '@/components/BossCardPayment'
 import CustomerImportPanel from '@/components/CustomerImportPanel'
+import BossDeliverySection from '@/components/BossDeliverySection'
 import BossPlaceOrderModal, { type BossPlaceOrderPayload } from '@/components/BossPlaceOrderModal'
 import BossProductSheet from '@/components/BossProductSheet'
+import {
+  defaultSavedAddresses,
+  isSavedSlotComplete,
+  pickSlot,
+  savedAddressesFromCustomer,
+  type CustomerSavedAddresses,
+} from '@/lib/customer-saved-addresses'
 import { customerMatchesSearch } from '@/lib/customer-search'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import { todayLocal } from '@/lib/dates'
@@ -38,9 +46,16 @@ export default function BossNewOrderPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showAddedToast, setShowAddedToast] = useState(false)
   const [orderType, setOrderType] = useState<'delivery' | 'pickup'>('delivery')
-  const [deliveryAreaId, setDeliveryAreaId] = useState('')
   const [deliveryFee, setDeliveryFee] = useState('0')
-  const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [savedAddresses, setSavedAddresses] = useState<CustomerSavedAddresses>(defaultSavedAddresses)
+  const [selectedAddressSlot, setSelectedAddressSlot] = useState<1 | 2>(1)
+  const [deliverToDifferentAddress, setDeliverToDifferentAddress] = useState(false)
+  const [recipientName, setRecipientName] = useState('')
+  const [recipientPhone, setRecipientPhone] = useState('')
+  const [alternateDeliveryAreaId, setAlternateDeliveryAreaId] = useState('')
+  const [alternateDeliveryAddress, setAlternateDeliveryAddress] = useState('')
+  const [savingAddresses, setSavingAddresses] = useState(false)
+  const [addressMessage, setAddressMessage] = useState('')
   const [deliveryDate, setDeliveryDate] = useState(todayLocal())
   const [notes, setNotes] = useState('')
   const [chargeCard, setChargeCard] = useState(false)
@@ -87,33 +102,135 @@ export default function BossNewOrderPage() {
   const deliveryFeeAmount = Number(deliveryFee || 0)
   const total = subtotal + deliveryFeeAmount
 
+  const resolvedDelivery = useMemo(() => {
+    if (orderType !== 'delivery') {
+      return {
+        deliveryAreaId: '',
+        deliveryAddress: '',
+        recipientName: '',
+        recipientPhone: '',
+        deliverToDifferentAddress: false,
+      }
+    }
+    if (deliverToDifferentAddress) {
+      return {
+        deliveryAreaId: alternateDeliveryAreaId,
+        deliveryAddress: alternateDeliveryAddress.trim(),
+        recipientName: recipientName.trim(),
+        recipientPhone: recipientPhone.trim(),
+        deliverToDifferentAddress: true,
+      }
+    }
+    const slot = pickSlot(savedAddresses, selectedAddressSlot)
+    return {
+      deliveryAreaId: slot.deliveryAreaId,
+      deliveryAddress: slot.address.trim(),
+      recipientName: '',
+      recipientPhone: '',
+      deliverToDifferentAddress: false,
+    }
+  }, [
+    orderType,
+    deliverToDifferentAddress,
+    alternateDeliveryAreaId,
+    alternateDeliveryAddress,
+    recipientName,
+    recipientPhone,
+    savedAddresses,
+    selectedAddressSlot,
+  ])
+
+  const deliveryReady = useMemo(() => {
+    if (orderType !== 'delivery') return true
+    if (deliverToDifferentAddress) {
+      return Boolean(
+        resolvedDelivery.deliveryAreaId &&
+          resolvedDelivery.deliveryAddress &&
+          resolvedDelivery.recipientName &&
+          resolvedDelivery.recipientPhone,
+      )
+    }
+    return isSavedSlotComplete(pickSlot(savedAddresses, selectedAddressSlot))
+  }, [orderType, deliverToDifferentAddress, resolvedDelivery, savedAddresses, selectedAddressSlot])
+
   const canPlaceOrder = useMemo(() => {
     if (!name.trim() || !phone.trim()) return false
     if (lines.length === 0) return false
     if (!deliveryDate) return false
-    if (orderType === 'delivery' && !deliveryAddress.trim()) return false
+    if (!deliveryReady) return false
     return true
-  }, [name, phone, lines.length, deliveryDate, orderType, deliveryAddress])
+  }, [name, phone, lines.length, deliveryDate, deliveryReady])
 
   const placeOrderPayload = useMemo((): BossPlaceOrderPayload => ({
     customerId,
     customer: { full_name: name.trim(), phone: phone.trim(), email: email.trim() },
     items: lines,
     orderType,
-    deliveryAreaId,
-    deliveryAddress,
+    deliveryAreaId: resolvedDelivery.deliveryAreaId,
+    deliveryAddress: resolvedDelivery.deliveryAddress,
     deliveryFee: deliveryFeeAmount,
     deliveryDate,
     notes,
-  }), [customerId, name, phone, email, lines, orderType, deliveryAreaId, deliveryAddress, deliveryFeeAmount, deliveryDate, notes])
+    recipientName: resolvedDelivery.recipientName,
+    recipientPhone: resolvedDelivery.recipientPhone,
+    deliverToDifferentAddress: resolvedDelivery.deliverToDifferentAddress,
+    savedAddresses,
+  }), [
+    customerId,
+    name,
+    phone,
+    email,
+    lines,
+    orderType,
+    resolvedDelivery,
+    deliveryFeeAmount,
+    deliveryDate,
+    notes,
+    savedAddresses,
+  ])
 
   const placeOrderHint = useMemo(() => {
     if (!name.trim() || !phone.trim()) return 'Select or add a customer'
     if (lines.length === 0) return 'Add at least one product'
     if (!deliveryDate) return 'Choose a delivery or pickup date'
-    if (orderType === 'delivery' && !deliveryAddress.trim()) return 'Enter delivery address'
+    if (orderType === 'delivery' && deliverToDifferentAddress) {
+      if (!recipientName.trim() || !recipientPhone.trim()) return 'Enter recipient name and phone'
+      if (!alternateDeliveryAreaId || !alternateDeliveryAddress.trim()) {
+        return 'Enter alternate delivery area and address'
+      }
+    }
+    if (orderType === 'delivery' && !deliverToDifferentAddress) {
+      if (!isSavedSlotComplete(pickSlot(savedAddresses, selectedAddressSlot))) {
+        return 'Choose a saved address with area and street'
+      }
+    }
     return ''
-  }, [name, phone, lines.length, deliveryDate, orderType, deliveryAddress])
+  }, [
+    name,
+    phone,
+    lines.length,
+    deliveryDate,
+    orderType,
+    deliverToDifferentAddress,
+    recipientName,
+    recipientPhone,
+    alternateDeliveryAreaId,
+    alternateDeliveryAddress,
+    savedAddresses,
+    selectedAddressSlot,
+  ])
+
+  function resetDeliveryState() {
+    setSavedAddresses(defaultSavedAddresses())
+    setSelectedAddressSlot(1)
+    setDeliverToDifferentAddress(false)
+    setRecipientName('')
+    setRecipientPhone('')
+    setAlternateDeliveryAreaId('')
+    setAlternateDeliveryAddress('')
+    setDeliveryFee('0')
+    setAddressMessage('')
+  }
 
   function clearCustomer() {
     setCustomerMode('search')
@@ -122,6 +239,12 @@ export default function BossNewOrderPage() {
     setName('')
     setPhone('')
     setEmail('')
+    resetDeliveryState()
+  }
+
+  function applyDeliveryFeeForArea(areaId: string) {
+    const area = areas.find(item => item.id === areaId)
+    if (area) setDeliveryFee(String(area.delivery_fee))
   }
 
   function chooseCustomer(customer: Customer) {
@@ -131,6 +254,54 @@ export default function BossNewOrderPage() {
     setEmail(customer.email ?? '')
     setCustomerSearch('')
     setCustomerMode('selected')
+
+    const addresses = savedAddressesFromCustomer(customer)
+    setSavedAddresses(addresses)
+    setSelectedAddressSlot(1)
+    setDeliverToDifferentAddress(false)
+    setRecipientName('')
+    setRecipientPhone('')
+    setAlternateDeliveryAreaId('')
+    setAlternateDeliveryAddress('')
+    setAddressMessage('')
+
+    if (isSavedSlotComplete(addresses.address1)) {
+      applyDeliveryFeeForArea(addresses.address1.deliveryAreaId)
+    } else {
+      setDeliveryFee('0')
+    }
+  }
+
+  async function saveCustomerAddresses() {
+    if (!customerId) {
+      setAddressMessage('Select an existing customer to save addresses')
+      return
+    }
+    setSavingAddresses(true)
+    setAddressMessage('')
+    try {
+      const res = await fetchWithAuth('/api/boss/customers/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customerId, savedAddresses }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setAddressMessage(data.error ?? 'Could not save addresses')
+        return
+      }
+      const savedCustomer = data.customer as Customer
+      setSavedAddresses(savedAddressesFromCustomer(savedCustomer))
+      setCustomers(prev => {
+        const rest = prev.filter(customer => customer.id !== savedCustomer.id)
+        return [savedCustomer, ...rest]
+      })
+      setAddressMessage('Addresses saved')
+    } catch {
+      setAddressMessage('Could not save addresses')
+    } finally {
+      setSavingAddresses(false)
+    }
   }
 
   function startNewCustomer() {
@@ -169,7 +340,7 @@ export default function BossNewOrderPage() {
     setLines([])
     setNotes('')
     clearCustomer()
-    setDeliveryAddress('')
+    resetDeliveryState()
     if (savedCustomer) {
       setCustomers(prev => {
         const rest = prev.filter(c => c.id !== savedCustomer.id)
@@ -392,19 +563,28 @@ export default function BossNewOrderPage() {
             <button type="button" onClick={() => setOrderType('pickup')} className={`min-h-12 rounded-2xl font-bold ${orderType === 'pickup' ? 'text-white' : 'bg-gray-100'}`} style={orderType === 'pickup' ? { background: 'var(--navy)' } : {}}>Pickup</button>
           </div>
           {orderType === 'delivery' && (
-            <div className="mt-3 grid gap-3">
-              <select value={deliveryAreaId} onChange={e => {
-                setDeliveryAreaId(e.target.value)
-                const area = areas.find(a => a.id === e.target.value)
-                if (area) setDeliveryFee(String(area.delivery_fee))
-              }} className="h-12 rounded-2xl border px-4 text-base">
-                <option value="">Delivery area</option>
-                {areas.map(area => <option key={area.id} value={area.id}>{area.name} (${area.delivery_fee})</option>)}
-                <option value="">Personal Delivery</option>
-                <option value="">Uber</option>
-              </select>
-              <input value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} placeholder="Delivery address" className="h-12 rounded-2xl border px-4 text-base" />
-            </div>
+            <BossDeliverySection
+              areas={areas}
+              customerId={customerId}
+              savedAddresses={savedAddresses}
+              onSavedAddressesChange={setSavedAddresses}
+              selectedAddressSlot={selectedAddressSlot}
+              onSelectedAddressSlotChange={setSelectedAddressSlot}
+              deliverToDifferentAddress={deliverToDifferentAddress}
+              onDeliverToDifferentAddressChange={setDeliverToDifferentAddress}
+              recipientName={recipientName}
+              onRecipientNameChange={setRecipientName}
+              recipientPhone={recipientPhone}
+              onRecipientPhoneChange={setRecipientPhone}
+              alternateDeliveryAreaId={alternateDeliveryAreaId}
+              onAlternateDeliveryAreaIdChange={setAlternateDeliveryAreaId}
+              alternateDeliveryAddress={alternateDeliveryAddress}
+              onAlternateDeliveryAddressChange={setAlternateDeliveryAddress}
+              onAreaFeeChange={fee => setDeliveryFee(String(fee))}
+              onSaveAddresses={() => void saveCustomerAddresses()}
+              savingAddresses={savingAddresses}
+              addressMessage={addressMessage}
+            />
           )}
           <input type="number" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)} placeholder="Delivery fee" className="mt-3 h-12 w-full rounded-2xl border px-4 text-base" />
           <input type="date" value={deliveryDate} onChange={e => setDeliveryDate(e.target.value)} className="mt-3 h-12 w-full rounded-2xl border px-4 text-base" />

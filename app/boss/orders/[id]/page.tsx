@@ -96,6 +96,9 @@ export default function BossOrderDetailPage() {
         {order.recipient_name && (
           <div className="mt-1 text-sm text-gray-600">
             Recipient: <span className="font-bold">{order.recipient_name}</span>
+            {order.recipient_phone && (
+              <span className="text-gray-500"> · {order.recipient_phone}</span>
+            )}
           </div>
         )}
 

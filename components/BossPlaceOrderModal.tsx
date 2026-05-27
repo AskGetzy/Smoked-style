@@ -13,6 +13,10 @@ export type BossPlaceOrderPayload = {
   deliveryFee: number
   deliveryDate: string
   notes: string
+  recipientName?: string
+  recipientPhone?: string
+  deliverToDifferentAddress?: boolean
+  savedAddresses?: unknown
 }
 
 type Props = {

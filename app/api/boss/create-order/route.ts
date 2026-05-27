@@ -4,6 +4,10 @@ import { amountsMatch } from '@/lib/checkout-pricing'
 import { normalizeDeliveryDate } from '@/lib/dates'
 import { sendOrderConfirmation } from '@/lib/email'
 import { sendNewOrderPushNotification } from '@/lib/send-new-order-push'
+import {
+  customerPatchFromSavedAddresses,
+  type CustomerSavedAddresses,
+} from '@/lib/customer-saved-addresses'
 import { findOrCreateCustomer } from '@/lib/customers-server'
 import { stripe } from '@/lib/stripe'
 
@@ -40,6 +44,24 @@ export async function POST(req: NextRequest) {
     }
     if (!normalizedDeliveryDate) {
       return NextResponse.json({ error: 'Delivery or pickup date is required' }, { status: 400 })
+    }
+
+    const deliverToDifferentAddress = Boolean(body.deliverToDifferentAddress)
+    const deliveryAddress = String(body.deliveryAddress || '').trim()
+    const deliveryAreaId = String(body.deliveryAreaId || '').trim() || null
+    const recipientName = String(body.recipientName || '').trim()
+    const recipientPhone = String(body.recipientPhone || '').trim()
+
+    if (orderType === 'delivery') {
+      if (!deliveryAddress || !deliveryAreaId) {
+        return NextResponse.json({ error: 'Delivery area and address are required' }, { status: 400 })
+      }
+      if (deliverToDifferentAddress && (!recipientName || !recipientPhone)) {
+        return NextResponse.json(
+          { error: 'Recipient name and phone are required for a different delivery address' },
+          { status: 400 },
+        )
+      }
     }
 
     const buyerName = customer.full_name.trim()
@@ -102,8 +124,12 @@ export async function POST(req: NextRequest) {
         buyer_phone: buyerPhone,
         status: 'pending',
         order_type: orderType,
-        delivery_area_id: body.deliveryAreaId || null,
-        delivery_address: orderType === 'delivery' ? String(body.deliveryAddress || '').trim() || null : null,
+        delivery_area_id: orderType === 'delivery' ? deliveryAreaId : null,
+        delivery_address: orderType === 'delivery' ? deliveryAddress : null,
+        recipient_name:
+          orderType === 'delivery' && deliverToDifferentAddress ? recipientName : null,
+        recipient_phone:
+          orderType === 'delivery' && deliverToDifferentAddress ? recipientPhone : null,
         delivery_date: normalizedDeliveryDate,
         subtotal,
         delivery_fee: deliveryFee,
@@ -165,11 +191,26 @@ export async function POST(req: NextRequest) {
 
     await sendNewOrderPushNotification(buyerName, total, orderNumber)
 
+    const savedAddresses = body.savedAddresses as CustomerSavedAddresses | undefined
+    let updatedCustomer = customerRow
+    if (savedAddresses) {
+      const patch = customerPatchFromSavedAddresses(savedAddresses)
+      const { data: savedCustomer } = await supabase
+        .from('customers')
+        .update(patch)
+        .eq('id', customerId)
+        .select(
+          'id, full_name, email, phone, saved_address_1, saved_delivery_area_id_1, saved_address_1_label, saved_address_2, saved_delivery_area_id_2, saved_address_2_label',
+        )
+        .single()
+      if (savedCustomer) updatedCustomer = savedCustomer
+    }
+
     return NextResponse.json({
       orderId: order.id,
       orderNumber,
-      customerId: customerRow.id,
-      customer: customerRow,
+      customerId: updatedCustomer.id,
+      customer: updatedCustomer,
     })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Could not create boss order'

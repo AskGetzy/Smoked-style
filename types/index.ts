@@ -57,6 +57,12 @@ export interface Customer {
   stripe_customer_id: string | null
   tags: string[]
   admin_notes: string | null
+  saved_address_1?: string | null
+  saved_delivery_area_id_1?: string | null
+  saved_address_1_label?: string | null
+  saved_address_2?: string | null
+  saved_delivery_area_id_2?: string | null
+  saved_address_2_label?: string | null
   created_at: string
 }
 
