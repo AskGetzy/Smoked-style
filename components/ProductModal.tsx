@@ -140,6 +140,13 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
     onAdd(item)
   }
 
+  const selectedVariantClass =
+    'border-[1.5px] text-white'
+  const selectedVariantStyle = { borderColor: 'var(--rustic-navy)', background: 'var(--rustic-navy)' }
+  const defaultVariantClass =
+    'border-[1.5px] text-gray-700 hover:border-[var(--rustic-ember)]'
+  const defaultVariantStyle = { borderColor: 'var(--rustic-rule)' }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center sm:p-4"
@@ -149,45 +156,58 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
         className="catalog-modal-slide-up flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="relative shrink-0">
-          <ProductImage product={product} className="h-56 sm:h-64" rounded="top-lg" />
+        <div className="relative shrink-0 px-4 pt-4">
+          <ProductImage product={product} className="h-56 sm:h-64" rounded="top-lg" outOfStock={outOfStock} />
           <button
             onClick={onClose}
-            className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-xl font-bold text-gray-600 shadow-md hover:bg-white"
+            className="absolute right-7 top-7 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-xl font-bold text-gray-600 shadow-md hover:bg-white"
             aria-label="Close product details"
             type="button"
           >
             ×
           </button>
           {outOfStock && (
-            <div className="absolute bottom-3 left-3 rounded-full bg-gray-800 px-3 py-1.5 text-sm font-bold text-white">
+            <div
+              className="absolute bottom-3 left-7 rounded-full px-3 py-1.5 text-sm font-bold text-white"
+              style={{ background: 'rgba(120,105,90,0.92)' }}
+            >
               Out of Stock
             </div>
           )}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          <span
-            className="mb-2 inline-block rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide text-white"
-            style={{ background: 'var(--navy)' }}
-          >
+          <span className="rustic-section-label mb-2 inline-block">
             {categoryLabel(product.category)}
           </span>
 
-          <h2 className="text-2xl font-black leading-tight text-gray-900">{product.name}</h2>
+          <h2
+            className="text-[26px] font-bold leading-tight"
+            style={{ fontFamily: "'Playfair Display', serif", color: 'var(--rustic-smoke)' }}
+          >
+            {product.name}
+          </h2>
 
           {inquiryOnly ? (
             <p className="mt-2 text-sm font-bold uppercase tracking-[0.2em] text-amber-700">
               Available by phone inquiry
             </p>
           ) : (
-            <p className="mt-2 text-2xl font-bold" style={{ color: 'var(--orange)' }}>
+            <p
+              className="mt-2 text-[22px] font-semibold"
+              style={{ fontFamily: "'DM Sans', sans-serif", color: 'var(--rustic-navy)' }}
+            >
               {formatPrice(product)}
             </p>
           )}
 
           {product.description && (
-            <p className="mt-4 text-base leading-relaxed text-gray-600">{product.description}</p>
+            <p
+              className="mt-4 text-[15px] leading-relaxed"
+              style={{ fontFamily: "'DM Sans', sans-serif", color: 'var(--rustic-muted)' }}
+            >
+              {product.description}
+            </p>
           )}
 
           {inquiryOnly && (
@@ -208,11 +228,12 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
             <>
               {getJerkyFlavors(product).length > 0 && (
                 <div className="mt-5">
-                  <label className="mb-2 block text-sm font-bold text-gray-700">Flavor</label>
+                  <label className="rustic-section-label mb-2 block">Flavor</label>
                   <select
                     value={flavor ?? ''}
                     onChange={e => setFlavor(e.target.value)}
-                    className="min-h-12 w-full rounded-xl border border-gray-200 px-3 text-base focus:border-orange-400 focus:outline-none"
+                    className="min-h-12 w-full rounded-xl border px-3 text-base focus:outline-none"
+                    style={{ borderColor: 'var(--rustic-rule)' }}
                   >
                     {getJerkyFlavors(product).map(f => {
                       const available = isJerkyFlavorAvailable(product, f)
@@ -230,7 +251,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
               )}
               {isWeightBased && isJerky && (
                 <div className="mt-4">
-                  <label className="mb-2 block text-sm font-bold text-gray-700">Weight</label>
+                  <label className="rustic-section-label mb-2 block">Weight</label>
                   <input
                     type="number"
                     min={JERKY_MIN_WEIGHT}
@@ -238,7 +259,8 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
                     step={JERKY_MIN_WEIGHT}
                     value={weight ?? ''}
                     onChange={e => setWeight(e.target.value === '' ? null : Number(e.target.value))}
-                    className="min-h-12 w-full rounded-xl border border-gray-200 px-3 text-base focus:border-orange-400 focus:outline-none"
+                    className="min-h-12 w-full rounded-xl border px-3 text-base focus:outline-none"
+                    style={{ borderColor: 'var(--rustic-rule)' }}
                   />
                   <p className="mt-2 text-sm text-gray-500">Enter any weight from 0.25 lb to 4 lb.</p>
                   {weight != null && !jerkyWeightValid && (
@@ -255,7 +277,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
               )}
               {isWeightBased && !isJerky && product.weight_options && product.weight_options.length > 0 && (
                 <div className="mt-4">
-                  <label className="mb-2 block text-sm font-bold text-gray-700">Weight</label>
+                  <label className="rustic-section-label mb-2 block">Weight</label>
                   <div className="grid grid-cols-2 gap-2">
                     {product.weight_options.map(w => {
                       const availableWeight = isJerky
@@ -270,11 +292,10 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
                           onClick={() => !weightDisabled && setWeight(w)}
                           type="button"
                           disabled={weightDisabled}
-                          className={`min-h-12 rounded-xl border-2 px-3 text-base font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
-                            weight === w
-                              ? 'border-orange-500 bg-orange-50 text-orange-700'
-                              : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          className={`min-h-12 rounded-xl px-3 text-base font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+                            weight === w ? selectedVariantClass : defaultVariantClass
                           }`}
+                          style={weight === w ? selectedVariantStyle : defaultVariantStyle}
                         >
                           {w} lb — ${(product.price * w).toFixed(2)}
                         </button>
@@ -288,7 +309,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
 
           {!inquiryOnly && hasMultipleSizes && (
             <div className="mt-5">
-              <label className="mb-2 block text-sm font-bold text-gray-700">{variantLabel}</label>
+              <label className="rustic-section-label mb-2 block">{variantLabel}</label>
               <div className="grid gap-2">
                 {variants.map(variant => (
                   <button
@@ -296,11 +317,10 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
                     type="button"
                     onClick={() => setActiveProduct(variant)}
                     disabled={isOutOfStock(variant)}
-                    className={`flex min-h-12 items-center justify-between rounded-xl border-2 px-4 text-base font-semibold transition-all disabled:opacity-40 ${
-                      activeProduct.id === variant.id
-                        ? 'border-orange-500 bg-orange-50 text-orange-700'
-                        : 'border-gray-200 text-gray-700 hover:border-gray-300'
+                    className={`flex min-h-12 items-center justify-between rounded-xl px-4 text-base font-semibold transition-all disabled:opacity-40 ${
+                      activeProduct.id === variant.id ? selectedVariantClass : defaultVariantClass
                     }`}
+                    style={activeProduct.id === variant.id ? selectedVariantStyle : defaultVariantStyle}
                   >
                     <span>{variant.size_label ?? variant.name}</span>
                     <span>
@@ -316,8 +336,11 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
 
           {!inquiryOnly && isBoard && !hasMultipleSizes && product.size_label && (
             <div className="mt-5">
-              <label className="mb-2 block text-sm font-bold text-gray-700">Size</label>
-              <div className="min-h-12 rounded-xl border-2 border-orange-500 bg-orange-50 px-4 py-3 text-base font-semibold text-orange-700">
+              <label className="rustic-section-label mb-2 block">Size</label>
+              <div
+                className="min-h-12 rounded-xl px-4 py-3 text-base font-semibold text-white"
+                style={{ border: '1.5px solid var(--rustic-navy)', background: 'var(--rustic-navy)' }}
+              >
                 {product.size_label}
               </div>
             </div>
@@ -325,7 +348,7 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
 
           {!inquiryOnly && showQuantity && (
             <div className="mt-5">
-              <label className="mb-2 block text-sm font-bold text-gray-700">
+              <label className="rustic-section-label mb-2 block">
                 {product.sold_as === 'per_pack' && product.pack_size
                   ? `Quantity (packs of ${product.pack_size})`
                   : 'Quantity'}
@@ -334,7 +357,8 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
                 <button
                   onClick={() => setQty(q => Math.max(1, q - 1))}
                   disabled={qty <= 1}
-                  className="flex h-12 min-w-12 items-center justify-center rounded-full border-2 border-gray-200 text-xl font-bold text-gray-600 hover:border-gray-400 disabled:opacity-40"
+                  className="flex h-12 min-w-12 items-center justify-center rounded-full text-xl font-bold text-gray-600 disabled:opacity-40"
+                  style={{ border: '1.5px solid var(--rustic-rule)' }}
                   type="button"
                 >
                   −
@@ -343,7 +367,8 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
                 <button
                   onClick={() => setQty(q => Math.min(maxQty, q + 1))}
                   disabled={qty >= maxQty}
-                  className="flex h-12 min-w-12 items-center justify-center rounded-full border-2 border-gray-200 text-xl font-bold text-gray-600 hover:border-gray-400 disabled:opacity-40"
+                  className="flex h-12 min-w-12 items-center justify-center rounded-full text-xl font-bold text-gray-600 disabled:opacity-40"
+                  style={{ border: '1.5px solid var(--rustic-rule)' }}
                   type="button"
                 >
                   +
@@ -353,16 +378,25 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
           )}
 
           {!inquiryOnly && !outOfStock && (
-            <div className="mt-5 flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3">
-              <span className="text-sm font-semibold text-gray-500">Total</span>
-              <span className="text-2xl font-black" style={{ color: 'var(--orange)' }}>
+            <div
+              className="mt-5 flex items-center justify-between rounded-xl px-4 py-3"
+              style={{ background: 'var(--rustic-bg)' }}
+            >
+              <span className="rustic-section-label">Total</span>
+              <span
+                className="text-[22px] font-semibold"
+                style={{ fontFamily: "'DM Sans', sans-serif", color: 'var(--rustic-navy)' }}
+              >
                 ${lineTotal.toFixed(2)}
               </span>
             </div>
           )}
         </div>
 
-        <div className="shrink-0 border-t border-gray-100 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div
+          className="sticky bottom-0 shrink-0 bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+          style={{ borderTop: '1px solid var(--rustic-rule)' }}
+        >
           {inquiryOnly ? (
             <a
               href="tel:7188109472"
@@ -375,21 +409,29 @@ export default function ProductModal({ product: initialProduct, cart, sizeVarian
               Out of Stock
             </div>
           ) : (
-            <button
-              onClick={handleAdd}
-              disabled={
-                isWeightBased
-                  ? (isJerky && (!flavor || !isJerkyFlavorAvailable(product, flavor) || !jerkyWeightValid))
-                    || !weight
-                    || (weight ?? 0) > maxQty
-                  : qty > maxQty
-              }
-              className="min-h-14 w-full rounded-xl text-lg font-black text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-              style={{ background: 'var(--navy)' }}
-              type="button"
-            >
-              Add to Cart — ${lineTotal.toFixed(2)}
-            </button>
+            <div className="flex items-center justify-between gap-4">
+              <span
+                className="text-[22px] font-semibold"
+                style={{ fontFamily: "'DM Sans', sans-serif", color: 'var(--rustic-navy)' }}
+              >
+                ${lineTotal.toFixed(2)}
+              </span>
+              <button
+                onClick={handleAdd}
+                disabled={
+                  isWeightBased
+                    ? (isJerky && (!flavor || !isJerkyFlavorAvailable(product, flavor) || !jerkyWeightValid))
+                      || !weight
+                      || (weight ?? 0) > maxQty
+                    : qty > maxQty
+                }
+                className="min-h-14 flex-1 rounded-xl px-6 text-base font-bold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ background: 'var(--rustic-ember)' }}
+                type="button"
+              >
+                Add to Cart
+              </button>
+            </div>
           )}
         </div>
       </div>

@@ -24,11 +24,18 @@ export default function Header({
   const email = user?.email ?? ''
 
   return (
-    <header className="sticky top-0 z-40 shadow-md" style={{ background: 'var(--navy)' }}>
+    <header className="sticky top-0 z-40 shadow-md" style={{ background: 'var(--rustic-navy)' }}>
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4">
         <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2">
-          <span className="text-xl font-black tracking-wide text-white">
-            SMOKED <span style={{ color: 'var(--orange)' }}>STYLE</span>
+          <span
+            className="text-xl uppercase text-white"
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+            }}
+          >
+            SMOKED <span style={{ color: 'var(--rustic-ember)' }}>STYLE</span>
           </span>
         </Link>
 
@@ -53,7 +60,12 @@ export default function Header({
             <button
               type="button"
               onClick={onSignIn}
-              className="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+              className="shrink-0 px-3 py-2 text-sm font-medium transition-opacity hover:opacity-100"
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: '14px',
+                color: 'rgba(255,255,255,0.85)',
+              }}
             >
               Sign In
             </button>
@@ -61,19 +73,26 @@ export default function Header({
 
           <Link
             href="/cart"
-            className="flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-white transition-colors sm:px-4"
-            style={{ background: 'rgba(255,255,255,0.1)' }}
+            className="flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-95"
+            style={{
+              background: 'var(--rustic-ember)',
+              borderRadius: '24px',
+            }}
           >
             <CartIcon />
-            {cartCount > 0 && (
+            {cartCount > 0 ? (
               <>
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-500 text-xs font-bold text-white">
+                <span
+                  className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-xs font-bold"
+                  style={{ color: 'var(--rustic-navy)' }}
+                >
                   {cartCount}
                 </span>
-                <span className="hidden sm:inline">${cartTotal.toFixed(2)}</span>
+                <span>${cartTotal.toFixed(2)}</span>
               </>
+            ) : (
+              <span>Cart</span>
             )}
-            {cartCount === 0 && <span className="hidden sm:inline">Cart</span>}
           </Link>
         </div>
       </div>

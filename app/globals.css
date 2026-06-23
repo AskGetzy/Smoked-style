@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,11 +9,91 @@
   --orange: #e87722;
   --gold: #d4a84b;
   --cream: #fdf8f0;
+  --rustic-bg: #FAF6F0;
+  --rustic-surface: #FFFFFF;
+  --rustic-smoke: #2C1810;
+  --rustic-ember: #C8521A;
+  --rustic-ember-dim: #E8874A;
+  --rustic-navy: #0F1F3D;
+  --rustic-muted: #8B7355;
+  --rustic-rule: #E8E0D4;
+  --rustic-badge-bg: rgba(44, 24, 16, 0.78);
 }
 
 body {
-  background-color: var(--cream);
+  background: var(--rustic-bg);
+  font-family: 'DM Sans', sans-serif;
   color: #1f2937;
+}
+
+.rustic-section-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rustic-muted);
+}
+
+.rustic-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--rustic-rule) 15%,
+    var(--rustic-rule) 85%,
+    transparent
+  );
+}
+
+@keyframes rustic-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.catalog-search-input {
+  height: 50px;
+  border-radius: 25px;
+  border: 1.5px solid var(--rustic-rule);
+  background: var(--rustic-surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.catalog-search-input:focus {
+  border-color: var(--rustic-ember);
+  box-shadow: 0 2px 12px rgba(200, 82, 26, 0.12);
+}
+
+.catalog-category-pill {
+  border-radius: 22px;
+  background: var(--rustic-surface);
+  border: 1.5px solid var(--rustic-rule);
+  color: #6b5d4f;
+}
+
+.catalog-category-pill:hover {
+  border-color: var(--rustic-ember);
+  color: var(--rustic-ember);
+}
+
+.catalog-category-pill-active {
+  background: var(--rustic-navy);
+  border-color: var(--rustic-navy);
+  color: #ffffff;
+}
+
+.catalog-category-pill-active:hover {
+  color: #ffffff;
+}
+
+.rustic-skeleton-shimmer {
+  background: linear-gradient(90deg, #ede6dc 25%, #f5f0e8 50%, #ede6dc 75%);
+  background-size: 200% 100%;
+  animation: rustic-shimmer 1.5s infinite;
 }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }

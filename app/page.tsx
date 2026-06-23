@@ -280,7 +280,7 @@ export default function CatalogPage() {
   const cartTotal = cart.reduce((s, i) => s + i.line_total, 0)
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--cream)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--rustic-bg)' }}>
       <Header
         cartCount={cartCount}
         cartTotal={cartTotal}
@@ -292,14 +292,17 @@ export default function CatalogPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed top-20 right-4 z-50 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium">
+        <div
+          className="fixed right-4 top-20 z-50 px-4 py-2 text-sm font-medium text-white shadow-lg"
+          style={{ background: 'var(--rustic-smoke)', borderRadius: '12px' }}
+        >
           ✓ {toast}
         </div>
       )}
 
       <div
-        className="sticky top-16 z-30 border-b border-orange-100 px-4 py-3"
-        style={{ background: 'var(--cream)' }}
+        className="sticky top-16 z-30 px-4 py-3"
+        style={{ background: 'var(--rustic-bg)', borderBottom: '1px solid var(--rustic-rule)' }}
       >
         <div className="max-w-6xl mx-auto">
           <div className="relative w-full md:max-w-2xl md:mx-auto">
@@ -308,7 +311,7 @@ export default function CatalogPage() {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="Search for smoked meats, jerky, boards..."
-              className="w-full h-12 rounded-2xl border border-gray-300 bg-white pl-12 pr-12 text-base text-gray-900 placeholder:text-gray-400 shadow-sm focus:outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+              className="catalog-search-input w-full pl-12 pr-12 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none"
               type="search"
             />
             {searchTerm && (
@@ -324,24 +327,24 @@ export default function CatalogPage() {
           </div>
 
           {!isSearching && (
-            <div className="-mx-4 mt-3 overflow-x-auto scrollbar-hide px-4">
-              <div className="flex min-w-max gap-2 pb-1">
-                {CATEGORIES.map(cat => (
-                  <button
-                    key={cat.key}
-                    onClick={() => setActiveCategory(cat.key)}
-                    className={`flex-shrink-0 min-h-12 px-5 py-2 rounded-full text-base sm:text-sm font-semibold transition-all ${
-                      activeCategory === cat.key
-                        ? 'text-white shadow-md'
-                        : 'bg-white text-gray-600 border border-gray-200 hover:border-orange-300'
-                    }`}
-                    style={activeCategory === cat.key ? { background: 'var(--navy)' } : {}}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
+            <>
+              <div className="-mx-4 mt-3 overflow-x-auto scrollbar-hide px-4">
+                <div className="flex min-w-max gap-2 pb-1">
+                  {CATEGORIES.map(cat => (
+                    <button
+                      key={cat.key}
+                      onClick={() => setActiveCategory(cat.key)}
+                      className={`catalog-category-pill flex-shrink-0 min-h-12 px-5 py-2 text-base font-semibold transition-all sm:text-sm ${
+                        activeCategory === cat.key ? 'catalog-category-pill-active' : ''
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+              <div className="rustic-divider mt-3" />
+            </>
           )}
         </div>
       </div>
@@ -366,28 +369,44 @@ export default function CatalogPage() {
       )}
 
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {!isSearching && !loading && displayProducts.length > 0 && activeCategory !== 'boards' && (
+          <p className="rustic-section-label mb-4">All Products</p>
+        )}
+
         {/* Product Grid */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl overflow-hidden animate-pulse">
-                <div className="h-48 bg-gray-200" />
-                <div className="p-4 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4" />
-                  <div className="h-3 bg-gray-200 rounded w-full" />
-                  <div className="h-8 bg-gray-200 rounded mt-4" />
+              <div
+                key={i}
+                className="overflow-hidden"
+                style={{
+                  borderRadius: '18px',
+                  background: 'var(--rustic-surface)',
+                  boxShadow: '0 2px 16px rgba(44,24,16,0.07)',
+                }}
+              >
+                <div className="h-[230px] rustic-skeleton-shimmer" />
+                <div className="space-y-2 p-5">
+                  <div className="h-4 w-3/4 rounded rustic-skeleton-shimmer" />
+                  <div className="h-3 w-full rounded rustic-skeleton-shimmer" />
+                  <div className="mt-4 h-10 rounded-[13px] rustic-skeleton-shimmer" />
                 </div>
               </div>
             ))}
           </div>
         ) : displayProducts.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
-            <div className="text-5xl mb-4">🥩</div>
-            <p className="text-lg font-medium">
-              {isSearching ? `No products found for "${searchTerm.trim()}"` : 'No products yet'}
-            </p>
-            <p className="text-sm mt-1">
-              {isSearching ? 'Try a different search or clear it to browse categories.' : 'Run the database seed step to add products.'}
+          <div className="py-20 text-center">
+            <h2
+              className="mb-2 text-2xl font-bold"
+              style={{ fontFamily: "'Playfair Display', serif", color: 'var(--rustic-smoke)' }}
+            >
+              {isSearching ? 'Nothing matched your search' : 'No products yet'}
+            </h2>
+            <p className="text-sm" style={{ color: 'var(--rustic-muted)' }}>
+              {isSearching
+                ? `No products found for "${searchTerm.trim()}". Try a different search or clear it to browse categories.`
+                : 'Run the database seed step to add products.'}
             </p>
           </div>
         ) : activeCategory === 'boards' && !isSearching ? (
@@ -395,8 +414,8 @@ export default function CatalogPage() {
             {boardGroups.map(group => (
               <section key={group.id}>
                 <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-xl font-black text-gray-900">{group.label}</h2>
-                  <span className="text-sm font-semibold text-gray-400">
+                  <h2 className="rustic-section-label">{group.label}</h2>
+                  <span className="text-sm font-semibold" style={{ color: 'var(--rustic-muted)' }}>
                     {group.products.length} item{group.products.length === 1 ? '' : 's'}
                   </span>
                 </div>

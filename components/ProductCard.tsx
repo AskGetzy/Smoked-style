@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { Product } from '@/types'
 import ProductImage from '@/components/ProductImage'
 import { formatPrice } from '@/lib/product-display'
@@ -13,28 +14,96 @@ type Props = {
   onAdd: () => void
 }
 
+function unitTagLabel(product: Product): string {
+  switch (product.sold_as) {
+    case 'per_lb':
+      return 'Per lb'
+    case 'per_pack':
+      return 'Per pack'
+    case 'per_pan':
+      return 'Per pan'
+    case 'per_board':
+      return 'Per board'
+    default:
+      return 'Per piece'
+  }
+}
+
+function renderPriceDisplay(label: string, muted: boolean) {
+  const match = label.match(/^(\$[\d.]+(?:-\$[\d.]+)?)(\/\w+)?$/)
+  if (!match) {
+    return (
+      <span
+        className="text-[21px] font-semibold"
+        style={{
+          fontFamily: "'DM Sans', sans-serif",
+          color: muted ? '#C4B8A8' : 'var(--rustic-navy)',
+        }}
+      >
+        {label}
+      </span>
+    )
+  }
+
+  return (
+    <span
+      className="text-[21px] font-semibold"
+      style={{
+        fontFamily: "'DM Sans', sans-serif",
+        color: muted ? '#C4B8A8' : 'var(--rustic-navy)',
+      }}
+    >
+      {match[1]}
+      {match[2] && (
+        <span
+          className="text-[12.5px] font-normal"
+          style={{ color: '#A89880' }}
+        >
+          {match[2]}
+        </span>
+      )}
+    </span>
+  )
+}
+
 export default function ProductCard({ product, priceLabel, onOpen, onAdd }: Props) {
   const outOfStock = isOutOfStock(product)
   const inquiryOnly = Boolean(product.customer_inquiry_only)
+  const [addedFlash, setAddedFlash] = useState(false)
 
   return (
     <article
-      className={`flex h-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-shadow sm:hover:-translate-y-0.5 sm:hover:shadow-lg ${
-        outOfStock ? 'opacity-60 grayscale' : ''
-      }`}
+      className="group flex h-full flex-col overflow-hidden transition-all duration-[250ms] ease-in-out hover:-translate-y-[3px]"
+      style={{
+        borderRadius: '18px',
+        background: 'var(--rustic-surface)',
+        boxShadow: '0 2px 16px rgba(44,24,16,0.07)',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.boxShadow = '0 12px 28px rgba(44,24,16,0.12)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.boxShadow = '0 2px 16px rgba(44,24,16,0.07)'
+      }}
     >
       <button
         type="button"
         onClick={onOpen}
         className="flex min-h-0 flex-1 flex-col text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
       >
-        <div className="relative">
-          <ProductImage product={product} className="h-48" rounded="top" />
-          {outOfStock && (
-            <div className="absolute left-3 top-3 rounded-full bg-gray-800 px-2.5 py-1 text-xs font-bold text-white">
-              Out of Stock
-            </div>
-          )}
+        <div className="relative overflow-hidden">
+          <ProductImage product={product} className="h-[230px]" outOfStock={outOfStock} />
+          <div
+            className="absolute left-3 top-3 text-[10.5px] font-medium text-white"
+            style={{
+              background: outOfStock ? 'rgba(120,105,90,0.92)' : 'var(--rustic-badge-bg)',
+              backdropFilter: 'blur(6px)',
+              borderRadius: '11px',
+              padding: '5px 11px',
+            }}
+          >
+            {outOfStock ? 'Out of Stock' : unitTagLabel(product)}
+          </div>
           {product.is_featured_purim && (
             <div className="absolute right-3 top-3 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-bold text-white">
               Purim Special
@@ -42,8 +111,14 @@ export default function ProductCard({ product, priceLabel, onOpen, onAdd }: Prop
           )}
         </div>
 
-        <div className="flex flex-1 flex-col p-4">
-          <h3 className="line-clamp-2 min-h-[2.75rem] text-base font-bold leading-snug text-gray-900">
+        <div className="flex flex-1 flex-col" style={{ padding: '18px 18px 20px' }}>
+          <h3
+            className="line-clamp-2 min-h-[2.75rem] text-[19px] font-bold leading-snug"
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              color: outOfStock ? '#A89880' : 'var(--rustic-smoke)',
+            }}
+          >
             {product.name}
           </h3>
           <div className="mt-auto pt-3">
@@ -52,15 +127,13 @@ export default function ProductCard({ product, priceLabel, onOpen, onAdd }: Prop
                 Call for inquiry
               </span>
             ) : (
-              <span className="text-lg font-bold" style={{ color: 'var(--orange)' }}>
-                {priceLabel ?? formatPrice(product)}
-              </span>
+              renderPriceDisplay(priceLabel ?? formatPrice(product), outOfStock)
             )}
           </div>
         </div>
       </button>
 
-      <div className="border-t border-gray-50 p-4 pt-0">
+      <div style={{ padding: '0 18px 20px' }}>
         {inquiryOnly ? (
           <a
             href="tel:7188109472"
@@ -69,8 +142,11 @@ export default function ProductCard({ product, priceLabel, onOpen, onAdd }: Prop
             Call Inquiry: {ORDER_TRACKING_CONTACT_PHONE}
           </a>
         ) : outOfStock ? (
-          <div className="flex min-h-12 items-center justify-center rounded-xl bg-gray-50 text-sm font-semibold text-gray-400">
-            Unavailable
+          <div
+            className="flex min-h-[42px] w-full cursor-not-allowed items-center justify-center rounded-[13px] text-[13.5px] font-medium"
+            style={{ background: '#E8E0D4', color: '#A89880' }}
+          >
+            Out of Stock
           </div>
         ) : (
           <button
@@ -78,11 +154,19 @@ export default function ProductCard({ product, priceLabel, onOpen, onAdd }: Prop
             onClick={e => {
               e.stopPropagation()
               onAdd()
+              setAddedFlash(true)
+              window.setTimeout(() => setAddedFlash(false), 400)
             }}
-            className="min-h-12 w-full rounded-xl text-sm font-bold text-white transition-colors"
-            style={{ background: 'var(--navy)' }}
-            onMouseOver={e => { e.currentTarget.style.background = '#243258' }}
-            onMouseOut={e => { e.currentTarget.style.background = 'var(--navy)' }}
+            className="min-h-[42px] w-full rounded-[13px] px-5 text-[13.5px] font-semibold text-white transition-colors duration-200"
+            style={{
+              background: addedFlash ? 'var(--rustic-ember)' : 'var(--rustic-navy)',
+            }}
+            onMouseOver={e => {
+              if (!addedFlash) e.currentTarget.style.background = '#1a3260'
+            }}
+            onMouseOut={e => {
+              if (!addedFlash) e.currentTarget.style.background = 'var(--rustic-navy)'
+            }}
           >
             Add to Cart
           </button>
