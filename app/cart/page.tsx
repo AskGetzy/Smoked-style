@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
+import StorefrontSignInModal from '@/components/StorefrontSignInModal'
 import type { CartItem, Product } from '@/types'
 import { useSupabaseUser } from '@/lib/use-supabase-user'
 import { isJerkyFlavorAvailable } from '@/lib/jerky-stock'
@@ -20,6 +21,7 @@ export default function CartPage() {
   const [productsLoaded, setProductsLoaded] = useState(false)
   const [notes, setNotes] = useState('')
   const [giftMessage, setGiftMessage] = useState('')
+  const [showSignInModal, setShowSignInModal] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('smoked-cart')
@@ -68,13 +70,6 @@ export default function CartPage() {
     void loadProducts()
     return () => { cancelled = true }
   }, [supabase, productIds])
-
-  async function signInWithGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
-  }
 
   function saveCart(items: CartItem[]) {
     setCart(items)
@@ -153,7 +148,7 @@ export default function CartPage() {
         cartTotal={subtotal}
         user={user}
         authReady={authReady}
-        onSignIn={signInWithGoogle}
+        onSignIn={() => setShowSignInModal(true)}
         onSignOut={() => void supabase.auth.signOut()}
       />
 
@@ -305,6 +300,14 @@ export default function CartPage() {
           </div>
         )}
       </div>
+
+      <StorefrontSignInModal
+        open={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+        supabase={supabase}
+        title="Sign in to continue"
+        description="Sign in to save your cart and order history."
+      />
     </div>
   )
 }

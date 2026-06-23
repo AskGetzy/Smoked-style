@@ -6,6 +6,7 @@ import { Elements } from "@stripe/react-stripe-js"
 import { loadStripe } from "@stripe/stripe-js"
 import Header from '@/components/Header'
 import CheckoutPaymentForm from '@/components/CheckoutPaymentForm'
+import StorefrontSignInModal from '@/components/StorefrontSignInModal'
 import { useSupabaseUser } from '@/lib/use-supabase-user'
 import { toLocalDateString } from '@/lib/dates'
 import type { CartItem, DeliveryArea } from '@/types'
@@ -40,6 +41,7 @@ export default function CheckoutPage() {
   const [deliveryDate, setDeliveryDate] = useState('')
   const [notes, setNotes] = useState('')
   const [giftMessage, setGiftMessage] = useState('')
+  const [showSignInModal, setShowSignInModal] = useState(false)
 
   useEffect(() => {
     const stored = localStorage.getItem('smoked-cart')
@@ -57,14 +59,6 @@ export default function CheckoutPage() {
       phone: '',
     })
   }, [user])
-
-  async function signInWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    })
-    if (error) setError(error.message)
-  }
 
   async function fetchAreas() {
     const { data } = await supabase
@@ -240,7 +234,7 @@ export default function CheckoutPage() {
         cartTotal={displayTotal}
         user={user}
         authReady={authReady}
-        onSignIn={signInWithGoogle}
+        onSignIn={() => setShowSignInModal(true)}
         onSignOut={() => void supabase.auth.signOut()}
       />
 
@@ -546,6 +540,14 @@ export default function CheckoutPage() {
           )}
         </div>
       </div>
+
+      <StorefrontSignInModal
+        open={showSignInModal}
+        onClose={() => setShowSignInModal(false)}
+        supabase={supabase}
+        title="Sign in to continue"
+        description="Sign in to save your cart and complete checkout."
+      />
     </div>
   )
 }
