@@ -119,11 +119,11 @@ export function matchOrdersByPhone<T extends OrderPhoneFields>(
 }
 
 export const PUBLIC_STATUS_BADGE: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  approved: 'bg-blue-100 text-blue-800',
-  ready_for_pickup: 'bg-orange-100 text-orange-800',
-  out_for_delivery: 'bg-purple-100 text-purple-800',
-  delivered: 'bg-green-100 text-green-800',
+  pending: 'bg-[#f4f0e8] text-[#6b6560]',
+  approved: 'bg-[#e8f0eb] text-[#2d5648]',
+  ready_for_pickup: 'bg-[#e8f0eb] text-[#1e4035]',
+  out_for_delivery: 'bg-[#f5ebd4] text-[#a67c32]',
+  delivered: 'bg-[#e8f0eb] text-[#1e4035]',
   cancelled: 'bg-red-100 text-red-800',
   payment_failed: 'bg-red-100 text-red-800',
 }

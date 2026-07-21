@@ -297,8 +297,12 @@ export default function CatalogPage() {
       {/* Toast */}
       {toast && (
         <div
-          className="fixed right-4 top-20 z-50 px-4 py-2 text-sm font-medium text-white shadow-lg"
-          style={{ background: 'var(--rustic-smoke)', borderRadius: '12px' }}
+          className="fixed right-4 top-20 z-50 px-4 py-2 text-sm font-semibold shadow-lg"
+          style={{
+            background: 'var(--rustic-navy)',
+            color: '#ffffff',
+            borderRadius: '9999px',
+          }}
         >
           ✓ {toast}
         </div>
@@ -385,9 +389,9 @@ export default function CatalogPage() {
                 key={i}
                 className="overflow-hidden"
                 style={{
-                  borderRadius: '18px',
+                  borderRadius: '16px',
                   background: 'var(--rustic-surface)',
-                  boxShadow: '0 2px 16px rgba(44,24,16,0.07)',
+                  border: '1px solid var(--rustic-rule)',
                 }}
               >
                 <div className="h-[230px] rustic-skeleton-shimmer" />

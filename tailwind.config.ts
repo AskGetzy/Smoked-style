@@ -10,15 +10,21 @@ const config: Config = {
     extend: {
       colors: {
         navy: {
-          DEFAULT: '#1a2744',
-          light: '#243258',
-          dark: '#121c33',
+          DEFAULT: '#1e4035',
+          light: '#2d5648',
+          dark: '#163029',
         },
         brand: {
-          orange: '#e87722',
-          gold: '#d4a84b',
-          cream: '#fdf8f0',
+          orange: '#c9a04a',
+          gold: '#c9a04a',
+          cream: '#f4f0e8',
+          green: '#1e4035',
+          brass: '#c9a04a',
         },
+      },
+      fontFamily: {
+        sans: ['Work Sans', 'system-ui', 'sans-serif'],
+        display: ['Playfair Display', 'serif'],
       },
     },
   },

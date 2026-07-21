@@ -35,7 +35,7 @@ export default function ProductImage({
   return (
     <div
       className={`relative w-full overflow-hidden ${roundedClass} ${className}`}
-      style={{ background: '#ECE4D8' }}
+      style={{ background: 'var(--rustic-rule)' }}
     >
       {product.image_url ? (
         <img

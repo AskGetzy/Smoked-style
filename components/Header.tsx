@@ -24,28 +24,36 @@ export default function Header({
   const email = user?.email ?? ''
 
   return (
-    <header className="sticky top-0 z-40 shadow-md" style={{ background: 'var(--rustic-navy)' }}>
+    <header
+      className="sticky top-0 z-40"
+      style={{
+        background: 'rgba(251, 250, 247, 0.92)',
+        backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid var(--rustic-rule)',
+      }}
+    >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4">
         <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2">
           <span
-            className="text-xl uppercase text-white"
+            className="text-[22px] leading-none"
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontWeight: 700,
-              letterSpacing: '0.1em',
+              fontWeight: 600,
+              color: 'var(--rustic-smoke)',
             }}
           >
-            SMOKED <span style={{ color: 'var(--rustic-ember)' }}>STYLE</span>
+            Smoked <span style={{ color: 'var(--rustic-navy)' }}>Style</span>
           </span>
         </Link>
 
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           {!authReady ? (
-            <span className="hidden h-9 w-20 animate-pulse rounded-lg bg-white/10 sm:inline-block" aria-hidden />
+            <span className="hidden h-9 w-20 animate-pulse rounded-lg bg-black/5 sm:inline-block" aria-hidden />
           ) : user ? (
             <div className="flex min-w-0 items-center gap-2">
               <span
-                className="hidden max-w-[140px] truncate text-xs font-medium text-white/80 sm:inline md:max-w-[200px]"
+                className="hidden max-w-[140px] truncate text-xs font-medium sm:inline md:max-w-[200px]"
+                style={{ color: 'var(--rustic-muted)' }}
                 title={email}
               >
                 {email}
@@ -53,18 +61,17 @@ export default function Header({
               <SignOutButton
                 onClick={onSignOut}
                 className="!px-3 !py-2 text-xs sm:text-sm"
-                variant="navy"
+                variant="light"
               />
             </div>
           ) : onSignIn ? (
             <button
               type="button"
               onClick={onSignIn}
-              className="shrink-0 px-3 py-2 text-sm font-medium transition-opacity hover:opacity-100"
+              className="shrink-0 px-3 py-2 text-sm font-medium transition-opacity hover:opacity-80"
               style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: '14px',
-                color: 'rgba(255,255,255,0.85)',
+                fontFamily: "'Work Sans', system-ui, sans-serif",
+                color: 'var(--rustic-ink-soft)',
               }}
             >
               Sign In
@@ -73,18 +80,19 @@ export default function Header({
 
           <Link
             href="/cart"
-            className="flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-95"
+            className="flex shrink-0 items-center gap-2 px-4 py-2 text-sm font-bold transition-opacity hover:opacity-95"
             style={{
               background: 'var(--rustic-ember)',
-              borderRadius: '24px',
+              color: 'var(--rustic-navy)',
+              borderRadius: '9999px',
             }}
           >
             <CartIcon />
             {cartCount > 0 ? (
               <>
                 <span
-                  className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-xs font-bold"
-                  style={{ color: 'var(--rustic-navy)' }}
+                  className="flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold text-white"
+                  style={{ background: 'var(--rustic-navy)' }}
                 >
                   {cartCount}
                 </span>
