@@ -68,28 +68,40 @@ export default function OrderStatusDetailView({ orderNumber }: Props) {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-orange-500" />
-        <p className="text-sm text-gray-500">Loading order status…</p>
+      <div
+        className="rounded-2xl p-8 text-center"
+        style={{ background: 'var(--rustic-surface)', border: '1px solid var(--rustic-rule)' }}
+      >
+        <div
+          className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4"
+          style={{ borderColor: 'var(--rustic-rule)', borderTopColor: 'var(--rustic-navy)' }}
+        />
+        <p className="text-sm" style={{ color: 'var(--rustic-muted)' }}>
+          Loading order status…
+        </p>
       </div>
     )
   }
 
   if (error || !order) {
     return (
-      <div className="rounded-2xl border border-gray-100 bg-white p-6 text-center shadow-sm">
+      <div
+        className="rounded-2xl p-6 text-center"
+        style={{ background: 'var(--rustic-surface)', border: '1px solid var(--rustic-rule)' }}
+      >
         <p className="mb-4 text-sm text-red-700">{error || 'Order not found'}</p>
         <button
           type="button"
           onClick={() => void refreshStatus()}
-          className="mb-3 w-full rounded-xl border border-gray-200 py-3 text-sm font-bold text-gray-800"
+          className="mb-3 w-full rounded-full py-3 text-sm font-bold"
+          style={{ border: '1px solid var(--rustic-rule)', color: 'var(--rustic-smoke)' }}
         >
           Try again
         </button>
         <Link
           href="/order-status"
-          className="block w-full rounded-xl py-3 text-center text-sm font-bold text-white"
-          style={{ background: 'var(--navy)' }}
+          className="block w-full rounded-full py-3 text-center text-sm font-bold"
+          style={{ background: 'var(--rustic-ember)', color: 'var(--rustic-navy)' }}
         >
           Look up another order
         </Link>
@@ -98,69 +110,138 @@ export default function OrderStatusDetailView({ orderNumber }: Props) {
   }
 
   const isPickup = order.order_type === 'pickup'
+  const statusLabel = publicStatusLabel(order.status, order.order_type)
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-      <div className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
-        Order number
+    <div className="space-y-4">
+      {/* Active status hero card — inspired by design handoff */}
+      <div
+        className="rounded-[20px] px-5 py-5 text-white"
+        style={{ background: 'var(--rustic-navy)' }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <span
+            className="text-xs font-semibold uppercase tracking-[0.06em]"
+            style={{ color: 'oklch(85% 0.03 155)' }}
+          >
+            Order {order.order_number}
+          </span>
+          <span
+            className="rounded-full px-2.5 py-1 text-[11px] font-bold"
+            style={{ background: 'var(--rustic-ember)', color: 'var(--rustic-navy)' }}
+          >
+            {statusLabel}
+          </span>
+        </div>
+        <h1
+          className="mt-3 text-[22px] font-semibold leading-snug"
+          style={{ fontFamily: "'Playfair Display', serif" }}
+        >
+          {isPickup
+            ? statusLabel === 'Ready for Pickup'
+              ? 'Ready for pickup'
+              : statusLabel === 'Delivered'
+                ? 'Picked up'
+                : 'We\'re preparing your order'
+            : statusLabel === 'Out for Delivery'
+              ? 'Out for delivery'
+              : statusLabel === 'Delivered'
+                ? 'Delivered'
+                : 'Tracking your delivery'}
+        </h1>
+        <p className="mt-2 text-sm" style={{ color: 'rgba(255,255,255,0.72)' }}>
+          Live status{refreshing ? ' · updating…' : ''} ·{' '}
+          {formatPublicDeliveryDate(order.delivery_date)}
+        </p>
       </div>
-      <h1 className="mb-1 text-center text-2xl font-black" style={{ color: 'var(--navy)' }}>
-        {order.order_number}
-      </h1>
-      <p className="mb-6 text-center text-xs text-gray-400">
-        Live status · {publicStatusLabel(order.status, order.order_type)}
-        {refreshing ? ' · updating…' : ''}
-      </p>
 
-      <div className="mb-8">
+      <div
+        className="rounded-2xl p-5"
+        style={{ background: 'var(--rustic-surface)', border: '1px solid var(--rustic-rule)' }}
+      >
         <OrderStatusBar status={order.status} orderType={order.order_type} />
       </div>
 
-      <div className="mb-6 rounded-xl bg-gray-50 p-4 text-sm">
-        <div className="flex justify-between gap-4 border-b border-gray-200 py-2">
-          <span className="text-gray-500">Delivery date</span>
-          <span className="font-semibold text-gray-900">
+      <div
+        className="rounded-2xl px-4 py-2 text-sm"
+        style={{ background: 'var(--rustic-surface)', border: '1px solid var(--rustic-rule)' }}
+      >
+        <div
+          className="flex justify-between gap-4 border-b py-3"
+          style={{ borderColor: 'var(--rustic-rule)' }}
+        >
+          <span style={{ color: 'var(--rustic-muted)' }}>Delivery date</span>
+          <span className="font-semibold" style={{ color: 'var(--rustic-smoke)' }}>
             {formatPublicDeliveryDate(order.delivery_date)}
           </span>
         </div>
-        <div className="flex justify-between gap-4 py-2">
-          <span className="text-gray-500">{isPickup ? 'Fulfillment' : 'Delivery area'}</span>
-          <span className="text-right font-semibold text-gray-900">
+        <div className="flex justify-between gap-4 py-3">
+          <span style={{ color: 'var(--rustic-muted)' }}>
+            {isPickup ? 'Fulfillment' : 'Delivery area'}
+          </span>
+          <span className="text-right font-semibold" style={{ color: 'var(--rustic-smoke)' }}>
             {isPickup ? 'Pickup' : order.delivery_area_name || 'Delivery'}
           </span>
         </div>
         {!isPickup && order.delivery_address && (
-          <div className="border-t border-gray-200 pt-2">
-            <div className="text-gray-500">Address</div>
-            <div className="mt-1 font-medium text-gray-900">{order.delivery_address}</div>
+          <div className="border-t pt-3 pb-3" style={{ borderColor: 'var(--rustic-rule)' }}>
+            <div style={{ color: 'var(--rustic-muted)' }}>Address</div>
+            <div className="mt-1 font-medium" style={{ color: 'var(--rustic-smoke)' }}>
+              {order.delivery_address}
+            </div>
           </div>
         )}
       </div>
 
-      <div className="mb-6">
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-gray-500">Items</h2>
-        <ul className="space-y-2">
+      <div>
+        <h2
+          className="mb-3 text-[15px] font-bold"
+          style={{ color: 'var(--rustic-smoke)' }}
+        >
+          Order Summary
+        </h2>
+        <div
+          className="rounded-2xl px-4"
+          style={{ background: 'var(--rustic-surface)', border: '1px solid var(--rustic-rule)' }}
+        >
           {order.order_items.length === 0 ? (
-            <li className="text-sm text-gray-500">No items listed.</li>
+            <p className="py-3 text-sm" style={{ color: 'var(--rustic-muted)' }}>
+              No items listed.
+            </p>
           ) : (
             order.order_items.map((item, index) => (
-              <li
+              <div
                 key={index}
-                className="rounded-lg border border-gray-100 px-3 py-2 text-sm text-gray-800"
+                className="flex justify-between gap-3 py-3 text-[13.5px]"
+                style={{
+                  borderTop: index ? '1px solid var(--rustic-rule)' : 'none',
+                  color: 'var(--rustic-smoke)',
+                }}
               >
-                {formatItemLine(item)}
-              </li>
+                <span>{formatItemLine(item)}</span>
+              </div>
             ))
           )}
-        </ul>
+        </div>
       </div>
 
       {order.gift_message && (
-        <div className="mb-6 rounded-xl border border-amber-100 bg-amber-50 p-4">
-          <div className="text-xs font-bold uppercase tracking-wide text-amber-800">
+        <div
+          className="rounded-2xl p-4"
+          style={{
+            border: '1px solid var(--rustic-rule)',
+            background: 'var(--rustic-green-pale)',
+          }}
+        >
+          <div
+            className="text-xs font-bold uppercase tracking-wide"
+            style={{ color: 'var(--rustic-green-soft)' }}
+          >
             Gift message
           </div>
-          <p className="mt-1 text-sm text-amber-900">{order.gift_message}</p>
+          <p className="mt-1 text-sm" style={{ color: 'var(--rustic-smoke)' }}>
+            {order.gift_message}
+          </p>
         </div>
       )}
 
@@ -168,15 +249,20 @@ export default function OrderStatusDetailView({ orderNumber }: Props) {
         type="button"
         onClick={() => void refreshStatus()}
         disabled={refreshing}
-        className="mb-3 w-full rounded-xl border border-gray-200 py-3 text-sm font-bold text-gray-800 disabled:opacity-60"
+        className="w-full rounded-full py-3.5 text-sm font-bold disabled:opacity-60"
+        style={{
+          border: '1px solid var(--rustic-rule)',
+          background: 'var(--rustic-surface)',
+          color: 'var(--rustic-smoke)',
+        }}
       >
         {refreshing ? 'Refreshing…' : 'Refresh status'}
       </button>
 
       <Link
         href="/order-status"
-        className="block w-full rounded-xl py-3 text-center text-sm font-bold text-white"
-        style={{ background: 'var(--navy)' }}
+        className="block w-full rounded-full py-3.5 text-center text-sm font-bold"
+        style={{ background: 'var(--rustic-ember)', color: 'var(--rustic-navy)' }}
       >
         Look up another order
       </Link>

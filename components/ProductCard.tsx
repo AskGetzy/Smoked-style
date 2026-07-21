@@ -34,10 +34,10 @@ function renderPriceDisplay(label: string, muted: boolean) {
   if (!match) {
     return (
       <span
-        className="text-[21px] font-semibold"
+        className="text-[18px] font-bold"
         style={{
-          fontFamily: "'DM Sans', sans-serif",
-          color: muted ? '#C4B8A8' : 'var(--rustic-navy)',
+          fontFamily: "'Work Sans', system-ui, sans-serif",
+          color: muted ? 'var(--rustic-muted)' : 'var(--rustic-green-soft)',
         }}
       >
         {label}
@@ -47,17 +47,17 @@ function renderPriceDisplay(label: string, muted: boolean) {
 
   return (
     <span
-      className="text-[21px] font-semibold"
+      className="text-[18px] font-bold"
       style={{
-        fontFamily: "'DM Sans', sans-serif",
-        color: muted ? '#C4B8A8' : 'var(--rustic-navy)',
+        fontFamily: "'Work Sans', system-ui, sans-serif",
+        color: muted ? 'var(--rustic-muted)' : 'var(--rustic-green-soft)',
       }}
     >
       {match[1]}
       {match[2] && (
         <span
-          className="text-[12.5px] font-normal"
-          style={{ color: '#A89880' }}
+          className="text-[12.5px] font-medium"
+          style={{ color: 'var(--rustic-muted)' }}
         >
           {match[2]}
         </span>
@@ -73,57 +73,58 @@ export default function ProductCard({ product, priceLabel, onOpen, onAdd }: Prop
 
   return (
     <article
-      className="group flex h-full flex-col overflow-hidden transition-all duration-[250ms] ease-in-out hover:-translate-y-[3px]"
+      className="group flex h-full flex-col overflow-hidden transition-transform duration-[250ms] ease-in-out hover:-translate-y-[2px]"
       style={{
-        borderRadius: '18px',
+        borderRadius: '16px',
         background: 'var(--rustic-surface)',
-        boxShadow: '0 2px 16px rgba(44,24,16,0.07)',
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.boxShadow = '0 12px 28px rgba(44,24,16,0.12)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.boxShadow = '0 2px 16px rgba(44,24,16,0.07)'
+        border: '1px solid var(--rustic-rule)',
       }}
     >
       <button
         type="button"
         onClick={onOpen}
-        className="flex min-h-0 flex-1 flex-col text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+        className="flex min-h-0 flex-1 flex-col text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+        style={{ ['--tw-ring-color' as string]: 'var(--rustic-navy)' }}
       >
         <div className="relative overflow-hidden">
           <ProductImage product={product} className="h-[230px]" outOfStock={outOfStock} />
           <div
-            className="absolute left-3 top-3 text-[10.5px] font-medium text-white"
+            className="absolute left-3 top-3 text-[10.5px] font-semibold uppercase tracking-wide text-white"
             style={{
               background: outOfStock ? 'rgba(120,105,90,0.92)' : 'var(--rustic-badge-bg)',
               backdropFilter: 'blur(6px)',
-              borderRadius: '11px',
+              borderRadius: '9999px',
               padding: '5px 11px',
             }}
           >
             {outOfStock ? 'Out of Stock' : unitTagLabel(product)}
           </div>
           {product.is_featured_purim && (
-            <div className="absolute right-3 top-3 rounded-full bg-amber-500 px-2.5 py-1 text-xs font-bold text-white">
+            <div
+              className="absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-bold"
+              style={{ background: 'var(--rustic-ember)', color: 'var(--rustic-navy)' }}
+            >
               Purim Special
             </div>
           )}
         </div>
 
-        <div className="flex flex-1 flex-col" style={{ padding: '18px 18px 20px' }}>
+        <div className="flex flex-1 flex-col" style={{ padding: '16px 16px 12px' }}>
           <h3
-            className="line-clamp-2 min-h-[2.75rem] text-[19px] font-bold leading-snug"
+            className="line-clamp-2 min-h-[2.75rem] text-[18px] font-semibold leading-snug"
             style={{
               fontFamily: "'Playfair Display', serif",
-              color: outOfStock ? '#A89880' : 'var(--rustic-smoke)',
+              color: outOfStock ? 'var(--rustic-muted)' : 'var(--rustic-smoke)',
             }}
           >
             {product.name}
           </h3>
-          <div className="mt-auto pt-3">
+          <div className="mt-auto flex items-end justify-between gap-2 pt-3">
             {inquiryOnly ? (
-              <span className="text-sm font-bold uppercase tracking-wide text-amber-700">
+              <span
+                className="text-xs font-bold uppercase tracking-wide"
+                style={{ color: 'var(--rustic-ember-dim)' }}
+              >
                 Call for inquiry
               </span>
             ) : (
@@ -133,18 +134,23 @@ export default function ProductCard({ product, priceLabel, onOpen, onAdd }: Prop
         </div>
       </button>
 
-      <div style={{ padding: '0 18px 20px' }}>
+      <div style={{ padding: '0 16px 16px' }}>
         {inquiryOnly ? (
           <a
             href="tel:7188109472"
-            className="flex min-h-12 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-4 text-sm font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+            className="flex min-h-11 items-center justify-center rounded-full border px-4 text-sm font-semibold transition-colors"
+            style={{
+              borderColor: 'var(--rustic-rule)',
+              background: 'var(--rustic-green-pale)',
+              color: 'var(--rustic-navy)',
+            }}
           >
             Call Inquiry: {ORDER_TRACKING_CONTACT_PHONE}
           </a>
         ) : outOfStock ? (
           <div
-            className="flex min-h-[42px] w-full cursor-not-allowed items-center justify-center rounded-[13px] text-[13.5px] font-medium"
-            style={{ background: '#E8E0D4', color: '#A89880' }}
+            className="flex min-h-[42px] w-full cursor-not-allowed items-center justify-center rounded-full text-[13.5px] font-medium"
+            style={{ background: 'var(--rustic-rule)', color: 'var(--rustic-muted)' }}
           >
             Out of Stock
           </div>
@@ -157,18 +163,13 @@ export default function ProductCard({ product, priceLabel, onOpen, onAdd }: Prop
               setAddedFlash(true)
               window.setTimeout(() => setAddedFlash(false), 400)
             }}
-            className="min-h-[42px] w-full rounded-[13px] px-5 text-[13.5px] font-semibold text-white transition-colors duration-200"
+            className="min-h-[42px] w-full rounded-full px-5 text-[13.5px] font-bold transition-colors duration-200"
             style={{
-              background: addedFlash ? 'var(--rustic-ember)' : 'var(--rustic-navy)',
-            }}
-            onMouseOver={e => {
-              if (!addedFlash) e.currentTarget.style.background = '#1a3260'
-            }}
-            onMouseOut={e => {
-              if (!addedFlash) e.currentTarget.style.background = 'var(--rustic-navy)'
+              background: addedFlash ? 'var(--rustic-navy)' : 'var(--rustic-ember)',
+              color: addedFlash ? '#ffffff' : 'var(--rustic-navy)',
             }}
           >
-            Add to Cart
+            {addedFlash ? 'Added' : 'Add to Cart'}
           </button>
         )}
       </div>

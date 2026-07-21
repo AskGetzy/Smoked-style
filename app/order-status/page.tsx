@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { OrderStatusPageShell } from '@/components/order-status/OrderStatusShell'
-import { PUBLIC_STATUS_BADGE, publicStatusLabel } from '@/lib/order-tracking'
+import { publicStatusLabel } from '@/lib/order-tracking'
 import { formatPhoneInput } from '@/lib/phone'
 import { formatDeliveryDate } from '@/lib/dates'
 
@@ -59,39 +59,58 @@ export default function OrderStatusLookupPage() {
 
   return (
     <OrderStatusPageShell>
-      <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-        <h1 className="mb-1 text-center text-xl font-black" style={{ color: 'var(--navy)' }}>
+      <div
+        className="rounded-2xl p-6"
+        style={{ background: 'var(--rustic-surface)', border: '1px solid var(--rustic-rule)' }}
+      >
+        <h1
+          className="mb-1 text-center text-[22px] font-semibold"
+          style={{ fontFamily: "'Playfair Display', serif", color: 'var(--rustic-smoke)' }}
+        >
           Track Your Order
         </h1>
-        <p className="mb-6 text-center text-sm text-gray-500">
+        <p className="mb-6 text-center text-sm" style={{ color: 'var(--rustic-muted)' }}>
           Search by phone or order number. No login required.
         </p>
 
-        <form onSubmit={goToOrderNumber} className="mb-6 space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
-          <label className="block text-sm font-semibold text-gray-700">
+        <form
+          onSubmit={goToOrderNumber}
+          className="mb-6 space-y-3 rounded-2xl p-4"
+          style={{ background: 'var(--rustic-bg)', border: '1px solid var(--rustic-rule)' }}
+        >
+          <label className="block text-sm font-semibold" style={{ color: 'var(--rustic-smoke)' }}>
             Order number
             <input
               type="text"
               value={orderNumber}
               onChange={e => setOrderNumber(e.target.value)}
               placeholder="SS-2026-0029 or 0029"
-              className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-base outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+              className="mt-2 w-full rounded-full border bg-white px-4 py-3 text-base outline-none"
+              style={{ borderColor: 'var(--rustic-rule)' }}
             />
           </label>
           <button
             type="submit"
-            className="w-full rounded-xl border-2 border-orange-500 py-3 text-sm font-bold text-orange-600"
+            className="w-full rounded-full py-3 text-sm font-bold"
+            style={{
+              border: '1.5px solid var(--rustic-navy)',
+              color: 'var(--rustic-navy)',
+              background: 'transparent',
+            }}
           >
             Track by order number
           </button>
         </form>
 
-        <div className="mb-4 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">
+        <div
+          className="mb-4 text-center text-xs font-semibold uppercase tracking-wide"
+          style={{ color: 'var(--rustic-muted)' }}
+        >
           or search by phone
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="block text-sm font-semibold text-gray-700">
+          <label className="block text-sm font-semibold" style={{ color: 'var(--rustic-smoke)' }}>
             Enter your phone number to find your order
             <input
               type="tel"
@@ -101,21 +120,24 @@ export default function OrderStatusLookupPage() {
               value={phone}
               onChange={e => setPhone(formatPhoneInput(e.target.value))}
               placeholder="(718) 555-1234"
-              className="mt-2 w-full rounded-xl border border-gray-200 px-4 py-3 text-base outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+              className="mt-2 w-full rounded-full border bg-white px-4 py-3 text-base outline-none"
+              style={{ borderColor: 'var(--rustic-rule)' }}
             />
           </label>
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl py-3 text-sm font-bold text-white disabled:opacity-60"
-            style={{ background: 'var(--navy)' }}
+            className="w-full rounded-full py-3.5 text-sm font-bold disabled:opacity-60"
+            style={{ background: 'var(--rustic-ember)', color: 'var(--rustic-navy)' }}
           >
             {loading ? 'Searching…' : 'Find My Order'}
           </button>
         </form>
 
         {error && (
-          <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-center text-sm text-red-700">{error}</p>
+          <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-center text-sm text-red-700">
+            {error}
+          </p>
         )}
 
         {orders.length > 0 && (
@@ -124,20 +146,33 @@ export default function OrderStatusLookupPage() {
               <li key={order.order_number}>
                 <Link
                   href={`/order-status/${encodeURIComponent(order.order_number)}`}
-                  className="block rounded-xl border border-gray-100 bg-gray-50 p-4 transition hover:border-orange-200 hover:bg-orange-50"
+                  className="block rounded-2xl p-4 transition"
+                  style={{
+                    border: '1px solid var(--rustic-rule)',
+                    background: 'var(--rustic-bg)',
+                  }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-bold text-gray-900">{order.order_number}</div>
-                      <p className="mt-1 text-sm text-gray-600 line-clamp-2">{order.items_summary}</p>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <div className="font-bold" style={{ color: 'var(--rustic-smoke)' }}>
+                        {order.order_number}
+                      </div>
+                      <p
+                        className="mt-1 line-clamp-2 text-sm"
+                        style={{ color: 'var(--rustic-ink-soft)' }}
+                      >
+                        {order.items_summary}
+                      </p>
+                      <p className="mt-1 text-xs" style={{ color: 'var(--rustic-muted)' }}>
                         Delivery: {formatDeliveryDate(order.delivery_date) || 'TBD'}
                       </p>
                     </div>
                     <span
-                      className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase ${
-                        PUBLIC_STATUS_BADGE[order.status] ?? 'bg-gray-100 text-gray-700'
-                      }`}
+                      className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase"
+                      style={{
+                        background: 'var(--rustic-green-pale)',
+                        color: 'var(--rustic-green-soft)',
+                      }}
                     >
                       {publicStatusLabel(order.status)}
                     </span>
