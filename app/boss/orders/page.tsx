@@ -25,6 +25,11 @@ function tabLabel(tab: string): string {
   return tab === 'all' ? 'All' : tab.replace(/_/g, ' ')
 }
 
+function orderLocationLabel(order: Order): string {
+  if (order.order_type === 'pickup') return 'Pickup'
+  return order.delivery_areas?.name ?? 'Other'
+}
+
 function matchesSearch(order: Order, query: string) {
   const q = query.trim().toLowerCase()
   if (!q) return true
@@ -39,6 +44,7 @@ function matchesSearch(order: Order, query: string) {
     (queryDigits.length > 0 && phoneDigits.includes(queryDigits)) ||
     customer?.email?.toLowerCase().includes(q) ||
     order.delivery_address?.toLowerCase().includes(q) ||
+    orderLocationLabel(order).toLowerCase().includes(q) ||
     (order.order_items ?? []).some(item => item.product_name.toLowerCase().includes(q))
   )
 }
@@ -48,6 +54,7 @@ export default function BossOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [status, setStatus] = useState('all')
   const [search, setSearch] = useState('')
+  const [location, setLocation] = useState('')
   const [loading, setLoading] = useState(true)
   useEffect(() => {
     const requested = searchParams.get('status')
@@ -65,12 +72,18 @@ export default function BossOrdersPage() {
     setLoading(false)
   }
 
+  const locations = useMemo(() => {
+    const labels = new Set(orders.map(orderLocationLabel))
+    return Array.from(labels).sort((a, b) => a.localeCompare(b))
+  }, [orders])
+
   const filtered = useMemo(() => {
-    if (search.trim()) {
-      return orders.filter(order => matchesSearch(order, search))
-    }
-    return status === 'all' ? orders : orders.filter(order => order.status === status)
-  }, [orders, status, search])
+    const base = search.trim()
+      ? orders.filter(order => matchesSearch(order, search))
+      : status === 'all' ? orders : orders.filter(order => order.status === status)
+
+    return location ? base.filter(order => orderLocationLabel(order) === location) : base
+  }, [orders, status, search, location])
 
   return (
     <div className="p-4 pb-6">
@@ -79,10 +92,23 @@ export default function BossOrdersPage() {
           type="search"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search order #, name, phone..."
+          placeholder="Search order #, name, phone, location..."
           className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-base shadow-sm focus:border-orange-400 focus:outline-none"
           autoComplete="off"
         />
+        {locations.length > 0 && (
+          <select
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            aria-label="Filter by location"
+            className="h-12 w-full rounded-2xl border border-gray-200 bg-white px-4 text-base shadow-sm focus:border-orange-400 focus:outline-none"
+          >
+            <option value="">All locations</option>
+            {locations.map(label => (
+              <option key={label} value={label}>{label}</option>
+            ))}
+          </select>
+        )}
         <div className="-mx-4 overflow-x-auto px-4">
           <div className="flex min-w-max gap-2">
             {TABS.map(tab => (
@@ -104,7 +130,11 @@ export default function BossOrdersPage() {
         <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-32 animate-pulse rounded-3xl bg-gray-200" />)}</div>
       ) : filtered.length === 0 ? (
         <p className="rounded-3xl bg-white p-6 text-center text-base font-semibold text-gray-500">
-          {search.trim() ? `No orders match "${search.trim()}".` : 'No orders in this tab.'}
+          {search.trim()
+            ? `No orders match "${search.trim()}".`
+            : location
+              ? `No orders in this tab for ${location}.`
+              : 'No orders in this tab.'}
         </p>
       ) : (
         <div className="space-y-3">
