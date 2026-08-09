@@ -372,8 +372,8 @@ export default function CartPage() {
         open={showSignInModal}
         onClose={() => setShowSignInModal(false)}
         supabase={supabase}
-        title="Sign in to continue"
-        description="Sign in to save your cart and order history."
+        title="Sign in"
+        description="Sign in to save your order history for next time — you can also check out as a guest."
       />
     </div>
   )
