@@ -8,6 +8,13 @@ function getBearerToken(req?: NextRequest) {
   return match?.[1] ?? null
 }
 
+// ilike() below treats % and _ as wildcards. Escape them so the authenticated
+// user's own email is matched literally rather than as a pattern — otherwise
+// an email like "b_ss@example.com" would wildcard-match "boss@example.com".
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&')
+}
+
 export async function requireAdmin(req?: NextRequest) {
   const authSupabase = await createSupabaseRouteHandlerClient()
   const bearerToken = getBearerToken(req)
@@ -26,7 +33,7 @@ export async function requireAdmin(req?: NextRequest) {
   const { data: adminUser, error: adminError } = await supabase
     .from('admin_users')
     .select('id, email, role')
-    .ilike('email', normalizedEmail)
+    .ilike('email', escapeLikePattern(normalizedEmail))
     .maybeSingle()
 
   if (adminError) {

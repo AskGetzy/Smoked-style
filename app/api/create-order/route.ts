@@ -11,6 +11,7 @@ import { normalizeDeliveryDate } from '@/lib/dates'
 import { sendOrderConfirmation } from '@/lib/email'
 import { sendNewOrderPushNotification } from '@/lib/send-new-order-push'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
+import { generateOrderNumber } from '@/lib/order-number'
 import type { Product } from '@/types'
 
 type CreateOrderBody = {
@@ -207,8 +208,7 @@ export async function POST(req: NextRequest) {
     const buyerEmail = contact.email.trim().toLowerCase()
     const buyerPhone = contact.phone?.trim() || null
 
-    const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true })
-    const orderNumber = `SS-${new Date().getFullYear()}-${String((count ?? 0) + 1).padStart(4, '0')}`
+    const orderNumber = await generateOrderNumber(supabase)
 
     const { data: order, error: orderError } = await supabase
       .from('orders')
