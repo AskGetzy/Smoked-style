@@ -25,24 +25,16 @@ export async function requireAdmin(req?: NextRequest) {
   }
 
   if (!email) {
-    console.log('[boss-auth] No authorized Supabase user found', { authError })
     return { ok: false as const, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
 
   const normalizedEmail = email.trim()
   const supabase = createServerClient()
-  console.log('[boss-auth] Checking admin user with service role', { email: normalizedEmail })
   const { data: adminUser, error: adminError } = await supabase
     .from('admin_users')
     .select('id, email, role')
     .ilike('email', normalizedEmail)
     .maybeSingle()
-
-  console.log('[boss-auth] admin_users query result', {
-    email: normalizedEmail,
-    adminUser,
-    adminError: adminError?.message ?? null,
-  })
 
   if (adminError) {
     return { ok: false as const, response: NextResponse.json({ error: adminError.message }, { status: 500 }) }

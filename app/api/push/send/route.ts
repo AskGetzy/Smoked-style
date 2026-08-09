@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/admin-auth'
 import { sendPushNotifications } from '@/lib/push-server'
 
 export async function POST(req: NextRequest) {
   try {
+    const admin = await requireAdmin(req)
+    if (!admin.ok) return admin.response
+
     const body = await req.json()
     const title = String(body.title || '').trim()
     const messageBody = String(body.body || '').trim()

@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
-import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/admin-auth'
 import { deductInventoryOnApproval } from '@/lib/deduct-inventory'
 import { sendOrderApproval } from '@/lib/email'
 import { toCents } from '@/lib/checkout-pricing'
 
 export async function POST(req: NextRequest) {
   try {
+    const admin = await requireAdmin(req)
+    if (!admin.ok) return admin.response
+
+    const { supabase } = admin
     const { orderId } = await req.json()
-    const supabase = createServerClient()
 
     const { data: order, error } = await supabase
       .from('orders')

@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@/lib/supabase-server'
+import { requireAdmin } from '@/lib/admin-auth'
 import { sendOrderRejection } from '@/lib/email'
 
 export async function POST(req: NextRequest) {
   try {
+    const admin = await requireAdmin(req)
+    if (!admin.ok) return admin.response
+
     const { orderId, reason } = await req.json()
     if (!orderId) {
       return NextResponse.json({ error: 'Missing order ID' }, { status: 400 })
     }
 
     const rejectionReason = String(reason || 'We were unable to approve this order.').trim()
-    const supabase = createServerClient()
+    const { supabase } = admin
 
     const { data: order, error } = await supabase
       .from('orders')
