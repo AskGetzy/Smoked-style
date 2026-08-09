@@ -4,6 +4,7 @@ import { amountsMatch } from '@/lib/checkout-pricing'
 import { normalizeDeliveryDate } from '@/lib/dates'
 import { sendOrderConfirmation } from '@/lib/email'
 import { sendNewOrderPushNotification } from '@/lib/send-new-order-push'
+import { generateOrderNumber } from '@/lib/order-number'
 import {
   customerPatchFromSavedAddresses,
   type CustomerSavedAddresses,
@@ -111,8 +112,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const { count } = await supabase.from('orders').select('*', { count: 'exact', head: true })
-    const orderNumber = `SS-${new Date().getFullYear()}-${String((count ?? 0) + 1).padStart(4, '0')}`
+    const orderNumber = await generateOrderNumber(supabase)
 
     const { data: order, error: orderError } = await supabase
       .from('orders')

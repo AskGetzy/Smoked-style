@@ -304,6 +304,7 @@ export async function sendOrderUpdate(order: EmailOrder, changes: string[]) {
           ${changes.length > 0 ? changes.map((change) => `<li>${escapeHtml(change)}</li>`).join('') : '<li>Order details were updated.</li>'}
         </ul>
       </div>
+      ${renderOrderTrackingButton(order.order_number)}
     `,
   }))
 }
@@ -316,13 +317,14 @@ export async function sendOrderDateChanged(order: EmailOrder, previousDate: stri
     heading: `Your ${isPickup ? 'pickup' : 'delivery'} date was updated`,
     intro: `We had to reschedule your order. Your new ${isPickup ? 'pickup' : 'delivery'} date is ${escapeHtml(formatDate(order.delivery_date))}.`,
     order,
-    extra: previousDate
-      ? `
+    extra: `
+      ${previousDate ? `
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:16px;margin:18px 0;color:#9a3412;line-height:1.5;">
           <strong>Previous date:</strong> ${escapeHtml(formatDate(previousDate))}
         </div>
-      `
-      : undefined,
+      ` : ''}
+      ${renderOrderTrackingButton(order.order_number)}
+    `,
   }))
 }
 
@@ -340,6 +342,7 @@ export async function sendOrderRejection(order: EmailOrder, reason: string) {
       <p style="margin:0 0 18px;color:#374151;font-size:16px;line-height:1.55;">
         You are welcome to place a new order or call us at ${CONTACT_PHONE} so we can help.
       </p>
+      ${renderOrderTrackingButton(order.order_number)}
     `,
   }))
 }
@@ -358,6 +361,7 @@ export async function sendOrderDelivered(order: EmailOrder) {
         <p style="margin:0 0 10px;"><strong>Email:</strong> ${CONTACT_EMAIL}</p>
         <p style="margin:0;">We are here to make it right.</p>
       </div>
+      ${renderOrderTrackingButton(order.order_number)}
     `,
   }))
 }
@@ -393,6 +397,7 @@ export async function sendPaymentFailedCustomer(order: EmailOrder) {
           <p style="margin:0 0 6px;"><strong>Call or WhatsApp:</strong> ${CONTACT_PHONE}</p>
           <p style="margin:0;"><strong>Email:</strong> ${CONTACT_EMAIL}</p>
         </div>
+        ${renderOrderTrackingButton(order.order_number)}
       `,
     }),
   )
@@ -410,6 +415,7 @@ export async function sendOrderReadyForPickup(order: EmailOrder) {
         <p style="margin:0 0 8px;">If you have any questions call or WhatsApp: ${CONTACT_PHONE}</p>
         <p style="margin:0;"><strong>Email:</strong> ${CONTACT_EMAIL}</p>
       </div>
+      ${renderOrderTrackingButton(order.order_number)}
     `,
   }))
 }
