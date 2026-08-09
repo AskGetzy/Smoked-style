@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
+import ProductImage from '@/components/ProductImage'
 import StorefrontSignInModal from '@/components/StorefrontSignInModal'
 import type { CartItem, Product } from '@/types'
 import { useSupabaseUser } from '@/lib/use-supabase-user'
@@ -142,7 +143,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--cream)' }}>
+    <div className="min-h-screen" style={{ background: 'var(--rustic-bg)' }}>
       <Header
         cartCount={cartCount}
         cartTotal={subtotal}
@@ -153,13 +154,22 @@ export default function CartPage() {
       />
 
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--navy)' }}>Your Cart</h1>
+        <h1
+          className="mb-6 text-2xl font-bold"
+          style={{ fontFamily: "'Playfair Display', serif", color: 'var(--rustic-smoke)' }}
+        >
+          Your Cart
+        </h1>
 
         {cart.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">🛒</div>
-            <p className="text-gray-500 text-lg mb-6">Your cart is empty</p>
-            <Link href="/" className="inline-block text-white font-semibold px-6 py-3 rounded-xl" style={{ background: 'var(--navy)' }}>
+          <div className="py-20 text-center">
+            <div className="mb-4 text-6xl">🛒</div>
+            <p className="mb-6 text-lg" style={{ color: 'var(--rustic-muted)' }}>Your cart is empty</p>
+            <Link
+              href="/"
+              className="inline-block rounded-xl px-6 py-3 font-semibold text-white"
+              style={{ background: 'var(--rustic-navy)' }}
+            >
               Browse Products
             </Link>
           </div>
@@ -172,7 +182,14 @@ export default function CartPage() {
                 </div>
               )}
 
-              <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-100">
+              <div
+                className="divide-y divide-[var(--rustic-rule)] overflow-hidden"
+                style={{
+                  borderRadius: '18px',
+                  background: 'var(--rustic-surface)',
+                  boxShadow: '0 2px 16px rgba(44,24,16,0.07)',
+                }}
+              >
                 {cart.map(item => {
                   const product = getCartProduct(item)
                   const unavailable = itemIsOutOfStock(item)
@@ -190,109 +207,159 @@ export default function CartPage() {
                   return (
                     <div
                       key={item.id}
-                      className={`p-4 flex gap-4 ${unavailable ? 'bg-red-50 border-l-4 border-red-400' : ''}`}
+                      className={`flex gap-4 p-4 ${unavailable ? 'border-l-4 border-red-400 bg-red-50' : ''}`}
                     >
-                      <div className={`w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 ${unavailable ? 'opacity-60 grayscale' : ''}`}>
-                        {item.image_url
-                          ? <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover rounded-xl" />
-                          : '🥩'}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-900 text-sm leading-tight">{itemLabel(item)}</p>
-                        {unavailable ? (
-                          <p className="text-red-600 text-xs font-semibold mt-1">This item is no longer available</p>
+                      <div className={`h-16 w-16 flex-shrink-0 ${unavailable ? 'opacity-60 grayscale' : ''}`}>
+                        {product ? (
+                          <ProductImage
+                            product={product}
+                            className="h-16 w-16"
+                            rounded="top-lg"
+                            sizes="64px"
+                          />
                         ) : (
-                          <p className="text-gray-500 text-xs mt-0.5">
+                          <div
+                            className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl"
+                            style={{ background: 'var(--rustic-bg)' }}
+                          >
+                            🥩
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold leading-tight" style={{ color: 'var(--rustic-smoke)' }}>
+                          {itemLabel(item)}
+                        </p>
+                        {unavailable ? (
+                          <p className="mt-1 text-xs font-semibold text-red-600">This item is no longer available</p>
+                        ) : (
+                          <p className="mt-0.5 text-xs" style={{ color: 'var(--rustic-muted)' }}>
                             {product && isWeightBasedProduct(product)
                               ? `${product.price.toFixed(2)}/lb`
                               : `$${item.unit_price.toFixed(2)} each`}
                           </p>
                         )}
                         {canAdjustQty && (
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="mt-2 flex items-center gap-2">
                             <button
                               onClick={() => updateQty(item.id, -1)}
                               disabled={item.quantity <= 1}
-                              className="w-7 h-7 rounded-full border border-gray-300 text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                              className="h-7 w-7 rounded-full border text-sm font-bold disabled:opacity-40"
+                              style={{ borderColor: 'var(--rustic-rule)', color: 'var(--rustic-smoke)' }}
                             >
                               −
                             </button>
-                            <span className="text-sm font-bold w-6 text-center">{item.quantity}</span>
+                            <span className="w-6 text-center text-sm font-bold" style={{ color: 'var(--rustic-smoke)' }}>
+                              {item.quantity}
+                            </span>
                             <button
                               onClick={() => updateQty(item.id, 1)}
                               disabled={item.quantity >= maxQty}
-                              className="w-7 h-7 rounded-full border border-gray-300 text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                              className="h-7 w-7 rounded-full border text-sm font-bold disabled:opacity-40"
+                              style={{ borderColor: 'var(--rustic-rule)', color: 'var(--rustic-smoke)' }}
                             >
                               +
                             </button>
                           </div>
                         )}
                       </div>
-                      <div className="text-right flex flex-col items-end gap-2">
+                      <div className="flex flex-col items-end gap-2 text-right">
                         {!unavailable && (
-                          <span className="font-bold text-gray-900">${item.line_total.toFixed(2)}</span>
+                          <span className="font-bold" style={{ color: 'var(--rustic-navy)' }}>
+                            ${item.line_total.toFixed(2)}
+                          </span>
                         )}
-                        <button onClick={() => removeItem(item.id)} className="text-red-400 hover:text-red-600 text-xs">Remove</button>
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="text-xs text-red-400 hover:text-red-600"
+                        >
+                          Remove
+                        </button>
                       </div>
                     </div>
                   )
                 })}
               </div>
 
-              <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Order Notes (optional)</label>
+              <div
+                className="mt-4 p-4"
+                style={{
+                  borderRadius: '18px',
+                  background: 'var(--rustic-surface)',
+                  boxShadow: '0 2px 16px rgba(44,24,16,0.07)',
+                }}
+              >
+                <label className="rustic-section-label mb-2 block">Order Notes (optional)</label>
                 <textarea
                   value={notes}
                   onChange={e => saveNotes(e.target.value)}
                   placeholder="e.g. Please slice the brisket"
                   rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-orange-400 resize-none"
+                  className="w-full resize-none rounded-xl border px-3 py-2 text-sm focus:outline-none"
+                  style={{ borderColor: 'var(--rustic-rule)', color: 'var(--rustic-smoke)' }}
                 />
-                <label className="block text-sm font-semibold text-gray-700 mb-2 mt-3">Gift Message (optional)</label>
+                <label className="rustic-section-label mb-2 mt-3 block">Gift Message (optional)</label>
                 <input
                   value={giftMessage}
                   onChange={e => saveGift(e.target.value)}
                   placeholder="e.g. Happy Purim!"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-orange-400"
+                  className="w-full rounded-xl border px-3 py-2 text-sm focus:outline-none"
+                  style={{ borderColor: 'var(--rustic-rule)', color: 'var(--rustic-smoke)' }}
                 />
               </div>
             </div>
 
             <div className="lg:w-72">
-              <div className="bg-white rounded-2xl border border-gray-100 p-5 sticky top-24">
-                <h2 className="font-bold text-gray-900 mb-4">Order Summary</h2>
+              <div
+                className="sticky top-24 p-5"
+                style={{
+                  borderRadius: '18px',
+                  background: 'var(--rustic-surface)',
+                  boxShadow: '0 2px 16px rgba(44,24,16,0.07)',
+                }}
+              >
+                <h2 className="rustic-section-label mb-4">Order Summary</h2>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Subtotal</span>
-                    <span className="font-semibold">${subtotal.toFixed(2)}</span>
+                    <span style={{ color: 'var(--rustic-muted)' }}>Subtotal</span>
+                    <span className="font-semibold" style={{ color: 'var(--rustic-smoke)' }}>
+                      ${subtotal.toFixed(2)}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Delivery</span>
-                    <span className="text-gray-500">Calculated at checkout</span>
+                    <span style={{ color: 'var(--rustic-muted)' }}>Delivery</span>
+                    <span style={{ color: 'var(--rustic-muted)' }}>Calculated at checkout</span>
                   </div>
                 </div>
-                <div className="border-t border-gray-100 mt-3 pt-3 flex justify-between font-bold">
+                <div
+                  className="mt-3 flex justify-between border-t pt-3 font-bold"
+                  style={{ borderColor: 'var(--rustic-rule)', color: 'var(--rustic-smoke)' }}
+                >
                   <span>Total</span>
-                  <span style={{ color: 'var(--orange)' }}>${subtotal.toFixed(2)}</span>
+                  <span style={{ color: 'var(--rustic-ember)' }}>${subtotal.toFixed(2)}</span>
                 </div>
                 {hasOOS ? (
                   <button
                     type="button"
                     disabled
-                    className="block w-full text-center text-white font-bold py-3 rounded-xl mt-4 bg-gray-300 cursor-not-allowed"
+                    className="mt-4 block w-full cursor-not-allowed rounded-xl bg-gray-300 py-3 text-center font-bold text-white"
                   >
                     Remove unavailable items
                   </button>
                 ) : (
                   <Link
                     href="/checkout"
-                    className="block w-full text-center text-white font-bold py-3 rounded-xl mt-4 transition-colors"
-                    style={{ background: 'var(--navy)' }}
+                    className="mt-4 block w-full rounded-xl py-3 text-center font-bold text-white transition-opacity hover:opacity-95"
+                    style={{ background: 'var(--rustic-ember)' }}
                   >
                     Proceed to Checkout
                   </Link>
                 )}
-                <Link href="/" className="block text-center text-sm text-gray-400 hover:text-gray-600 mt-3">
+                <Link
+                  href="/"
+                  className="mt-3 block text-center text-sm"
+                  style={{ color: 'var(--rustic-muted)' }}
+                >
                   ← Continue Shopping
                 </Link>
               </div>

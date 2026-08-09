@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 import LanguageToggle from '@/components/LanguageToggle'
 import SignOutButton from '@/components/SignOutButton'
 import OrderNotificationWatcher from '@/components/OrderNotificationWatcher'
@@ -33,7 +33,7 @@ type BeforeInstallPromptEvent = Event & {
 function BossClientLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserSupabaseClient()
   const { t } = useLanguage()
   const [checking, setChecking] = useState(pathname !== '/boss/login')
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)

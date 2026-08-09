@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 import { fetchWithAuth } from '@/lib/auth-fetch'
 import {
   playDeliveredSound,
@@ -108,7 +108,7 @@ export function useOrderNotifications({
     void registerOrderNotificationServiceWorker()
     void syncOrders()
 
-    const supabase = createClientComponentClient()
+    const supabase = createBrowserSupabaseClient()
     let pollTimer: number | undefined
 
     const schedulePoll = () => {

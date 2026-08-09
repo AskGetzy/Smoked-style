@@ -11,7 +11,9 @@ import StorefrontSignInModal from '@/components/StorefrontSignInModal'
 import { JERKY_MIN_WEIGHT, isValidJerkyWeight } from '@/lib/jerky-stock'
 import {
   collapseVariantProducts,
+  compareProductsNameAsc,
   compareProductsPriceAsc,
+  compareProductsPriceDesc,
   formatPrice,
   formatProductCardPrice,
   getProductVariants,
@@ -35,11 +37,26 @@ const CATEGORIES = [
   { key: 'boards', label: 'Boards' },
 ]
 
+type SortOption = 'price_asc' | 'price_desc' | 'name_asc'
+
+const SORT_OPTIONS: { key: SortOption; label: string }[] = [
+  { key: 'price_asc', label: 'Price: Low to High' },
+  { key: 'price_desc', label: 'Price: High to Low' },
+  { key: 'name_asc', label: 'Name: A to Z' },
+]
+
+const SORT_COMPARATORS: Record<SortOption, (a: Product, b: Product) => number> = {
+  price_asc: compareProductsPriceAsc,
+  price_desc: compareProductsPriceDesc,
+  name_asc: compareProductsNameAsc,
+}
+
 export default function CatalogPage() {
   const { user, authReady, supabase } = useSupabaseUser()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState('all')
+  const [sortBy, setSortBy] = useState<SortOption>('price_asc')
   const [cart, setCart] = useState<CartItem[]>([])
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showSignInModal, setShowSignInModal] = useState(false)
@@ -263,7 +280,7 @@ export default function CatalogPage() {
       ? customerProducts
       : customerProducts.filter(p => p.category === activeCategory)
 
-  const displayProducts = collapseVariantProducts(filtered).sort(compareProductsPriceAsc)
+  const displayProducts = collapseVariantProducts(filtered).sort(SORT_COMPARATORS[sortBy])
 
   const boardGroups =
     activeCategory === 'boards' && !isSearching ? groupBoardProducts(displayProducts) : []
@@ -329,6 +346,29 @@ export default function CatalogPage() {
               </button>
             )}
           </div>
+
+          {(isSearching || activeCategory !== 'boards') && !loading && (
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <p className="rustic-section-label">
+                {isSearching
+                  ? `${displayProducts.length} result${displayProducts.length === 1 ? '' : 's'}`
+                  : ''}
+              </p>
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as SortOption)}
+                aria-label="Sort products"
+                className="min-h-10 rounded-xl border px-3 text-sm focus:outline-none"
+                style={{ borderColor: 'var(--rustic-rule)', color: 'var(--rustic-smoke)' }}
+              >
+                {SORT_OPTIONS.map(option => (
+                  <option key={option.key} value={option.key}>
+                    Sort: {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {!isSearching && (
             <>

@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { findOrdersByPhone } from '@/lib/order-status-lookup'
 import { normalizePhoneDigits } from '@/lib/phone'
 import { createServerClient } from '@/lib/supabase-server'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
+  if (!checkRateLimit(req, 'order-status-search', { limit: 10, windowMs: 60_000 })) {
+    return rateLimitResponse()
+  }
+
   let body: { phone?: string }
   try {
     body = await req.json()

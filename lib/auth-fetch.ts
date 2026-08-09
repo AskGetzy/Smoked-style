@@ -1,9 +1,9 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 
 export async function fetchWithAuth(input: RequestInfo | URL, init: RequestInit = {}) {
-  const supabase = createClientComponentClient()
+  const supabase = createBrowserSupabaseClient()
   const { data } = await supabase.auth.getSession()
   const headers = new Headers(init.headers)
 

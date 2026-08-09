@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase-route-handler'
 import { createServerClient } from '@/lib/supabase-server'
 
 function getBearerToken(req?: NextRequest) {
@@ -10,19 +9,13 @@ function getBearerToken(req?: NextRequest) {
 }
 
 export async function requireAdmin(req?: NextRequest) {
-  const authSupabase = createRouteHandlerClient({ cookies })
-  const { data: sessionData, error: sessionError } = await authSupabase.auth.getSession()
-  let email = sessionData.session?.user?.email ?? null
-  let authError = sessionError?.message ?? null
+  const authSupabase = await createSupabaseRouteHandlerClient()
+  const bearerToken = getBearerToken(req)
+  const { data: userData } = bearerToken
+    ? await authSupabase.auth.getUser(bearerToken)
+    : await authSupabase.auth.getUser()
 
-  if (!email) {
-    const bearerToken = getBearerToken(req)
-    if (bearerToken) {
-      const { data: userData, error: userError } = await authSupabase.auth.getUser(bearerToken)
-      email = userData.user?.email ?? null
-      authError = userError?.message ?? authError
-    }
-  }
+  const email = userData.user?.email ?? null
 
   if (!email) {
     return { ok: false as const, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }

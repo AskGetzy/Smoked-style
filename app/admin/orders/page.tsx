@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createBrowserSupabaseClient } from '@/lib/supabase-client'
 import AdminLayout from '@/components/AdminLayout'
 import BulkPrintModal from '@/components/BulkPrintModal'
 import OrderFulfillmentBadge from '@/components/OrderFulfillmentBadge'
@@ -114,7 +114,7 @@ export default function OrdersPage() {
   }, [fetchSummaryOrders])
 
   useEffect(() => {
-    const supabase = createClientComponentClient()
+    const supabase = createBrowserSupabaseClient()
     let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
     const scheduleRefresh = () => {

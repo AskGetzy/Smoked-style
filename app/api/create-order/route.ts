@@ -10,6 +10,7 @@ import {
 import { normalizeDeliveryDate } from '@/lib/dates'
 import { sendOrderConfirmation } from '@/lib/email'
 import { sendNewOrderPushNotification } from '@/lib/send-new-order-push'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import type { Product } from '@/types'
 
 type CreateOrderBody = {
@@ -89,6 +90,10 @@ async function resolveCustomerId(
 }
 
 export async function POST(req: NextRequest) {
+  if (!checkRateLimit(req, 'create-order', { limit: 5, windowMs: 60_000 })) {
+    return rateLimitResponse()
+  }
+
   try {
     const body = (await req.json()) as CreateOrderBody
     const {
@@ -266,7 +271,6 @@ export async function POST(req: NextRequest) {
     })
 
     try {
-      console.log('[email] About to send order confirmation', { orderId: order.id, orderNumber })
       await sendOrderConfirmation({
         order_number: orderNumber,
         order_type: orderType,
@@ -292,7 +296,6 @@ export async function POST(req: NextRequest) {
           line_total: line.line_total,
         })),
       })
-      console.log('[email] Finished sending order confirmation', { orderId: order.id, orderNumber })
     } catch (emailError) {
       console.error('Order confirmation email failed', emailError)
     }

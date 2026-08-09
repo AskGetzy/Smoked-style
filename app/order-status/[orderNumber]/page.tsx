@@ -6,11 +6,11 @@ export const revalidate = 0
 export const fetchCache = 'force-no-store'
 
 type Props = {
-  params: { orderNumber: string }
+  params: Promise<{ orderNumber: string }>
 }
 
-export default function OrderStatusDetailPage({ params }: Props) {
-  const orderNumber = decodeURIComponent(params.orderNumber)
+export default async function OrderStatusDetailPage({ params }: Props) {
+  const orderNumber = decodeURIComponent((await params).orderNumber)
 
   return (
     <OrderStatusPageShell backHref="/order-status">
