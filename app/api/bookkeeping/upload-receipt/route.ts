@@ -11,7 +11,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'File is required' }, { status: 400 })
   }
 
-  const ext = file.name.split('.').pop() || 'jpg'
+  const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic', 'pdf'])
+  const rawExt = file.name.split('.').pop()?.toLowerCase() ?? ''
+  const ext = ALLOWED_EXTENSIONS.has(rawExt) ? rawExt : 'jpg'
   const path = `receipts/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
   const { error } = await owner.supabase.storage
