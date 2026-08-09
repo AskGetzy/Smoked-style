@@ -25,6 +25,8 @@ export default function BossOrderDetailPage() {
   const [dateDraft, setDateDraft] = useState('')
   const [dateSaving, setDateSaving] = useState(false)
   const [dateError, setDateError] = useState('')
+  const [retrying, setRetrying] = useState(false)
+  const [retryError, setRetryError] = useState('')
 
   useEffect(() => { void loadOrder() }, [id])
 
@@ -39,7 +41,7 @@ export default function BossOrderDetailPage() {
   async function approve() {
     setBusy(true)
     setError('')
-    const res = await fetchWithAuth('/api/capture-payment', {
+    const res = await fetchWithAuth('/api/approve-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderId: id }),
@@ -60,6 +62,24 @@ export default function BossOrderDetailPage() {
     if (res.ok) router.push('/boss/orders')
     else setError((await res.json()).error ?? 'Could not reject')
     setBusy(false)
+  }
+
+  async function retryPayment() {
+    setRetrying(true)
+    setRetryError('')
+    const res = await fetchWithAuth('/api/admin/orders/retry-capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: id }),
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (res.ok) {
+      await loadOrder()
+      if (payload.paymentFailed) setRetryError('Card still did not go through.')
+    } else {
+      setRetryError(payload.error ?? 'Could not retry payment')
+    }
+    setRetrying(false)
   }
 
   function startEditingDate() {
@@ -89,6 +109,7 @@ export default function BossOrderDetailPage() {
   if (!order) return <div className="p-4 text-base">Order not found</div>
 
   const isPending = order.status === 'pending'
+  const canEditItems = order.status === 'pending' || order.status === 'approved'
   const canEditStatus = !isPending && order.status !== 'payment_failed'
 
   return (
@@ -138,7 +159,25 @@ export default function BossOrderDetailPage() {
         )}
       </section>
 
-      {isPending ? (
+      {order.payment_failed_at && (
+        <section className="rounded-2xl border-2 border-red-400 bg-red-50 p-3 shadow-sm">
+          <div className="font-black text-red-700">⚠️ Payment did not go through</div>
+          <p className="mt-1 text-sm text-red-600">
+            The card was declined when we tried to charge it. The order is still moving forward — retry the charge or follow up with the customer.
+          </p>
+          <button
+            type="button"
+            disabled={retrying}
+            onClick={() => void retryPayment()}
+            className="mt-2 h-10 w-full rounded-xl bg-red-600 text-sm font-black text-white disabled:opacity-60"
+          >
+            {retrying ? 'Retrying…' : 'Retry charge'}
+          </button>
+          {retryError && <p className="mt-2 text-xs font-bold text-red-700">{retryError}</p>}
+        </section>
+      )}
+
+      {canEditItems ? (
         <PendingOrderItemsEditor order={order} onUpdated={loadOrder} useBossAuth />
       ) : (
         <section className="rounded-2xl bg-white p-3 shadow-sm">

@@ -85,8 +85,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    if (order.status !== 'pending') {
-      return NextResponse.json({ error: 'Only pending orders can be edited' }, { status: 400 })
+    if (order.status !== 'pending' && order.status !== 'approved') {
+      return NextResponse.json(
+        { error: 'Only pending or approved orders can be edited' },
+        { status: 400 },
+      )
     }
 
     const existingItems = order.order_items ?? []

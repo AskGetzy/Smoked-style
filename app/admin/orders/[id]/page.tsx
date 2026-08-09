@@ -40,6 +40,8 @@ export default function OrderDetailPage() {
   const [editDeliveryFee, setEditDeliveryFee] = useState('')
   const [editAdjustment, setEditAdjustment] = useState('')
   const [editAdjustmentNote, setEditAdjustmentNote] = useState('')
+  const [retrying, setRetrying] = useState(false)
+  const [retryError, setRetryError] = useState('')
 
   useEffect(() => { fetchOrder() }, [id])
 
@@ -119,7 +121,7 @@ export default function OrderDetailPage() {
   async function approveOrder() {
     setApproving(true)
     setError('')
-    const res = await fetch('/api/capture-payment', {
+    const res = await fetch('/api/approve-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -133,6 +135,25 @@ export default function OrderDetailPage() {
       setError((payload as { error?: string }).error ?? t.couldNotApproveOrder)
     }
     setApproving(false)
+  }
+
+  async function retryPayment() {
+    setRetrying(true)
+    setRetryError('')
+    const res = await fetch('/api/admin/orders/retry-capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ orderId: id }),
+    })
+    const payload = await res.json().catch(() => ({}))
+    if (res.ok) {
+      await fetchOrder()
+      if ((payload as { paymentFailed?: boolean }).paymentFailed) setRetryError('Card still did not go through.')
+    } else {
+      setRetryError((payload as { error?: string }).error ?? 'Could not retry payment')
+    }
+    setRetrying(false)
   }
 
   async function rejectOrder() {
@@ -213,13 +234,15 @@ export default function OrderDetailPage() {
           {/* Actions */}
           <div className="bg-white rounded-xl border border-gray-100 p-4 flex flex-col gap-2">
             <h3 className="font-semibold text-gray-900 mb-1">{t.actions}</h3>
+            {(order.status === 'pending' || order.status === 'approved') && (
+              <button onClick={startEditing}
+                className="w-full py-2 rounded-xl text-sm font-semibold text-white"
+                style={{ background: 'var(--navy)' }}>
+                {t.editOrder}
+              </button>
+            )}
             {order.status === 'pending' && (
               <>
-                <button onClick={startEditing}
-                  className="w-full py-2 rounded-xl text-sm font-semibold text-white"
-                  style={{ background: 'var(--navy)' }}>
-                  {t.editOrder}
-                </button>
                 <button onClick={() => setShowApproveModal(true)}
                   className="w-full py-2 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700">
                   ✓ {t.approveAndCharge}
@@ -240,6 +263,20 @@ export default function OrderDetailPage() {
         {error && (
           <div className="rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700 mb-4">
             {error}
+          </div>
+        )}
+
+        {order.payment_failed_at && (
+          <div className="rounded-xl border-2 border-red-400 bg-red-50 p-4 mb-4">
+            <div className="font-bold text-red-700">⚠️ Payment did not go through</div>
+            <p className="mt-1 text-sm text-red-600">
+              The card was declined when we tried to charge it. The order is still moving forward — retry the charge or follow up with the customer.
+            </p>
+            <button onClick={retryPayment} disabled={retrying}
+              className="mt-2 py-2 px-4 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-60">
+              {retrying ? 'Retrying…' : 'Retry charge'}
+            </button>
+            {retryError && <p className="mt-2 text-xs font-bold text-red-700">{retryError}</p>}
           </div>
         )}
 

@@ -243,7 +243,11 @@ export default function OrdersPage() {
           <div className="space-y-3">
             {filtered.map(order => (
               <Link key={order.id} href={`/admin/orders/${order.id}`}>
-                <div className="cursor-pointer rounded-xl border border-gray-100 bg-white p-4 transition-all hover:border-orange-200 hover:shadow-sm">
+                <div className={`cursor-pointer rounded-xl border bg-white p-4 transition-all hover:shadow-sm ${
+                  order.payment_failed_at
+                    ? 'border-red-400 hover:border-red-500'
+                    : 'border-gray-100 hover:border-orange-200'
+                }`}>
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="mb-1 font-bold text-gray-900">{order.order_number}</p>
@@ -253,6 +257,11 @@ export default function OrdersPage() {
                         >
                           {orderStatusLabel(t, order.status)}
                         </span>
+                        {order.payment_failed_at && (
+                          <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">
+                            ⚠️ Payment failed
+                          </span>
+                        )}
                         <OrderFulfillmentBadge order={order} />
                       </div>
                       <p className="text-sm text-gray-600">{displayBuyerName(order)}</p>

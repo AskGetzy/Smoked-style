@@ -146,7 +146,11 @@ export default function BossOrdersPage() {
               <Link key={order.id} href={`/boss/orders/${order.id}`}>
                 <div
                   className={`rounded-3xl bg-white p-4 shadow-sm ${
-                    order.status === 'pending' ? 'border-2 border-orange-400' : 'border border-gray-100'
+                    order.payment_failed_at
+                      ? 'border-2 border-red-500'
+                      : order.status === 'pending'
+                        ? 'border-2 border-orange-400'
+                        : 'border border-gray-100'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -182,6 +186,11 @@ export default function BossOrdersPage() {
                         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold capitalize text-gray-800">
                           {order.status.replace(/_/g, ' ')}
                         </span>
+                        {order.payment_failed_at && (
+                          <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white">
+                            ⚠️ Payment failed
+                          </span>
+                        )}
                         <OrderFulfillmentBadge order={order} />
                       </div>
                     </div>

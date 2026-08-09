@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendOrderDelivered, sendOrderReadyForPickup } from '@/lib/email'
+import { stripe } from '@/lib/stripe'
+import { toCents } from '@/lib/checkout-pricing'
+import {
+  sendOrderDelivered,
+  sendOrderReadyForPickup,
+  sendPaymentFailedAdmin,
+  sendPaymentFailedCustomer,
+} from '@/lib/email'
+import { sendPushNotifications } from '@/lib/push-server'
 import { requireAdmin } from '@/lib/admin-auth'
+import { displayBuyerName } from '@/lib/order-buyer'
 import {
   canSetOrderStatus,
   getRevertStatus,
@@ -13,6 +22,8 @@ const LEGACY_FORWARD: Record<string, string[]> = {
   out_for_delivery: ['delivered'],
   ready_for_pickup: ['delivered'],
 }
+
+const CAPTURE_TRIGGER_STATUSES = new Set(['out_for_delivery', 'ready_for_pickup', 'delivered'])
 
 export async function POST(req: NextRequest) {
   try {
@@ -75,6 +86,38 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // The card is only authorized when the order is approved. The first time it
+    // leaves 'approved' heading toward fulfillment, attempt the actual charge.
+    // Per business decision: a failed charge does NOT block fulfillment — the
+    // order still moves forward, but gets flagged (payment_failed_at) so staff
+    // can follow up, rather than holding up a delivery/pickup over a bad card.
+    const capturingNow =
+      !revert && order.status === 'approved' && CAPTURE_TRIGGER_STATUSES.has(status)
+
+    let captureAttempted = false
+    let captureFailed = false
+
+    if (capturingNow && order.stripe_payment_intent_id) {
+      captureAttempted = true
+      try {
+        const paymentIntent = await stripe.paymentIntents.retrieve(order.stripe_payment_intent_id)
+
+        if (paymentIntent.status === 'requires_capture') {
+          await stripe.paymentIntents.capture(order.stripe_payment_intent_id, {
+            amount_to_capture: toCents(order.total),
+          })
+        } else if (paymentIntent.status !== 'succeeded') {
+          captureFailed = true
+        }
+      } catch (captureError) {
+        console.error('[order-status] Capture failed', {
+          orderId,
+          message: captureError instanceof Error ? captureError.message : captureError,
+        })
+        captureFailed = true
+      }
+    }
+
     const update: Record<string, string | null> = { status }
     if (status === 'delivered') {
       update.delivered_at = new Date().toISOString()
@@ -84,6 +127,9 @@ export async function POST(req: NextRequest) {
     if (status === 'pending') {
       update.approved_at = null
     }
+    if (captureAttempted) {
+      update.payment_failed_at = captureFailed ? new Date().toISOString() : null
+    }
 
     const { error: updateError } = await supabase
       .from('orders')
@@ -92,6 +138,35 @@ export async function POST(req: NextRequest) {
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    if (captureAttempted) {
+      const wasAlreadyFlagged = Boolean(order.payment_failed_at)
+      try {
+        await sendPushNotifications({
+          title: captureFailed ? '⚠️ Payment failed' : '✅ Payment charged',
+          body: captureFailed
+            ? `${order.order_number} — ${displayBuyerName(order)} — card did not go through`
+            : `${order.order_number} — ${displayBuyerName(order)} — charged $${Number(order.total).toFixed(2)}`,
+          url: `/boss/orders/${orderId}`,
+          tag: `capture-${orderId}`,
+        })
+      } catch (pushError) {
+        console.error('[order-status] Capture push notification failed', pushError)
+      }
+
+      if (captureFailed && !wasAlreadyFlagged) {
+        try {
+          await sendPaymentFailedAdmin(order.order_number, displayBuyerName(order))
+        } catch (emailError) {
+          console.error('Payment failed admin email failed', emailError)
+        }
+        try {
+          await sendPaymentFailedCustomer(order)
+        } catch (emailError) {
+          console.error('Payment failed customer email failed', emailError)
+        }
+      }
     }
 
     const movingForward =
@@ -117,7 +192,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, status })
+    return NextResponse.json({ success: true, status, paymentFailed: captureFailed })
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : 'Could not update order status'
     return NextResponse.json({ error: message }, { status: 500 })
