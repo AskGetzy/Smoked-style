@@ -60,7 +60,6 @@ export default function CatalogPage() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [showSignInModal, setShowSignInModal] = useState(false)
-  const [pendingProduct, setPendingProduct] = useState<Product | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [floatingCartMounted, setFloatingCartMounted] = useState(false)
@@ -103,11 +102,6 @@ export default function CatalogPage() {
     const hasVariants = getProductVariants(product, customerProducts).length > 1
     if (product.customer_inquiry_only) {
       setSelectedProduct(product)
-      return
-    }
-    if (!user) {
-      setPendingProduct(product)
-      setShowSignInModal(true)
       return
     }
     if (product.category === 'jerky' || product.category === 'boards' ||
@@ -166,12 +160,6 @@ export default function CatalogPage() {
   }
 
   function addModalItem(item: CartItem) {
-    if (!user) {
-      setPendingProduct(selectedProduct)
-      setShowSignInModal(true)
-      return
-    }
-
     const product = customerProducts.find(p => p.id === item.product_id)
     if (!product || !isCustomerVisible(product)) {
       showToast('This item is no longer available')
@@ -507,8 +495,8 @@ export default function CatalogPage() {
         open={showSignInModal}
         onClose={() => setShowSignInModal(false)}
         supabase={supabase}
-        title="Sign in to add to cart"
-        description="Sign in to save your cart and order history."
+        title="Sign in"
+        description="Sign in to save your order history for next time — you can also check out as a guest."
       />
 
       {floatingCartMounted && (
