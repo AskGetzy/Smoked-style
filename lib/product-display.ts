@@ -61,6 +61,14 @@ export function compareProductsPriceAsc(a: Product, b: Product): number {
   return compareProductsInquiryLast(a, b) || a.price - b.price
 }
 
+export function compareProductsPriceDesc(a: Product, b: Product): number {
+  return compareProductsInquiryLast(a, b) || b.price - a.price
+}
+
+export function compareProductsNameAsc(a: Product, b: Product): number {
+  return compareProductsInquiryLast(a, b) || a.name.localeCompare(b.name, undefined, { numeric: true })
+}
+
 function variantFamilyKey(product: Product): string | null {
   if (!product.subcategory) return null
   if (product.sold_as === 'per_board') return null

@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import type { Product } from '@/types'
 
 const PLACEHOLDER_ICON: Record<string, string> = {
@@ -13,6 +14,7 @@ type Props = {
   className?: string
   rounded?: 'top' | 'top-lg' | 'none'
   outOfStock?: boolean
+  sizes?: string
 }
 
 export default function ProductImage({
@@ -20,6 +22,7 @@ export default function ProductImage({
   className = 'h-[230px]',
   rounded = 'top',
   outOfStock = false,
+  sizes = '(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw',
 }: Props) {
   const roundedClass =
     rounded === 'top'
@@ -38,10 +41,12 @@ export default function ProductImage({
       style={{ background: '#ECE4D8' }}
     >
       {product.image_url ? (
-        <img
+        <Image
           src={product.image_url}
           alt={product.name}
-          className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 ${imageFilter}`}
+          fill
+          sizes={sizes}
+          className={`object-cover transition-transform duration-500 group-hover:scale-105 ${imageFilter}`}
         />
       ) : (
         <div
