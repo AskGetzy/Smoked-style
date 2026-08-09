@@ -148,7 +148,7 @@ export default function PendingOrderItemsEditor({ order, onUpdated, useBossAuth 
     newLines.reduce((sum, line) => sum + line.line_total, 0)
   const previewTotal = previewSubtotal + Number(deliveryFee || 0) + Number(order.custom_adjustment ?? 0)
 
-  if (order.status !== 'pending') return null
+  if (order.status !== 'pending' && order.status !== 'approved') return null
 
   return (
     <>

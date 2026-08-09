@@ -284,7 +284,7 @@ export async function sendOrderApproval(order: EmailOrder) {
   return sendEmail(order, subject, layout({
     preview: `Your Smoked Style order #${order.order_number} is confirmed`,
     heading: 'Your order is confirmed',
-    intro: `Your order has been approved and your card has been charged ${formatCurrency(order.total)}.`,
+    intro: `Your order has been approved! Your card will be charged ${formatCurrency(order.total)} when your order is out for delivery or ready for pickup.`,
     order,
     extra: renderOrderTrackingButton(order.order_number),
   }))
@@ -295,7 +295,7 @@ export async function sendOrderUpdate(order: EmailOrder, changes: string[]) {
   return sendEmail(order, subject, layout({
     preview: `Your Smoked Style order #${order.order_number} was updated`,
     heading: 'Your order was updated',
-    intro: `We made a change to your pending order before approval. Your updated order total is ${formatCurrency(order.total)}. Your card will only be charged after the order is approved.`,
+    intro: `We made a change to your order. Your updated order total is ${formatCurrency(order.total)}. Your card will be charged when your order is out for delivery or ready for pickup.`,
     order,
     extra: `
       <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:16px;margin:18px 0;color:#9a3412;line-height:1.5;">
