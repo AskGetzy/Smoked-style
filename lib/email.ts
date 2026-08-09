@@ -308,6 +308,24 @@ export async function sendOrderUpdate(order: EmailOrder, changes: string[]) {
   }))
 }
 
+export async function sendOrderDateChanged(order: EmailOrder, previousDate: string | null) {
+  const isPickup = order.order_type === 'pickup'
+  const subject = `Your Smoked Style Order #${order.order_number} — ${isPickup ? 'pickup' : 'delivery'} date changed`
+  return sendEmail(order, subject, layout({
+    preview: `Your Smoked Style order #${order.order_number} ${isPickup ? 'pickup' : 'delivery'} date changed`,
+    heading: `Your ${isPickup ? 'pickup' : 'delivery'} date was updated`,
+    intro: `We had to reschedule your order. Your new ${isPickup ? 'pickup' : 'delivery'} date is ${escapeHtml(formatDate(order.delivery_date))}.`,
+    order,
+    extra: previousDate
+      ? `
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:14px;padding:16px;margin:18px 0;color:#9a3412;line-height:1.5;">
+          <strong>Previous date:</strong> ${escapeHtml(formatDate(previousDate))}
+        </div>
+      `
+      : undefined,
+  }))
+}
+
 export async function sendOrderRejection(order: EmailOrder, reason: string) {
   const subject = `Update on your Smoked Style Order #${order.order_number}`
   return sendEmail(order, subject, layout({

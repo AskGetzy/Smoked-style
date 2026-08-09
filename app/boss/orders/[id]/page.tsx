@@ -5,10 +5,12 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { Order } from '@/types'
 import { fetchWithAuth } from '@/lib/auth-fetch'
-import { formatDeliveryDate, formatOrderDate } from '@/lib/dates'
+import { formatDeliveryDate, formatOrderDate, normalizeDeliveryDate, todayLocal } from '@/lib/dates'
 import OrderStatusActions from '@/components/OrderStatusActions'
 import PendingOrderItemsEditor from '@/components/PendingOrderItemsEditor'
 import { displayBuyerEmail, displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
+
+const DATE_LOCKED_STATUSES = new Set(['delivered', 'cancelled', 'payment_failed'])
 
 export default function BossOrderDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -19,6 +21,10 @@ export default function BossOrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [editingDate, setEditingDate] = useState(false)
+  const [dateDraft, setDateDraft] = useState('')
+  const [dateSaving, setDateSaving] = useState(false)
+  const [dateError, setDateError] = useState('')
 
   useEffect(() => { void loadOrder() }, [id])
 
@@ -54,6 +60,29 @@ export default function BossOrderDetailPage() {
     if (res.ok) router.push('/boss/orders')
     else setError((await res.json()).error ?? 'Could not reject')
     setBusy(false)
+  }
+
+  function startEditingDate() {
+    setDateDraft(normalizeDeliveryDate(order?.delivery_date) ?? todayLocal())
+    setDateError('')
+    setEditingDate(true)
+  }
+
+  async function saveDeliveryDate() {
+    setDateSaving(true)
+    setDateError('')
+    const res = await fetchWithAuth('/api/admin/orders/delivery-date', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: id, deliveryDate: dateDraft }),
+    })
+    if (res.ok) {
+      setEditingDate(false)
+      await loadOrder()
+    } else {
+      setDateError((await res.json()).error ?? 'Could not update date')
+    }
+    setDateSaving(false)
   }
 
   if (loading) return <div className="p-4 text-base">Loading...</div>
@@ -141,9 +170,52 @@ export default function BossOrderDetailPage() {
           <span>Total</span>
           <span>${order.total.toFixed(2)}</span>
         </div>
-        {order.delivery_date && (
-          <div className="mt-2 font-bold">Date: {formatDeliveryDate(order.delivery_date)}</div>
-        )}
+        <div className="mt-2">
+          {editingDate ? (
+            <div className="space-y-2 rounded-xl border border-orange-200 bg-orange-50/50 p-2">
+              <input
+                type="date"
+                value={dateDraft}
+                onChange={e => setDateDraft(e.target.value)}
+                className="h-10 w-full rounded-xl border border-gray-200 px-3 text-sm"
+              />
+              {dateError && <p className="text-xs font-bold text-red-600">{dateError}</p>}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingDate(false)}
+                  className="h-9 flex-1 rounded-xl border text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={dateSaving}
+                  onClick={() => void saveDeliveryDate()}
+                  className="h-9 flex-1 rounded-xl text-xs font-black text-white disabled:opacity-60"
+                  style={{ background: 'var(--navy)' }}
+                >
+                  {dateSaving ? 'Saving…' : 'Save date'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-bold">
+                Date: {order.delivery_date ? formatDeliveryDate(order.delivery_date) : 'Not set'}
+              </span>
+              {!DATE_LOCKED_STATUSES.has(order.status) && (
+                <button
+                  type="button"
+                  onClick={startEditingDate}
+                  className="text-xs font-bold text-orange-600"
+                >
+                  Change
+                </button>
+              )}
+            </div>
+          )}
+        </div>
         {order.delivery_address && <div className="mt-1 text-gray-600">{order.delivery_address}</div>}
         {order.order_notes && <div className="mt-2 rounded-xl bg-gray-50 p-2">{order.order_notes}</div>}
         {order.gift_message && <div className="mt-2 rounded-xl bg-orange-50 p-2">{order.gift_message}</div>}
