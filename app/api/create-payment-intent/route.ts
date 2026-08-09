@@ -7,6 +7,7 @@ import {
   toCents,
   type CheckoutCartLine,
 } from '@/lib/checkout-pricing'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import type { Product } from '@/types'
 
 type CheckoutBody = {
@@ -24,6 +25,10 @@ type CheckoutBody = {
 }
 
 export async function POST(req: NextRequest) {
+  if (!checkRateLimit(req, 'create-payment-intent', { limit: 10, windowMs: 60_000 })) {
+    return rateLimitResponse()
+  }
+
   try {
     const body = (await req.json()) as CheckoutBody
     const {

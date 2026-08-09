@@ -1,6 +1,7 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { getSupabaseAnonKey, getSupabaseBaseUrl } from '@/lib/supabase-url'
 
 function safeRedirectPath(path: string | null, prefix: string, fallback: string): string {
   if (!path || !path.startsWith(prefix) || path.includes('//')) return fallback
@@ -8,14 +9,27 @@ function safeRedirectPath(path: string | null, prefix: string, fallback: string)
 }
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
-  const { data: { session } } = await supabase.auth.getSession()
+  let res = NextResponse.next({ request: req })
+
+  const supabase = createServerClient(getSupabaseBaseUrl(), getSupabaseAnonKey(), {
+    cookies: {
+      getAll() {
+        return req.cookies.getAll()
+      },
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value))
+        res = NextResponse.next({ request: req })
+        cookiesToSet.forEach(({ name, value, options }) => res.cookies.set(name, value, options))
+      },
+    },
+  })
+
+  const { data: { user } } = await supabase.auth.getUser()
   const pathname = req.nextUrl.pathname
 
   if (pathname.startsWith('/admin')) {
     if (pathname.startsWith('/admin/login')) {
-      if (session) {
+      if (user) {
         const redirectTo = safeRedirectPath(
           req.nextUrl.searchParams.get('redirectTo'),
           '/admin',
@@ -23,7 +37,7 @@ export async function middleware(req: NextRequest) {
         )
         return NextResponse.redirect(new URL(redirectTo, req.url))
       }
-    } else if (!session) {
+    } else if (!user) {
       const loginUrl = new URL('/admin/login', req.url)
       loginUrl.searchParams.set('redirectTo', pathname)
       return NextResponse.redirect(loginUrl)
@@ -32,7 +46,7 @@ export async function middleware(req: NextRequest) {
 
   if (pathname.startsWith('/boss')) {
     if (pathname.startsWith('/boss/login')) {
-      if (session) {
+      if (user) {
         const redirectTo = safeRedirectPath(
           req.nextUrl.searchParams.get('redirectTo'),
           '/boss',
@@ -40,7 +54,7 @@ export async function middleware(req: NextRequest) {
         )
         return NextResponse.redirect(new URL(redirectTo, req.url))
       }
-    } else if (!session) {
+    } else if (!user) {
       const loginUrl = new URL('/boss/login', req.url)
       loginUrl.searchParams.set('redirectTo', pathname)
       return NextResponse.redirect(loginUrl)
@@ -48,7 +62,7 @@ export async function middleware(req: NextRequest) {
   }
 
   if (pathname.startsWith('/production') && !pathname.startsWith('/production/login')) {
-    if (!session) {
+    if (!user) {
       const loginUrl = new URL('/production/login', req.url)
       loginUrl.searchParams.set('redirectTo', pathname)
       return NextResponse.redirect(loginUrl)

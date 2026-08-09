@@ -103,18 +103,12 @@ async function handlePaymentFailed(
 
   try {
     await sendPaymentFailedAdmin(order.order_number, customerName)
-    console.log('[stripe-webhook] Admin payment-failed email sent', {
-      orderNumber: order.order_number,
-    })
   } catch (emailError) {
     console.error('[stripe-webhook] Admin payment-failed email failed', emailError)
   }
 
   try {
     await sendPaymentFailedCustomer(toEmailOrder(order))
-    console.log('[stripe-webhook] Customer payment-failed email sent', {
-      orderNumber: order.order_number,
-    })
   } catch (emailError) {
     console.error('[stripe-webhook] Customer payment-failed email failed', emailError)
   }
@@ -237,62 +231,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Webhook signature verification failed: ${message}` }, { status: 400 })
   }
 
-  console.log('[stripe-webhook] Event received', {
-    eventId: event.id,
-    type: event.type,
-    created: event.created,
-    livemode: event.livemode,
-    apiVersion: event.api_version,
-  })
-
   const supabase = createServerClient()
 
   try {
     switch (event.type) {
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent
-        console.log('[stripe-webhook] Handling payment_intent.payment_failed', {
-          paymentIntentId: paymentIntent.id,
-          lastPaymentError: paymentIntent.last_payment_error?.message ?? null,
-        })
         await handlePaymentFailed(supabase, paymentIntent)
         break
       }
 
       case 'payment_intent.canceled': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent
-        console.log('[stripe-webhook] Handling payment_intent.canceled', {
-          paymentIntentId: paymentIntent.id,
-          status: paymentIntent.status,
-        })
         await handlePaymentCanceled(supabase, paymentIntent)
-        break
-      }
-
-      case 'payment_intent.amount_capturable_updated': {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent
-        console.log('[stripe-webhook] payment_intent.amount_capturable_updated (debug only)', {
-          paymentIntentId: paymentIntent.id,
-          status: paymentIntent.status,
-          amountCapturable: paymentIntent.amount_capturable,
-          amount: paymentIntent.amount,
-        })
         break
       }
 
       case 'charge.refunded': {
         const charge = event.data.object as Stripe.Charge
-        console.log('[stripe-webhook] Handling charge.refunded', {
-          chargeId: charge.id,
-          paymentIntentId: charge.payment_intent,
-          amountRefunded: charge.amount_refunded,
-        })
         await handleChargeRefunded(supabase, charge)
         break
       }
 
       default:
-        console.log('[stripe-webhook] Unhandled event type (no action)', { type: event.type })
+        break
     }
   } catch (handlerError) {
     console.error('[stripe-webhook] Handler error', {
@@ -302,11 +264,6 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
   }
-
-  console.log('[stripe-webhook] Event processed successfully', {
-    eventId: event.id,
-    type: event.type,
-  })
 
   return NextResponse.json({ received: true })
 }

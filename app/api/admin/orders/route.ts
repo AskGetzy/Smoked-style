@@ -80,15 +80,6 @@ export async function GET(req: NextRequest) {
     }
 
     const orders = data ?? []
-    console.log('[admin/orders] List query', {
-      mode: hasBulkPrintFilters ? 'bulk-print' : 'dashboard',
-      delivery_date: normalizedDeliveryDate,
-      delivery_area_id: deliveryAreaId,
-      statuses: statusesParam,
-      order_type: orderType,
-      count: orders.length,
-      order_numbers: orders.map((o: { order_number: string }) => o.order_number),
-    })
 
     return NextResponse.json({ orders, count: orders.length })
   } catch (e: unknown) {

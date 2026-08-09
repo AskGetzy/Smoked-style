@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase-server'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
+  if (!checkRateLimit(req, 'push-subscribe', { limit: 5, windowMs: 60_000 })) {
+    return rateLimitResponse()
+  }
+
   try {
     const body = await req.json()
     const endpoint = String(body.endpoint || '').trim()
