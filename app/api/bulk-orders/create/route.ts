@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/admin-auth'
 import { bulkOrderTotal, type BulkOrderPaymentMethod, type BulkRecipientDraft, validateBulkRecipientRows } from '@/lib/bulk-order'
 import { customerHasCardOnFile, firstCardOnFile, getCustomerPaymentProfile } from '@/lib/bulk-order-server'
 import { findOrCreateCustomer } from '@/lib/customers-server'
-import { sendBulkPaymentLinkEmail } from '@/lib/email'
+import { sendBulkOrderBuyerConfirmation } from '@/lib/email'
 import { generateOrderNumber } from '@/lib/order-number'
 import { sendNewOrderPushNotification } from '@/lib/send-new-order-push'
 import { stripe } from '@/lib/stripe'
@@ -22,6 +22,7 @@ function toRecipientDrafts(input: any[]): BulkRecipientDraft[] {
     rowNumber: Number(row.rowNumber) || index + 1,
     recipient_name: String(row.recipient_name ?? ''),
     recipient_phone: String(row.recipient_phone ?? ''),
+    recipient_email: String(row.recipient_email ?? ''),
     product_name: String(row.product_name ?? ''),
     flavor: String(row.flavor ?? ''),
     weight: String(row.weight ?? ''),
@@ -135,6 +136,7 @@ export async function POST(req: NextRequest) {
       order_id: order.id,
       recipient_name: row.recipient_name,
       recipient_phone: row.recipient_phone,
+      recipient_email: row.recipient_email,
       product_id: row.product_id,
       product_name: row.product_name,
       flavor: row.flavor,
@@ -226,17 +228,8 @@ export async function POST(req: NextRequest) {
 
         paymentLinkUrl = session.url ?? null
         if (!paymentLinkUrl) throw new Error('Stripe did not return a checkout link')
-        try {
-          await sendBulkPaymentLinkEmail({
-            order_number: orderNumber,
-            total,
-            customerName: buyerName,
-            email: buyerEmail,
-            paymentUrl: paymentLinkUrl,
-          })
-        } catch (emailError) {
-          console.error('[bulk-order] Payment link email failed', emailError)
-        }
+      } else if (paymentMethod === 'cash' || paymentMethod === 'check') {
+        bulkPaidAt = new Date().toISOString()
       }
     } catch (error) {
       await supabase.from('orders').delete().eq('id', order.id)
@@ -259,6 +252,26 @@ export async function POST(req: NextRequest) {
     }
 
     await sendNewOrderPushNotification(buyerName, total, orderNumber)
+
+    if (looksLikeDeliverableEmail(buyerEmail)) {
+      try {
+        await sendBulkOrderBuyerConfirmation({
+          orderNumber,
+          buyerName,
+          buyerEmail,
+          total,
+          paymentMethod,
+          paymentUrl: paymentLinkUrl,
+          paidAt: bulkPaidAt,
+          recipients: validation.validRows.map(row => ({
+            recipient_name: row.recipient_name,
+            product_name: row.product_name,
+          })),
+        })
+      } catch (emailError) {
+        console.error('[bulk-order] Buyer confirmation email failed', emailError)
+      }
+    }
 
     return NextResponse.json({
       orderId: order.id,

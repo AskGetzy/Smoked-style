@@ -34,6 +34,30 @@ export type EmailOrder = {
   order_items?: EmailOrderItem[] | null
 }
 
+type BulkBuyerConfirmationInput = {
+  orderNumber: string
+  buyerName: string
+  buyerEmail: string
+  total: number
+  paymentMethod: 'payment_link' | 'cash' | 'check' | 'card_on_file'
+  paymentUrl?: string | null
+  paidAt?: string | null
+  recipients: Array<{ recipient_name: string; product_name: string }>
+}
+
+type BulkRecipientNotificationInput = {
+  orderNumber: string
+  buyerName: string
+  recipientName: string
+  recipientEmail: string
+  productName: string
+  giftMessage?: string | null
+  orderType: 'delivery' | 'pickup'
+  address?: string | null
+  areaName?: string | null
+  deliveryDate?: string | null
+}
+
 const CONTACT_PHONE = '(718) 810-9472'
 const CONTACT_EMAIL = 'Smokedstyle1@gmail.com'
 const RESEND_TEST_FROM = 'Smoked Style <onboarding@resend.dev>'
@@ -83,6 +107,63 @@ function formatCurrency(value: number | null | undefined) {
 function formatDate(value: string | null | undefined) {
   if (!value) return 'To be confirmed'
   return formatDeliveryDate(value) || value
+}
+
+function rusticEmailLayout({
+  preview,
+  heading,
+  intro,
+  body,
+}: {
+  preview: string
+  heading: string
+  intro: string
+  body: string
+}) {
+  return `<!doctype html>
+  <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+      <title>${escapeHtml(preview)}</title>
+    </head>
+    <body style="margin:0;padding:0;background:#efe2cf;font-family:Arial,Helvetica,sans-serif;color:#2b2118;">
+      <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(preview)}</div>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#efe2cf;">
+        <tr>
+          <td align="center" style="padding:28px 12px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;background:#fffaf2;border:1px solid #e0c7a6;border-radius:24px;overflow:hidden;">
+              <tr>
+                <td style="padding:28px 26px 18px;background:linear-gradient(180deg,#2b2118 0%,#463628 100%);text-align:center;">
+                  <div style="color:#f7e7cf;font-size:12px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;">Smoked Style</div>
+                  <div style="margin-top:10px;color:#fff7ea;font-size:32px;line-height:1.1;font-family:'Playfair Display',Georgia,serif;font-weight:700;">${escapeHtml(heading)}</div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:26px;">
+                  <p style="margin:0 0 20px;color:#4b3b2d;font-size:16px;line-height:1.7;">${intro}</p>
+                  ${body}
+                  <div style="margin-top:24px;border-top:1px solid #ead7bc;padding-top:18px;color:#6f5a45;font-size:14px;line-height:1.6;">
+                    Questions? Call or WhatsApp <strong>${CONTACT_PHONE}</strong> or email <strong>${CONTACT_EMAIL}</strong>.
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>`
+}
+
+function bulkPaymentStatusLabel(
+  paymentMethod: BulkBuyerConfirmationInput['paymentMethod'],
+  paidAt?: string | null,
+) {
+  if (paymentMethod === 'payment_link') return 'Payment link sent'
+  if (paymentMethod === 'cash') return paidAt ? 'Paid by cash' : 'Pending cash payment'
+  if (paymentMethod === 'check') return paidAt ? 'Paid by check' : 'Pending check payment'
+  return paidAt ? 'Paid by card on file' : 'Pending card charge'
 }
 
 function itemDetails(item: EmailOrderItem) {
@@ -397,6 +478,102 @@ export async function sendBulkPaymentLinkEmail(input: {
           </div>
         </body>
       </html>`,
+  )
+}
+
+export async function sendBulkOrderBuyerConfirmation(input: BulkBuyerConfirmationInput) {
+  const statusLabel = bulkPaymentStatusLabel(input.paymentMethod, input.paidAt)
+  const recipientItems = input.recipients
+    .map(
+      recipient => `
+        <li style="margin:0 0 10px;color:#3f3125;line-height:1.5;">
+          <strong>${escapeHtml(recipient.recipient_name)}</strong>
+          <span style="color:#8a5a2b;">— ${escapeHtml(recipient.product_name)}</span>
+        </li>`,
+    )
+    .join('')
+
+  return sendEmailToAddress(
+    input.buyerEmail,
+    `Your bulk order has been placed — Smoked Style #${input.orderNumber}`,
+    rusticEmailLayout({
+      preview: `Bulk order ${input.orderNumber} has been placed`,
+      heading: 'Your bulk order has been placed',
+      intro: `Hi ${escapeHtml(input.buyerName)}, we received your bulk order and are getting everything lined up for your recipients.`,
+      body: `
+        <div style="margin-bottom:18px;border:1px solid #e2c9a6;border-radius:18px;background:#fff4e2;padding:18px;">
+          <div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#a14d1d;font-weight:800;">Order number</div>
+          <div style="margin-top:8px;font-size:24px;font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#2b2118;">#${escapeHtml(input.orderNumber)}</div>
+        </div>
+        <div style="margin-bottom:18px;border:1px solid #e8d7bf;border-radius:18px;background:#fffdf8;padding:18px;">
+          <div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#a14d1d;font-weight:800;">Recipients</div>
+          <ul style="margin:14px 0 0;padding-left:20px;">${recipientItems}</ul>
+        </div>
+        <div style="margin-bottom:18px;border:1px solid #e2c9a6;border-radius:18px;background:#fff4e2;padding:18px;">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#a14d1d;font-weight:800;">Order total</div>
+              <div style="margin-top:8px;font-size:28px;font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#2b2118;">${formatCurrency(input.total)}</div>
+            </div>
+            <div style="min-width:200px;border:1px solid #efc48b;border-radius:14px;background:#fffaf2;padding:12px 14px;">
+              <div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#a14d1d;font-weight:800;">Payment status</div>
+              <div style="margin-top:6px;font-size:16px;font-weight:700;color:#2b2118;">${escapeHtml(statusLabel)}</div>
+            </div>
+          </div>
+          ${
+            input.paymentMethod === 'payment_link' && input.paymentUrl
+              ? `<p style="margin:16px 0 0;"><a href="${escapeHtml(input.paymentUrl)}" style="display:inline-block;border-radius:12px;background:#c65b1a;padding:12px 20px;color:#fffaf2;text-decoration:none;font-weight:700;">Pay for this bulk order</a></p>`
+              : ''
+          }
+        </div>
+      `,
+    }),
+  )
+}
+
+export async function sendBulkRecipientNotification(input: BulkRecipientNotificationInput) {
+  const isDelivery = input.orderType === 'delivery'
+  const deliveryInfo = isDelivery
+    ? `
+      <div style="margin:18px 0;border:2px solid #d89a54;border-radius:18px;background:#fff7ea;padding:18px;">
+        <div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#a14d1d;font-weight:800;">Delivery info</div>
+        <p style="margin:12px 0 6px;"><strong>Address:</strong> ${escapeHtml(input.address || 'Not provided')}</p>
+        <p style="margin:0 0 6px;"><strong>Area:</strong> ${escapeHtml(input.areaName || 'Not provided')}</p>
+        <p style="margin:0 0 12px;"><strong>Expected delivery date:</strong> ${escapeHtml(formatDate(input.deliveryDate))}</p>
+        <p style="margin:0;color:#6d4421;line-height:1.6;">Please double check your delivery address below. If anything is incorrect, contact us right away at ${CONTACT_PHONE} so we can update it before delivery.</p>
+      </div>`
+    : `
+      <div style="margin:18px 0;border:2px solid #d89a54;border-radius:18px;background:#fff7ea;padding:18px;">
+        <div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#a14d1d;font-weight:800;">Pickup info</div>
+        <p style="margin:12px 0 6px;"><strong>Pickup location:</strong> Smoked Style</p>
+        <p style="margin:0 0 12px;"><strong>Pickup date:</strong> ${escapeHtml(formatDate(input.deliveryDate))}</p>
+        <p style="margin:0;color:#6d4421;line-height:1.6;">Please bring ID or contact us at ${CONTACT_PHONE} to confirm the pickup details before arriving.</p>
+      </div>`
+
+  return sendEmailToAddress(
+    input.recipientEmail,
+    `${input.buyerName} is sending you a gift from Smoked Style!`,
+    rusticEmailLayout({
+      preview: `${input.buyerName} is sending you a gift from Smoked Style`,
+      heading: 'A gift is on the way',
+      intro: `${escapeHtml(input.buyerName)} is sending you a gift from Smoked Style!`,
+      body: `
+        <div style="margin-bottom:18px;border:1px solid #e2c9a6;border-radius:18px;background:#fff4e2;padding:18px;">
+          <div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#a14d1d;font-weight:800;">What’s arriving</div>
+          <div style="margin-top:8px;font-size:24px;font-family:'Playfair Display',Georgia,serif;font-weight:700;color:#2b2118;">${escapeHtml(input.productName)}</div>
+        </div>
+        ${
+          input.giftMessage
+            ? `<div style="margin-bottom:18px;border:1px solid #e8d7bf;border-radius:18px;background:#fffdf8;padding:18px;">
+                <div style="font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#a14d1d;font-weight:800;">Gift message</div>
+                <p style="margin:12px 0 0;color:#4b3b2d;font-size:16px;line-height:1.7;">${escapeHtml(input.giftMessage)}</p>
+              </div>`
+            : ''
+        }
+        ${deliveryInfo}
+        <div style="color:#6f5a45;font-size:14px;line-height:1.6;">Order #${escapeHtml(input.orderNumber)} · Recipient: ${escapeHtml(input.recipientName)}</div>
+      `,
+    }),
   )
 }
 

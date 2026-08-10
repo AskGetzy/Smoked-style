@@ -295,7 +295,7 @@ export default function BulkOrderBuilder({ variant }: Props) {
       <section className={`${card} ${!buyerReady ? 'opacity-60' : ''}`}>
         <h2 className="mb-3 text-lg font-black">Upload recipients</h2>
         <p className="mb-3 text-sm text-gray-500">
-          CSV columns: Recipient Name, Recipient Phone, Product Name, Flavor, Weight (lb), Size, Quantity, Order Type, Delivery Area, Address, Delivery Date, Notes, Gift Message.
+          CSV columns: Recipient Name, Recipient Phone, Recipient Email, Product Name, Flavor, Weight (lb), Size, Quantity, Order Type, Delivery Area, Address, Delivery Date, Notes, Gift Message.
         </p>
         <input
           type="file"
@@ -340,6 +340,9 @@ export default function BulkOrderBuilder({ variant }: Props) {
                     <div className="font-black text-gray-900">Row {row.rowNumber} · {row.recipient_name || 'Missing recipient'}</div>
                     <div className="text-sm text-gray-600">{row.product_name} · ${Number(row.line_total).toFixed(2)} · {row.order_type}</div>
                     <div className="text-sm text-gray-500">{row.delivery_date}{row.delivery_area ? ` · ${row.delivery_area}` : ''}</div>
+                    {row.recipient_email && (
+                      <div className="text-sm text-gray-500">Notify: {row.recipient_email}</div>
+                    )}
                     {row.address && <div className="text-sm text-gray-500">{row.address}</div>}
                     {row.gift_message && <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Gift: {row.gift_message}</div>}
                     {row.errors.length > 0 && (

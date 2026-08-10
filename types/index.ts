@@ -74,6 +74,7 @@ export interface BulkOrderRecipient {
   order_id: string | null
   recipient_name: string
   recipient_phone: string | null
+  recipient_email: string | null
   product_id: string | null
   product_name: string
   flavor: string | null
@@ -89,6 +90,7 @@ export interface BulkOrderRecipient {
   notes: string | null
   gift_message: string | null
   line_total: number | null
+  notified_at: string | null
   created_at: string
   products?: { name: string | null; size_label?: string | null } | null
   delivery_areas?: { name: string | null } | null

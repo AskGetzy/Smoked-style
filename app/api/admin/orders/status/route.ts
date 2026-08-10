@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { toCents } from '@/lib/checkout-pricing'
 import {
+  sendBulkRecipientNotification,
   sendOrderDelivered,
   sendOrderReadyForPickup,
   sendPaymentFailedAdmin,
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
     const { supabase } = admin
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('*, customers(full_name, email, phone), order_items(*)')
+      .select('*, customers(full_name, email, phone), order_items(*), bulk_order_recipients(*, delivery_areas(name))')
       .eq('id', orderId)
       .single()
 
@@ -189,6 +190,40 @@ export async function POST(req: NextRequest) {
         await sendOrderReadyForPickup(emailOrder)
       } catch (emailError) {
         console.error('Order ready for pickup email failed', emailError)
+      }
+    }
+
+    if (movingForward && status === 'out_for_delivery' && order.is_bulk_order) {
+      for (const recipient of order.bulk_order_recipients ?? []) {
+        const recipientEmail = String(recipient.recipient_email ?? '').trim().toLowerCase()
+        if (!recipientEmail || recipient.notified_at) continue
+
+        try {
+          await sendBulkRecipientNotification({
+            orderNumber: order.order_number,
+            buyerName: displayBuyerName(order),
+            recipientName: recipient.recipient_name,
+            recipientEmail,
+            productName: recipient.product_name,
+            giftMessage: recipient.gift_message,
+            orderType: recipient.order_type,
+            address: recipient.address,
+            areaName: recipient.delivery_areas?.name ?? recipient.delivery_area,
+            deliveryDate: recipient.delivery_date ?? order.delivery_date,
+          })
+
+          await supabase
+            .from('bulk_order_recipients')
+            .update({ notified_at: new Date().toISOString() })
+            .eq('id', recipient.id)
+        } catch (emailError) {
+          console.error('[order-status] Bulk recipient notification failed', {
+            orderId,
+            recipientId: recipient.id,
+            recipientEmail,
+            error: emailError,
+          })
+        }
       }
     }
 

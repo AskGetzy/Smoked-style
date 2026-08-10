@@ -6,6 +6,7 @@ import type { DeliveryArea, Product } from '@/types'
 export const BULK_ORDER_TEMPLATE_HEADERS = [
   'Recipient Name',
   'Recipient Phone',
+  'Recipient Email',
   'Product Name',
   'Flavor',
   'Weight (lb)',
@@ -25,6 +26,7 @@ export type BulkRecipientDraft = {
   rowNumber: number
   recipient_name: string
   recipient_phone: string
+  recipient_email: string
   product_name: string
   flavor: string
   weight: string
@@ -42,6 +44,7 @@ export type BulkRecipientInput = {
   rowNumber: number
   recipient_name: string
   recipient_phone: string | null
+  recipient_email: string | null
   product_id: string
   product_name: string
   flavor: string | null
@@ -99,6 +102,7 @@ function headerKey(value: string) {
 const HEADER_ALIASES: Record<keyof Omit<BulkRecipientDraft, 'rowNumber'>, string[]> = {
   recipient_name: ['recipientname', 'name'],
   recipient_phone: ['recipientphone', 'phone', 'phonenumber'],
+  recipient_email: ['recipientemail', 'email', 'emailaddress'],
   product_name: ['productname', 'itemname'],
   flavor: ['flavor'],
   weight: ['weightlb', 'weight'],
@@ -142,19 +146,24 @@ export function parseBulkOrderCsv(text: string): BulkRecipientDraft[] {
       rowNumber: index + (hasHeader ? 2 : 1),
       recipient_name: read('recipient_name', 0),
       recipient_phone: read('recipient_phone', 1),
-      product_name: read('product_name', 2),
-      flavor: read('flavor', 3),
-      weight: read('weight', 4),
-      size: read('size', 5),
-      quantity: read('quantity', 6),
-      order_type: read('order_type', 7),
-      delivery_area: read('delivery_area', 8),
-      address: read('address', 9),
-      delivery_date: read('delivery_date', 10),
-      notes: read('notes', 11),
-      gift_message: read('gift_message', 12),
+      recipient_email: read('recipient_email', 2),
+      product_name: read('product_name', 3),
+      flavor: read('flavor', 4),
+      weight: read('weight', 5),
+      size: read('size', 6),
+      quantity: read('quantity', 7),
+      order_type: read('order_type', 8),
+      delivery_area: read('delivery_area', 9),
+      address: read('address', 10),
+      delivery_date: read('delivery_date', 11),
+      notes: read('notes', 12),
+      gift_message: read('gift_message', 13),
     }
   })
+}
+
+function looksLikeEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
 function findProduct(products: Product[], productName: string) {
@@ -192,6 +201,9 @@ export function validateBulkRecipientRows(
     const area = row.delivery_area.trim() ? findDeliveryArea(areas, row.delivery_area) : null
 
     if (!row.recipient_name.trim()) rowErrors.push('Recipient name is required')
+    if (row.recipient_email.trim() && !looksLikeEmail(row.recipient_email.trim().toLowerCase())) {
+      rowErrors.push('Recipient email must be a valid email address')
+    }
     if (!product) {
       rowErrors.push('Product not found')
     } else {
@@ -229,6 +241,7 @@ export function validateBulkRecipientRows(
       rowNumber: row.rowNumber,
       recipient_name: row.recipient_name.trim(),
       recipient_phone: row.recipient_phone.trim() || null,
+      recipient_email: row.recipient_email.trim().toLowerCase() || null,
       product_id: product?.id ?? '',
       product_name: product?.name ?? row.product_name.trim(),
       flavor: row.flavor.trim() || null,

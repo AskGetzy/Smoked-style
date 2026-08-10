@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS bulk_order_recipients (
   order_id uuid REFERENCES orders(id) ON DELETE CASCADE,
   recipient_name text NOT NULL,
   recipient_phone text,
+  recipient_email text,
   product_id uuid REFERENCES products(id),
   product_name text NOT NULL,
   flavor text,
@@ -27,8 +28,13 @@ CREATE TABLE IF NOT EXISTS bulk_order_recipients (
   notes text,
   gift_message text,
   line_total numeric,
+  notified_at timestamptz,
   created_at timestamptz DEFAULT now()
 );
+
+ALTER TABLE bulk_order_recipients
+ADD COLUMN IF NOT EXISTS recipient_email text,
+ADD COLUMN IF NOT EXISTS notified_at timestamptz;
 
 ALTER TABLE bulk_order_recipients ENABLE ROW LEVEL SECURITY;
 
