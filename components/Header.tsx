@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import type { User } from '@supabase/supabase-js'
 import SignOutButton from '@/components/SignOutButton'
 
@@ -27,8 +28,16 @@ export default function Header({
     <header className="sticky top-0 z-40 shadow-md" style={{ background: 'var(--rustic-navy)' }}>
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4">
         <Link href="/" className="flex min-w-0 shrink-0 items-center gap-2">
+          <Image
+            src="/logo-mark-white.png"
+            alt=""
+            width={40}
+            height={41}
+            className="h-9 w-auto shrink-0"
+            priority
+          />
           <span
-            className="text-xl uppercase text-white"
+            className="text-lg uppercase text-white sm:text-xl"
             style={{
               fontFamily: "'Playfair Display', serif",
               fontWeight: 700,
