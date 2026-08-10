@@ -21,6 +21,7 @@ const NAV: { href: string; key: TranslationKey; icon: string }[] = [
 const TITLE_KEYS: Record<string, TranslationKey> = {
   '/boss/new-order': 'newOrder',
   '/boss/orders': 'orders',
+  '/boss/orders/bulk-upload': 'orders',
   '/boss/production': 'production',
   '/boss/dashboard': 'dashboard',
 }

@@ -87,6 +87,14 @@ export default function BossOrdersPage() {
 
   return (
     <div className="p-4 pb-6">
+      <div className="mb-3 flex justify-end">
+        <Link
+          href="/boss/orders/bulk-upload"
+          className="min-h-12 rounded-2xl border-2 border-gray-200 bg-white px-4 text-base font-black text-gray-800"
+        >
+          📤 Bulk Upload
+        </Link>
+      </div>
       <div className="sticky top-[57px] z-30 -mx-4 mb-4 space-y-3 bg-[#f8fafc] px-4 pb-3 pt-1">
         <input
           type="search"

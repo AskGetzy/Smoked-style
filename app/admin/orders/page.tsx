@@ -176,6 +176,12 @@ export default function OrdersPage() {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            <Link
+              href="/admin/orders/bulk-upload"
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-800 shadow-sm hover:border-orange-200"
+            >
+              Bulk Upload
+            </Link>
             <button
               type="button"
               onClick={() => setBulkPrintOpen(true)}
