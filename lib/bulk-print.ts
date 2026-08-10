@@ -1,5 +1,6 @@
+import { expandOrderForFulfillment } from '@/lib/bulk-order-display'
 import { formatDeliveryDate, normalizeDeliveryDate } from '@/lib/dates'
-import { displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
+import { displayBuyerName, displayBuyerPhone, displayRecipientName, displayRecipientPhone } from '@/lib/order-buyer'
 import { buildOrderLabelZpl, type ZplOrder } from '@/lib/zpl'
 import type { Order } from '@/types'
 
@@ -94,6 +95,8 @@ export function orderToZplOrder(order: Order): ZplOrder {
     order_number: order.order_number,
     buyer_name: displayBuyerName(order),
     buyer_phone: displayBuyerPhone(order),
+    recipient_name: displayRecipientName(order),
+    recipient_phone: displayRecipientPhone(order),
     order_type: order.order_type,
     delivery_address: order.delivery_address,
     delivery_area_name: order.delivery_areas?.name ?? null,
@@ -111,11 +114,12 @@ export function orderToZplOrder(order: Order): ZplOrder {
 }
 
 export function buildBulkLabelsZpl(orders: Order[]) {
-  const labelBlocks = orders.map(order => buildOrderLabelZpl(orderToZplOrder(order)))
+  const labelOrders = orders.flatMap(expandOrderForFulfillment)
+  const labelBlocks = labelOrders.map(order => buildOrderLabelZpl(orderToZplOrder(order)))
   console.log('[bulk-print] Generating ZPL labels', {
     orderCount: orders.length,
     labelBlockCount: labelBlocks.length,
-    orderNumbers: orders.map(o => o.order_number),
+    orderNumbers: labelOrders.map(o => o.order_number),
   })
   // Each block is already ^XA … ^XZ; separate with newlines for multi-label .zpl files.
   return labelBlocks.join('\n')

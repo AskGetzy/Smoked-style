@@ -28,6 +28,8 @@ export type EmailOrder = {
   subtotal?: number | null
   delivery_fee?: number | null
   total: number
+  bulk_payment_method?: 'payment_link' | 'cash' | 'check' | 'card_on_file' | null
+  bulk_paid_at?: string | null
   customers?: EmailCustomer | null
   order_items?: EmailOrderItem[] | null
 }
@@ -281,10 +283,13 @@ export async function sendOrderConfirmation(order: EmailOrder) {
 
 export async function sendOrderApproval(order: EmailOrder) {
   const subject = `Your Smoked Style Order #${order.order_number} is Confirmed!`
+  const alreadyPaid = Boolean(order.bulk_paid_at)
   return sendEmail(order, subject, layout({
     preview: `Your Smoked Style order #${order.order_number} is confirmed`,
     heading: 'Your order is confirmed',
-    intro: `Your order has been approved! Your card will be charged ${formatCurrency(order.total)} when your order is out for delivery or ready for pickup.`,
+    intro: alreadyPaid
+      ? `Your order has been approved and your payment of ${formatCurrency(order.total)} has already been recorded.`
+      : `Your order has been approved! Your card will be charged ${formatCurrency(order.total)} when your order is out for delivery or ready for pickup.`,
     order,
     extra: renderOrderTrackingButton(order.order_number),
   }))
@@ -364,6 +369,35 @@ export async function sendOrderDelivered(order: EmailOrder) {
       ${renderOrderTrackingButton(order.order_number)}
     `,
   }))
+}
+
+export async function sendBulkPaymentLinkEmail(input: {
+  order_number: string
+  total: number
+  customerName: string
+  email: string
+  paymentUrl: string
+}) {
+  const subject = `Complete payment for your Smoked Style bulk order #${input.order_number}`
+  return sendEmailToAddress(
+    input.email,
+    subject,
+    `<!doctype html>
+      <html>
+        <body style="margin:0;padding:24px;background:#0f172a;font-family:Arial,Helvetica,sans-serif;">
+          <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:22px;overflow:hidden;">
+            <div style="background:#0f172a;padding:28px 24px;text-align:center;color:#ffffff;font-size:26px;font-weight:900;letter-spacing:.04em;">SMOKED <span style="color:#f97316;">STYLE</span></div>
+            <div style="padding:28px 24px;">
+              <h1 style="margin:0 0 12px;color:#111827;font-size:24px;">Your bulk order is ready for payment</h1>
+              <p style="margin:0 0 16px;color:#374151;font-size:16px;line-height:1.55;">Hi ${escapeHtml(input.customerName)}, please use the secure Stripe checkout link below to pay for bulk order <strong>#${escapeHtml(input.order_number)}</strong>.</p>
+              <p style="margin:0 0 18px;color:#111827;font-size:18px;font-weight:800;">Total due: ${formatCurrency(input.total)}</p>
+              <p style="margin:0 0 22px;"><a href="${escapeHtml(input.paymentUrl)}" style="display:inline-block;border-radius:12px;background:#f97316;padding:14px 24px;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;">Pay bulk order</a></p>
+              <p style="margin:0;color:#6b7280;font-size:14px;line-height:1.5;">If you have any questions, call ${CONTACT_PHONE} or email ${CONTACT_EMAIL}.</p>
+            </div>
+          </div>
+        </body>
+      </html>`,
+  )
 }
 
 export async function sendPaymentFailedAdmin(orderNumber: string, customerName: string) {

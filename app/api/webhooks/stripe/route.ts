@@ -207,6 +207,49 @@ async function handleChargeRefunded(
   })
 }
 
+async function handleCheckoutSessionCompleted(
+  supabase: ReturnType<typeof createServerClient>,
+  session: Stripe.Checkout.Session,
+) {
+  const orderId = session.metadata?.orderId
+  if (!orderId) {
+    console.warn('[stripe-webhook] checkout.session.completed: missing orderId metadata', {
+      sessionId: session.id,
+    })
+    return
+  }
+
+  const paidAt = new Date().toISOString()
+  const paymentIntentId =
+    typeof session.payment_intent === 'string'
+      ? session.payment_intent
+      : session.payment_intent?.id ?? null
+
+  const { error } = await supabase
+    .from('orders')
+    .update({
+      bulk_payment_method: 'payment_link',
+      bulk_paid_at: paidAt,
+      stripe_payment_intent_id: paymentIntentId,
+    })
+    .eq('id', orderId)
+
+  if (error) {
+    console.error('[stripe-webhook] Failed to mark bulk order paid', {
+      orderId,
+      sessionId: session.id,
+      message: error.message,
+    })
+    return
+  }
+
+  console.log('[stripe-webhook] Bulk order marked paid from checkout session', {
+    orderId,
+    sessionId: session.id,
+    paymentIntentId,
+  })
+}
+
 export async function POST(req: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
   if (!webhookSecret) {
@@ -250,6 +293,12 @@ export async function POST(req: NextRequest) {
       case 'charge.refunded': {
         const charge = event.data.object as Stripe.Charge
         await handleChargeRefunded(supabase, charge)
+        break
+      }
+
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session
+        await handleCheckoutSessionCompleted(supabase, session)
         break
       }
 

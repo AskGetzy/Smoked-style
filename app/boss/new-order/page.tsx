@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BossLine, Customer, DeliveryArea, Product } from '@/types'
 import BossCardPayment, { type BossCardPaymentHandle } from '@/components/BossCardPayment'
@@ -397,6 +398,14 @@ export default function BossNewOrderPage() {
   return (
     <>
       <div className="space-y-5 p-4 pb-52 text-base">
+        <div className="rounded-3xl bg-white p-4 shadow-sm">
+          <Link
+            href="/boss/bulk"
+            className="flex min-h-12 items-center justify-center rounded-2xl border border-gray-200 bg-white px-4 text-base font-black text-gray-800"
+          >
+            Bulk Order Upload
+          </Link>
+        </div>
         <section className="rounded-3xl bg-white p-4 shadow-sm">
           <h2 className="mb-3 text-lg font-black">Customer</h2>
 

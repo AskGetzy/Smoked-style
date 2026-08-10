@@ -200,6 +200,24 @@ export default function BossOrderDetailPage() {
         </section>
       )}
 
+      {order.is_bulk_order && (order.bulk_order_recipients?.length ?? 0) > 0 && (
+        <section className="rounded-2xl bg-white p-3 shadow-sm">
+          <h2 className="mb-2 text-base font-black">Recipients</h2>
+          <div className="space-y-2">
+            {order.bulk_order_recipients?.map(recipient => (
+              <div key={recipient.id} className="rounded-xl border border-gray-100 p-3">
+                <div className="font-bold">{recipient.recipient_name}</div>
+                <div className="text-sm text-gray-500">
+                  {recipient.product_name} · {recipient.order_type} · {recipient.delivery_date ?? 'No date'}
+                </div>
+                {recipient.address && <div className="text-sm text-gray-500">{recipient.address}</div>}
+                {recipient.gift_message && <div className="mt-2 rounded-xl bg-orange-50 p-2 text-sm">{recipient.gift_message}</div>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="rounded-2xl bg-white p-3 text-sm shadow-sm">
         <div className="flex justify-between">
           <span>Delivery fee</span>

@@ -55,6 +55,7 @@ export interface Customer {
   email: string
   phone: string | null
   stripe_customer_id: string | null
+  has_card_on_file?: boolean
   tags: string[]
   admin_notes: string | null
   saved_address_1?: string | null
@@ -66,10 +67,38 @@ export interface Customer {
   created_at: string
 }
 
+export type BulkOrderPaymentMethod = 'payment_link' | 'cash' | 'check' | 'card_on_file'
+
+export interface BulkOrderRecipient {
+  id: string
+  order_id: string | null
+  recipient_name: string
+  recipient_phone: string | null
+  product_id: string | null
+  product_name: string
+  flavor: string | null
+  weight: number | null
+  size: string | null
+  unit_price: number | null
+  quantity: number
+  order_type: 'delivery' | 'pickup'
+  delivery_area_id: string | null
+  delivery_area: string | null
+  address: string | null
+  delivery_date: string | null
+  notes: string | null
+  gift_message: string | null
+  line_total: number | null
+  created_at: string
+  products?: { name: string | null; size_label?: string | null } | null
+  delivery_areas?: { name: string | null } | null
+}
+
 export interface Order {
   id: string
   order_number: string
   customer_id: string
+  buyer_customer_id?: string | null
   status:
     | 'pending'
     | 'approved'
@@ -96,6 +125,10 @@ export interface Order {
   gift_message: string | null
   stripe_payment_intent_id: string | null
   is_bulk_order: boolean
+  bulk_total?: number | null
+  bulk_payment_method?: BulkOrderPaymentMethod | null
+  bulk_paid_at?: string | null
+  bulk_payment_link_url?: string | null
   created_at: string
   approved_at: string | null
   delivered_at: string | null
@@ -104,6 +137,7 @@ export interface Order {
   customers?: Customer
   order_items?: OrderItem[]
   delivery_areas?: { name: string } | null
+  bulk_order_recipients?: BulkOrderRecipient[]
 }
 
 export interface OrderItem {

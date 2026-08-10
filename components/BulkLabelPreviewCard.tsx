@@ -1,7 +1,12 @@
 'use client'
 
 import { formatDeliveryDate } from '@/lib/dates'
-import { displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
+import {
+  displayBuyerName,
+  displayBuyerPhone,
+  displayRecipientName,
+  displayRecipientPhone,
+} from '@/lib/order-buyer'
 import type { Order, OrderItem } from '@/types'
 
 function formatItemLine(item: OrderItem) {
@@ -69,9 +74,12 @@ export default function BulkLabelPreviewCard({ order, checked, onCheckedChange }
       </div>
 
       <div className="space-y-2 border-t border-gray-100 pt-3 text-sm text-gray-800">
-        <p className="font-semibold text-gray-900">{displayBuyerName(order)}</p>
-        {displayBuyerPhone(order) && (
-          <p className="text-gray-600">{displayBuyerPhone(order)}</p>
+        <p className="font-semibold text-gray-900">{displayRecipientName(order) || displayBuyerName(order)}</p>
+        {(displayRecipientPhone(order) || displayBuyerPhone(order)) && (
+          <p className="text-gray-600">{displayRecipientPhone(order) || displayBuyerPhone(order)}</p>
+        )}
+        {displayRecipientName(order) && displayRecipientName(order) !== displayBuyerName(order) && (
+          <p className="text-xs text-gray-500">Buyer: {displayBuyerName(order)}</p>
         )}
 
         <div

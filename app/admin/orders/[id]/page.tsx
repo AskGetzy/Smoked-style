@@ -396,6 +396,33 @@ export default function OrderDetailPage() {
           )}
         </div>
 
+        {order.is_bulk_order && (order.bulk_order_recipients?.length ?? 0) > 0 && (
+          <div className="bg-white rounded-xl border border-gray-100 p-4 mb-4">
+            <h3 className="mb-3 font-semibold text-gray-900">Recipients</h3>
+            <div className="space-y-3">
+              {order.bulk_order_recipients?.map(recipient => (
+                <div key={recipient.id} className="rounded-xl border border-gray-100 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-gray-900">{recipient.recipient_name}</p>
+                      <p className="text-sm text-gray-500">
+                        {recipient.product_name} · {recipient.order_type} · {recipient.delivery_date ?? 'No date'}
+                      </p>
+                      {recipient.address && <p className="text-sm text-gray-500">{recipient.address}</p>}
+                      {recipient.gift_message && (
+                        <p className="mt-2 text-sm italic text-amber-900">"{recipient.gift_message}"</p>
+                      )}
+                    </div>
+                    <div className="text-right font-semibold text-gray-900">
+                      ${Number(recipient.line_total ?? 0).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Totals */}
         <div className="bg-white rounded-xl border border-gray-100 p-4">
           <div className="space-y-2 text-sm">

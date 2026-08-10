@@ -144,7 +144,11 @@ export default function OrdersPage() {
     const matchSearch =
       search === '' ||
       orderMatchesNumberSearch(o.order_number, search) ||
-      displayBuyerName(o).toLowerCase().includes(search.toLowerCase())
+      displayBuyerName(o).toLowerCase().includes(search.toLowerCase()) ||
+      (o.bulk_order_recipients ?? []).some(recipient =>
+        recipient.recipient_name.toLowerCase().includes(search.toLowerCase()) ||
+        recipient.product_name.toLowerCase().includes(search.toLowerCase()),
+      )
     const matchSummaryDate =
       normalizeDeliveryDate(o.delivery_date) === summaryDate
     const matchFulfillment =
@@ -176,6 +180,12 @@ export default function OrdersPage() {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            <Link
+              href="/admin/orders/bulk"
+              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-800 shadow-sm hover:border-orange-200"
+            >
+              Bulk Order
+            </Link>
             <button
               type="button"
               onClick={() => setBulkPrintOpen(true)}

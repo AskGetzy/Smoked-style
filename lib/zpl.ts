@@ -13,6 +13,8 @@ export type ZplOrder = {
   order_number: string
   buyer_name?: string | null
   buyer_phone?: string | null
+  recipient_name?: string | null
+  recipient_phone?: string | null
   order_type?: string | null
   delivery_address?: string | null
   delivery_area_name?: string | null
@@ -63,14 +65,19 @@ export function buildOrderLabelZpl(order: ZplOrder): string {
     '^CI28',
     '^FO30,20^A0N,34,34^FDSMOKED STYLE^FS',
     `^FO30,62^A0N,26,26^FD${zplEscape(order.order_number)}^FS`,
-    `^FO30,96^A0N,22,22^FD${zplEscape(order.buyer_name || 'Customer')}^FS`,
+    `^FO30,96^A0N,24,24^FD${zplEscape(order.recipient_name || order.buyer_name || 'Customer')}^FS`,
   ]
 
-  if (order.buyer_phone) {
-    lines.push(`^FO30,124^A0N,20,20^FD${zplEscape(order.buyer_phone)}^FS`)
+  if (order.recipient_phone || order.buyer_phone) {
+    lines.push(`^FO30,124^A0N,20,20^FD${zplEscape(order.recipient_phone || order.buyer_phone || '')}^FS`)
   }
 
-  let y = order.buyer_phone ? 154 : 128
+  let y = order.recipient_phone || order.buyer_phone ? 154 : 128
+
+  if (order.recipient_name && order.buyer_name && order.recipient_name !== order.buyer_name) {
+    lines.push(`^FO30,${y}^A0N,16,16^FDFrom: ${zplEscape(order.buyer_name)}^FS`)
+    y += 22
+  }
 
   if (isPickup) {
     lines.push(`^FO30,${y}^A0N,48,48^FDPICKUP^FS`)

@@ -41,6 +41,12 @@ function matchesSearch(order: Order, query: string) {
     order.buyer_name?.toLowerCase().includes(q) ||
     customer?.full_name?.toLowerCase().includes(q) ||
     order.recipient_name?.toLowerCase().includes(q) ||
+    (order.bulk_order_recipients ?? []).some(recipient =>
+      recipient.recipient_name.toLowerCase().includes(q) ||
+      (recipient.recipient_phone ?? '').toLowerCase().includes(q) ||
+      recipient.product_name.toLowerCase().includes(q) ||
+      (recipient.address ?? '').toLowerCase().includes(q),
+    ) ||
     (queryDigits.length > 0 && phoneDigits.includes(queryDigits)) ||
     customer?.email?.toLowerCase().includes(q) ||
     order.delivery_address?.toLowerCase().includes(q) ||

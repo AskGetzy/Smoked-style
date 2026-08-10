@@ -1,5 +1,11 @@
 import { formatDeliveryDate } from '@/lib/dates'
-import { displayBuyerName, displayBuyerPhone } from '@/lib/order-buyer'
+import { expandOrderForFulfillment } from '@/lib/bulk-order-display'
+import {
+  displayBuyerName,
+  displayBuyerPhone,
+  displayRecipientName,
+  displayRecipientPhone,
+} from '@/lib/order-buyer'
 import {
   ORDER_TRACKING_CONTACT_EMAIL,
   ORDER_TRACKING_CONTACT_PHONE,
@@ -59,8 +65,17 @@ export function buildPackingSlipHtml(order: Order) {
         <div class="contact">${ORDER_TRACKING_CONTACT_PHONE} · ${ORDER_TRACKING_CONTACT_EMAIL}</div>
       </header>
       <h1>Order ${escapeHtml(order.order_number)}</h1>
-      <p class="customer"><strong>${escapeHtml(displayBuyerName(order))}</strong></p>
-      ${displayBuyerPhone(order) ? `<p class="muted">${escapeHtml(displayBuyerPhone(order))}</p>` : ''}
+      <p class="customer"><strong>${escapeHtml(displayRecipientName(order) || displayBuyerName(order))}</strong></p>
+      ${
+        displayRecipientPhone(order) || displayBuyerPhone(order)
+          ? `<p class="muted">${escapeHtml(displayRecipientPhone(order) || displayBuyerPhone(order))}</p>`
+          : ''
+      }
+      ${
+        displayRecipientName(order) && displayRecipientName(order) !== displayBuyerName(order)
+          ? `<p class="muted">Buyer: ${escapeHtml(displayBuyerName(order))}</p>`
+          : ''
+      }
       <div class="meta">
         <p><strong>${isPickup ? 'Pickup' : 'Delivery'}</strong></p>
         ${!isPickup && order.delivery_address ? `<p>${escapeHtml(order.delivery_address)}</p>` : ''}
@@ -110,10 +125,11 @@ const PACKING_SLIP_STYLES = `
 `
 
 export function buildBulkPackingSlipsHtml(orders: Order[]) {
-  const body = orders
+  const printableOrders = orders.flatMap(expandOrderForFulfillment)
+  const body = printableOrders
     .map((order, index) => {
       const slip = buildPackingSlipHtml(order)
-      if (index === orders.length - 1) return slip
+      if (index === printableOrders.length - 1) return slip
       return `${slip}<div class="page-break"></div>`
     })
     .join('')

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import BulkLabelPreviewCard from '@/components/BulkLabelPreviewCard'
+import { expandOrderForFulfillment } from '@/lib/bulk-order-display'
 import {
   buildBulkLabelsZpl,
   buildBulkPrintSearchParams,
@@ -149,7 +150,7 @@ export default function BulkPrintModal({ open, onClose, defaultDeliveryDate }: P
     setError('')
 
     try {
-      const orders = await fetchFilteredOrders(filters)
+      const orders = (await fetchFilteredOrders(filters)).flatMap(expandOrderForFulfillment)
       if (orders.length === 0) {
         setError('No orders match these filters.')
         return

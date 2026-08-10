@@ -1,3 +1,4 @@
+import { expandOrderForFulfillment } from '@/lib/bulk-order-display'
 import { normalizeDeliveryDate } from '@/lib/dates'
 import type { Order } from '@/types'
 
@@ -18,7 +19,9 @@ export type FulfillmentSummary = {
 }
 
 export function ordersForDeliveryDate(orders: Order[], date: string) {
-  return orders.filter(order => normalizeDeliveryDate(order.delivery_date) === date)
+  return orders.flatMap(order =>
+    expandOrderForFulfillment(order).filter(stop => normalizeDeliveryDate(stop.delivery_date) === date),
+  )
 }
 
 export function buildFulfillmentSummary(orders: Order[]): FulfillmentSummary {
@@ -27,7 +30,7 @@ export function buildFulfillmentSummary(orders: Order[]): FulfillmentSummary {
   let pickupCount = 0
   let totalDeliveries = 0
 
-  for (const order of orders) {
+  for (const order of orders.flatMap(expandOrderForFulfillment)) {
     if (order.order_type === 'pickup') {
       pickupCount += 1
       continue
@@ -57,9 +60,11 @@ export function orderMatchesFulfillmentFilter(
   filter: FulfillmentFilter | null,
 ): boolean {
   if (!filter) return true
-  if (filter.kind === 'pickup') return order.order_type === 'pickup'
-  if (order.order_type === 'pickup') return false
-  return order.delivery_area_id === filter.areaId
+  return expandOrderForFulfillment(order).some(stop => {
+    if (filter.kind === 'pickup') return stop.order_type === 'pickup'
+    if (stop.order_type === 'pickup') return false
+    return stop.delivery_area_id === filter.areaId
+  })
 }
 
 export function fulfillmentFilterKey(filter: FulfillmentFilter | null): string | null {

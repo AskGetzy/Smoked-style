@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/admin-auth'
+import { orderMatchesBulkFilters } from '@/lib/bulk-order-display'
 import { normalizeDeliveryDate } from '@/lib/dates'
 
 export async function GET(req: NextRequest) {
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
     if (orderId) {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, customers(*), order_items(*), delivery_areas(name)')
+        .select('*, customers(*), order_items(*), delivery_areas(name), bulk_order_recipients(*, products(name, size_label), delivery_areas(name))')
         .eq('id', orderId)
         .single()
 
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from('orders')
-      .select('*, customers(full_name, email, phone), order_items(*), delivery_areas(name)')
+      .select('*, customers(full_name, email, phone), order_items(*), delivery_areas(name), bulk_order_recipients(*, products(name, size_label), delivery_areas(name))')
 
     const deliveryDate = req.nextUrl.searchParams.get('delivery_date')
     const deliveryAreaId = req.nextUrl.searchParams.get('delivery_area_id')
@@ -35,28 +36,7 @@ export async function GET(req: NextRequest) {
     const orderType = req.nextUrl.searchParams.get('order_type') || 'all'
 
     const normalizedDeliveryDate = deliveryDate ? normalizeDeliveryDate(deliveryDate) : null
-    if (normalizedDeliveryDate) {
-      query = query.eq('delivery_date', normalizedDeliveryDate)
-    }
-    if (statusesParam) {
-      const statuses = statusesParam.split(',').map(s => s.trim()).filter(Boolean)
-      if (statuses.length > 0) {
-        query = query.in('status', statuses)
-      }
-    }
-
-    if (orderType === 'pickup') {
-      query = query.eq('order_type', 'pickup')
-    } else if (orderType === 'delivery') {
-      query = query.eq('order_type', 'delivery')
-      if (deliveryAreaId) {
-        query = query.eq('delivery_area_id', deliveryAreaId)
-      }
-    } else if (deliveryAreaId) {
-      query = query.or(
-        `and(order_type.eq.delivery,delivery_area_id.eq.${deliveryAreaId}),order_type.eq.pickup`,
-      )
-    }
+    const statuses = statusesParam?.split(',').map(s => s.trim()).filter(Boolean) ?? []
 
     const hasBulkPrintFilters = Boolean(
       normalizedDeliveryDate || deliveryAreaId || statusesParam,
@@ -79,7 +59,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const orders = data ?? []
+    let orders = (data ?? []) as any[]
+
+    if (normalizedDeliveryDate || deliveryAreaId || statuses.length > 0 || orderType !== 'all') {
+      orders = orders.filter(order =>
+        orderMatchesBulkFilters(order, {
+          deliveryDate: normalizedDeliveryDate,
+          deliveryAreaId,
+          orderType: orderType as 'all' | 'delivery' | 'pickup',
+          statuses,
+        }),
+      )
+    }
 
     return NextResponse.json({ orders, count: orders.length })
   } catch (e: unknown) {
