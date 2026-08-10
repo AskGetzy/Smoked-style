@@ -32,8 +32,8 @@ export default function Header({
             <Image
               src="/logo-mark-white.png"
               alt=""
-              width={40}
-              height={41}
+              width={328}
+              height={320}
               className="h-9 w-auto"
               priority
             />

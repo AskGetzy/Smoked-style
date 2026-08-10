@@ -214,8 +214,8 @@ body {
 
 .smoke-wisp {
   position: absolute;
-  left: 13%;
-  top: 9%;
+  left: 9%;
+  top: 8%;
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -227,7 +227,7 @@ body {
 }
 
 .smoke-wisp-2 {
-  left: 17%;
+  left: 13%;
   width: 7px;
   height: 7px;
   animation-delay: 0.9s;
@@ -235,7 +235,7 @@ body {
 }
 
 .smoke-wisp-3 {
-  left: 10%;
+  left: 6%;
   width: 9px;
   height: 9px;
   animation-delay: 1.8s;
@@ -243,7 +243,7 @@ body {
 }
 
 .smoke-wisp-4 {
-  left: 14%;
+  left: 10%;
   width: 6px;
   height: 6px;
   animation-delay: 2.7s;
