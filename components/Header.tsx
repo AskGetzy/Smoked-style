@@ -40,6 +40,7 @@ export default function Header({
             <span className="smoke-wisp smoke-wisp-1" aria-hidden />
             <span className="smoke-wisp smoke-wisp-2" aria-hidden />
             <span className="smoke-wisp smoke-wisp-3" aria-hidden />
+            <span className="smoke-wisp smoke-wisp-4" aria-hidden />
           </span>
           <span
             className="text-lg uppercase text-white sm:text-xl"
