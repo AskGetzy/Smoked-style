@@ -21,7 +21,8 @@
 }
 
 body {
-  background: var(--rustic-bg);
+  background-color: var(--rustic-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
   font-family: 'DM Sans', sans-serif;
   color: #1f2937;
 }
@@ -209,6 +210,65 @@ body {
   background: linear-gradient(90deg, #ede6dc 25%, #f5f0e8 50%, #ede6dc 75%);
   background-size: 200% 100%;
   animation: rustic-shimmer 1.5s infinite;
+}
+
+.smoke-wisp {
+  position: absolute;
+  left: 9%;
+  top: 8%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.15) 55%, rgba(255, 255, 255, 0) 75%);
+  filter: blur(0.8px);
+  pointer-events: none;
+  opacity: 0;
+  animation: smoke-drift 3.6s ease-out infinite;
+}
+
+.smoke-wisp-2 {
+  left: 13%;
+  width: 7px;
+  height: 7px;
+  animation-delay: 0.9s;
+  animation-duration: 4.1s;
+}
+
+.smoke-wisp-3 {
+  left: 6%;
+  width: 9px;
+  height: 9px;
+  animation-delay: 1.8s;
+  animation-duration: 3.2s;
+}
+
+.smoke-wisp-4 {
+  left: 10%;
+  width: 6px;
+  height: 6px;
+  animation-delay: 2.7s;
+  animation-duration: 3.8s;
+}
+
+@keyframes smoke-drift {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0;
+  }
+  16% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(15px, -26px) scale(2.8);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smoke-wisp {
+    animation: none;
+    display: none;
+  }
 }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
