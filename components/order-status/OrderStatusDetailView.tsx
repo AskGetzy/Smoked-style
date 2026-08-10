@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import OrderStatusBar from '@/components/order-status/OrderStatusBar'
 import {
@@ -9,6 +10,9 @@ import {
   publicStatusLabel,
   type PublicOrderDetail,
 } from '@/lib/order-tracking'
+import { buildReorderCartItems, mergeCartItems } from '@/lib/reorder'
+import { createBrowserSupabaseClient } from '@/lib/supabase-client'
+import type { CartItem, Product } from '@/types'
 
 type OrderPayload = PublicOrderDetail & { fetched_at?: string }
 
@@ -17,10 +21,13 @@ type Props = {
 }
 
 export default function OrderStatusDetailView({ orderNumber }: Props) {
+  const router = useRouter()
   const [order, setOrder] = useState<OrderPayload | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
+  const [reordering, setReordering] = useState(false)
+  const [reorderMessage, setReorderMessage] = useState('')
 
   const refreshStatus = useCallback(async () => {
     setRefreshing(true)
@@ -51,6 +58,46 @@ export default function OrderStatusDetailView({ orderNumber }: Props) {
       setRefreshing(false)
     }
   }, [orderNumber])
+
+  const handleReorder = useCallback(async () => {
+    if (!order || order.order_items.length === 0) return
+    setReordering(true)
+    setReorderMessage('')
+
+    try {
+      const supabase = createBrowserSupabaseClient()
+      const { data: products, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+
+      if (productsError) throw new Error(productsError.message)
+
+      const { added, skipped } = buildReorderCartItems(
+        order.order_items,
+        (products ?? []) as Product[],
+      )
+
+      if (added.length === 0) {
+        setReorderMessage('Sorry, none of these items are available right now.')
+        return
+      }
+
+      const stored = localStorage.getItem('smoked-cart')
+      const existing: CartItem[] = stored ? JSON.parse(stored) : []
+      localStorage.setItem('smoked-cart', JSON.stringify(mergeCartItems(existing, added)))
+
+      if (skipped.length > 0) {
+        setReorderMessage(`Added ${added.length} item(s). Not available: ${skipped.join(', ')}.`)
+        setTimeout(() => router.push('/cart'), 1500)
+      } else {
+        router.push('/cart')
+      }
+    } catch {
+      setReorderMessage('Could not reorder. Please try again.')
+    } finally {
+      setReordering(false)
+    }
+  }, [order, router])
 
   useEffect(() => {
     setLoading(true)
@@ -153,6 +200,21 @@ export default function OrderStatusDetailView({ orderNumber }: Props) {
             ))
           )}
         </ul>
+
+        {order.order_items.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void handleReorder()}
+            disabled={reordering}
+            className="mt-3 w-full rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-60"
+            style={{ background: 'var(--rustic-ember, #C8521A)' }}
+          >
+            {reordering ? 'Adding to cart…' : 'Reorder these items'}
+          </button>
+        )}
+        {reorderMessage && (
+          <p className="mt-2 text-center text-xs text-gray-600">{reorderMessage}</p>
+        )}
       </div>
 
       {order.gift_message && (
