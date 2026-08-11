@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import Link from 'next/link'
 import AdminLayout from '@/components/AdminLayout'
 import JerkyInventoryPanel from '@/components/JerkyInventoryPanel'
 import { createBrowserSupabaseClient } from '@/lib/supabase-client'
@@ -36,11 +37,33 @@ export default function InventoryPage() {
   async function updateProduct(product: Product) {
     setSaving(product.id)
     setSaveError(null)
-    const { product: updated, error } = await patchProductInventory(product.id, {
-      stock_quantity: product.stock_quantity,
-      price: product.price,
-      description: product.description?.trim() || null,
-    })
+
+    const { data: currentRow } = await supabase
+      .from('products')
+      .select('stock_quantity')
+      .eq('id', product.id)
+      .single()
+
+    const previousQuantity = Number(currentRow?.stock_quantity ?? product.stock_quantity)
+    const newQuantity = Number(product.stock_quantity)
+    const changeAmount = newQuantity - previousQuantity
+
+    const { product: updated, error } = await patchProductInventory(
+      product.id,
+      {
+        stock_quantity: product.stock_quantity,
+        price: product.price,
+        description: product.description?.trim() || null,
+      },
+      changeAmount !== 0
+        ? {
+            change_amount: changeAmount,
+            previous_quantity: previousQuantity,
+            new_quantity: newQuantity,
+            reason: 'Manual adjustment',
+          }
+        : undefined,
+    )
     if (error) {
       setSaveError(error)
       setSaving(null)
@@ -63,6 +86,16 @@ export default function InventoryPage() {
   async function toggleCustomerVisibility(id: string, current: boolean) {
     setSaveError(null)
     const { product, error } = await patchProductInventory(id, { is_customer_visible: !current })
+    if (error) {
+      setSaveError(error)
+      return
+    }
+    if (product) updateProductInState(product)
+  }
+
+  async function togglePurim(id: string, current: boolean) {
+    setSaveError(null)
+    const { product, error } = await patchProductInventory(id, { is_featured_purim: !current })
     if (error) {
       setSaveError(error)
       return
@@ -131,7 +164,15 @@ export default function InventoryPage() {
   return (
     <AdminLayout>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--navy)' }}>{t.inventory}</h1>
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>{t.inventory}</h1>
+          <Link
+            href="/admin/inventory/history"
+            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            📉 Stock History
+          </Link>
+        </div>
         <input
           value={search} onChange={e => setSearch(e.target.value)}
           placeholder={t.searchProductsPlaceholder}
@@ -229,6 +270,12 @@ export default function InventoryPage() {
                               className={`rounded-lg px-2 py-1 text-xs font-semibold ${customerVisible ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'}`}
                             >
                               {customerVisible ? t.visibleToCustomers : t.hiddenFromCustomers}
+                            </button>
+                            <button
+                              onClick={() => togglePurim(p.id, p.is_featured_purim)}
+                              className={`rounded-lg px-2 py-1 text-xs font-semibold ${p.is_featured_purim ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-600'}`}
+                            >
+                              {p.is_featured_purim ? '🎉 Purim Special' : 'Not Purim'}
                             </button>
                           </div>
                         </div>

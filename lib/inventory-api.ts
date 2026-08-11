@@ -15,6 +15,7 @@ export async function patchProductInventory(
       | 'price'
       | 'is_in_stock'
       | 'is_customer_visible'
+      | 'is_featured_purim'
       | 'stock_quantity'
       | 'jerky_flavor_stock'
       | 'jerky_flavor_thresholds'
