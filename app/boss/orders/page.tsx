@@ -56,6 +56,7 @@ export default function BossOrdersPage() {
   const [search, setSearch] = useState('')
   const [location, setLocation] = useState('')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   useEffect(() => {
     const requested = searchParams.get('status')
     if (requested && (TABS as readonly string[]).includes(requested)) {
@@ -66,10 +67,23 @@ export default function BossOrdersPage() {
   useEffect(() => { void loadOrders() }, [])
 
   async function loadOrders() {
-    const res = await fetchWithAuth('/api/admin/orders')
-    const data = await res.json()
-    setOrders(data.orders ?? [])
-    setLoading(false)
+    setError(null)
+    try {
+      const res = await fetchWithAuth('/api/admin/orders')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !Array.isArray(data.orders)) {
+        setError(data.error ?? `Could not load orders (${res.status})`)
+        setOrders([])
+        setLoading(false)
+        return
+      }
+      setOrders(data.orders)
+    } catch {
+      setError('Could not load orders. Check your connection and try again.')
+      setOrders([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   const locations = useMemo(() => {
@@ -87,6 +101,18 @@ export default function BossOrdersPage() {
 
   return (
     <div className="p-4 pb-6">
+      {error && (
+        <div className="mb-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <p className="mb-2 font-bold">{error}</p>
+          <button
+            type="button"
+            onClick={() => { setLoading(true); void loadOrders() }}
+            className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-bold text-white"
+          >
+            Try again
+          </button>
+        </div>
+      )}
       <div className="mb-3 flex justify-end">
         <Link
           href="/boss/orders/bulk-upload"
