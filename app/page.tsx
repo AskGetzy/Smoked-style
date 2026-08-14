@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useSupabaseUser } from '@/lib/use-supabase-user'
 import type { Product, CartItem } from '@/types'
@@ -64,6 +64,7 @@ export default function CatalogPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [floatingCartMounted, setFloatingCartMounted] = useState(false)
   const [floatingCartVisible, setFloatingCartVisible] = useState(false)
+  const catalogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const stored = localStorage.getItem('smoked-cart')
@@ -299,6 +300,36 @@ export default function CatalogPage() {
         onSignOut={() => void supabase.auth.signOut()}
       />
 
+      {/* Hero */}
+      <section className="hero-section">
+        <div className="hero-smoke" style={{ width: 180, height: 180, left: '12%', bottom: '10%', animationDuration: '7s', animationDelay: '0s' }} />
+        <div className="hero-smoke" style={{ width: 120, height: 120, left: '70%', bottom: '5%', animationDuration: '9s', animationDelay: '2s' }} />
+        <div className="hero-smoke" style={{ width: 90, height: 90, left: '40%', bottom: '0%', animationDuration: '6s', animationDelay: '4s' }} />
+        <div className="relative z-10 mx-auto max-w-lg">
+          <p className="hero-eyebrow">Artisan Smoked Meats</p>
+          <h1 className="hero-headline">
+            Crafted<br />
+            <em>To Perfection</em>
+          </h1>
+          <p className="hero-sub">
+            Hand-smoked in small batches — fresh, bold flavours delivered right to your door.
+          </p>
+          <div className="hero-pills">
+            <span className="hero-pill">🔥 Hand-Smoked</span>
+            <span className="hero-pill">🌿 Fresh Daily</span>
+            <span className="hero-pill">🚚 Local Delivery</span>
+          </div>
+          <button
+            type="button"
+            className="hero-cta"
+            onClick={() => catalogRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          >
+            Shop Now
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+        </div>
+      </section>
+
       {/* Toast */}
       {toast && (
         <div
@@ -310,6 +341,7 @@ export default function CatalogPage() {
       )}
 
       <div
+        ref={catalogRef}
         className="sticky top-16 z-30 px-4 py-3"
         style={{ background: 'var(--rustic-bg)', borderBottom: '1px solid var(--rustic-rule)' }}
       >
